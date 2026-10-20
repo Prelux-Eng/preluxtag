@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="112" fill="#071b2d"/>
+  <ellipse cx="256" cy="230" rx="190" ry="112" fill="none" stroke="#1681d1" stroke-width="22"/>
+  <text x="256" y="255" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="92" font-weight="900" letter-spacing="-5" fill="#1681d1">PRELUX</text>
+  <text x="256" y="330" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="22" font-weight="700" letter-spacing="2" fill="#ffffff">ETIQUETAS</text>
+</svg>
