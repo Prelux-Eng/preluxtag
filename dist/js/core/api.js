@@ -69,6 +69,14 @@
     health: () => invoke("health"),
     rebuildCalendar: (startDate, endDate) =>
       invoke("rebuild-calendar", { startDate, endDate }),
+    getCalendar: (startDate, endDate) =>
+      invoke("calendar-admin", { action: "get", startDate, endDate }),
+    saveCalendarActivity: (input) =>
+      invoke("calendar-admin", { action: "save_activity", ...input }),
+    saveCalendarDay: (input) =>
+      invoke("calendar-admin", { action: "save_day", ...input }),
+    deleteCalendarActivity: (id, startDate, endDate) =>
+      invoke("calendar-admin", { action: "delete_activity", id, startDate, endDate }),
     planOrder: (input) => invoke("plan-order", input),
     commitOrderPlan: (input) => invoke("commit-order-plan", input),
     PreluxApiError,
