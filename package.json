@@ -1,0 +1,8 @@
+{
+  "name": "prelux-emissor-etiquetas",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test tests/planner.test.mjs"
+  }
+}
