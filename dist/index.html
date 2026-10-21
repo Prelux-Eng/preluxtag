@@ -89,6 +89,15 @@
     </div>
   </div>
   <div class="toast" id="toast"></div>
+  <script>
+    // A chave anon é pública por definição e é usada apenas para chamadas do navegador.
+    // A service_role permanece exclusiva das Edge Functions do Supabase.
+    window.PRELUX_CONFIG = {
+      supabaseUrl: 'https://azzjsddjsifufdjsmkoc.supabase.co',
+      supabaseAnonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF6empzZGRqc2lmdWZkanNta29jIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI1OTkzMDUsImV4cCI6MjEwODE3NTMwNX0.qAYOYhx5IamsvS_3ztHuPLzc63YdnkcucBJfBMvwzh8',
+      organizationId: '11111111-1111-4111-8111-111111111111'
+    };
+  </script>
   <script src="js/core/api.js"></script>
   <script>
     const $ = (id) => document.getElementById(id);
