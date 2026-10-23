@@ -71,6 +71,11 @@
       invoke("rebuild-calendar", { startDate, endDate }),
     getCalendar: (startDate, endDate) =>
       invoke("calendar-admin", { action: "get", startDate, endDate }),
+    getPlanningData: (startDate, endDate) =>
+      invoke("calendar-admin", { action: "planning_data", startDate, endDate }),
+    getCalendarSettings: () => invoke("calendar-admin", { action: "get_settings" }),
+    saveCalendarSettings: (input) =>
+      invoke("calendar-admin", { action: "save_settings", ...input }),
     saveCalendarActivity: (input) =>
       invoke("calendar-admin", { action: "save_activity", ...input }),
     saveCalendarDay: (input) =>
@@ -79,6 +84,14 @@
       invoke("calendar-admin", { action: "delete_activity", id, startDate, endDate }),
     planOrder: (input) => invoke("plan-order", input),
     commitOrderPlan: (input) => invoke("commit-order-plan", input),
+    getOperationsData: () => invoke("operations-admin", { action: "bootstrap" }),
+    saveWork: (input) => invoke("operations-admin", { action: "save_work", ...input }),
+    saveOrder: (input) => invoke("operations-admin", { action: "save_order", ...input }),
+    savePieceType: (input) => invoke("operations-admin", { action: "save_piece_type", ...input }),
+    saveMold: (input) => invoke("operations-admin", { action: "save_mold", ...input }),
+    saveMoldPreparation: (input) => invoke("operations-admin", { action: "save_preparation", ...input }),
+    saveResourceAllocation: (input) => invoke("operations-admin", { action: "save_allocation", ...input }),
+    archiveOperationRecord: (kind, id) => invoke("operations-admin", { action: "archive", kind, id }),
     PreluxApiError,
   };
 })(window);
