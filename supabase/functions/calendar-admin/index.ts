@@ -135,6 +135,96 @@ async function deleteActivity(db: ReturnType<typeof createAdminClient>, organiza
   return { deletedId: id, range, ...(await readCalendar(db, organizationId, range.startDate, range.endDate)) };
 }
 
+async function readPlanningData(db: ReturnType<typeof createAdminClient>, organizationId: string, startDate: string, endDate: string) {
+  const [{ data: orders, error: ordersError }, { data: schedules, error: schedulesError }] = await Promise.all([
+    db.from("orders")
+      .select("id, order_number, client_id, start_date, requested_due_date, planned_end_date, status")
+      .eq("organization_id", organizationId)
+      .eq("is_active", true)
+      .order("start_date")
+      .limit(1000),
+    db.from("production_schedules")
+      .select("id, order_id, order_item_id, piece_type_id, work_date, planned_quantity, planned_minutes, actual_quantity, status")
+      .eq("organization_id", organizationId)
+      .neq("status", "cancelled")
+      .gte("work_date", startDate)
+      .lte("work_date", endDate)
+      .order("work_date"),
+  ]);
+  if (ordersError) throw ordersError;
+  if (schedulesError) throw schedulesError;
+
+  const clientIds = [...new Set((orders || []).map((order) => order.client_id).filter(Boolean))];
+  const pieceTypeIds = [...new Set((schedules || []).map((schedule) => schedule.piece_type_id).filter(Boolean))];
+  const orderIds = (orders || []).map((order) => order.id);
+  const [clientsResult, pieceTypesResult, startedResult] = await Promise.all([
+    clientIds.length
+      ? db.from("clients").select("id, name").eq("organization_id", organizationId).in("id", clientIds)
+      : Promise.resolve({ data: [], error: null }),
+    pieceTypeIds.length
+      ? db.from("piece_types").select("id, code, name").eq("organization_id", organizationId).in("id", pieceTypeIds)
+      : Promise.resolve({ data: [], error: null }),
+    orderIds.length
+      ? db.from("production_schedules").select("order_id").eq("organization_id", organizationId).in("order_id", orderIds).in("status", ["in_progress", "done"])
+      : Promise.resolve({ data: [], error: null }),
+  ]);
+  if (clientsResult.error) throw clientsResult.error;
+  if (pieceTypesResult.error) throw pieceTypesResult.error;
+  if (startedResult.error) throw startedResult.error;
+
+  const clientById = new Map((clientsResult.data || []).map((client) => [client.id, client.name]));
+  const pieceById = new Map((pieceTypesResult.data || []).map((piece) => [piece.id, piece]));
+  return {
+    orders: (orders || []).map((order) => ({ ...order, client_name: clientById.get(order.client_id) || "" })),
+    schedules: (schedules || []).map((schedule) => ({
+      ...schedule,
+      piece_code: pieceById.get(schedule.piece_type_id)?.code || "",
+      piece_name: pieceById.get(schedule.piece_type_id)?.name || "",
+    })),
+    startedOrderIds: [...new Set((startedResult.data || []).map((schedule) => schedule.order_id))],
+  };
+}
+
+async function readCalendarSettings(db: ReturnType<typeof createAdminClient>, organizationId: string) {
+  const [{ data: settings, error: settingsError }, { data: rules, error: rulesError }] = await Promise.all([
+    db.from("calendar_settings").select("default_capacity_minutes, planning_horizon_days").eq("organization_id", organizationId).maybeSingle(),
+    db.from("calendar_working_rules").select("weekday, is_working, capacity_minutes").eq("organization_id", organizationId).order("weekday"),
+  ]);
+  if (settingsError) throw settingsError;
+  if (rulesError) throw rulesError;
+  return { settings: settings || { default_capacity_minutes: 480, planning_horizon_days: 365 }, rules: rules || [] };
+}
+
+async function saveCalendarSettings(db: ReturnType<typeof createAdminClient>, organizationId: string, payload: Record<string, unknown>) {
+  const defaultCapacityMinutes = nonNegativeInteger(payload.defaultCapacityMinutes, "capacidade padrão", 480);
+  if (defaultCapacityMinutes > 1440) throw badRequest("A capacidade padrão não pode ultrapassar 1440 minutos por dia.");
+  if (!Array.isArray(payload.rules) || payload.rules.length !== 7) throw badRequest("Informe a regra de trabalho para cada dia da semana.");
+  const seenWeekdays = new Set<number>();
+  const rules = payload.rules.map((value) => {
+    if (!value || typeof value !== "object") throw badRequest("Regra semanal inválida.");
+    const rule = value as Record<string, unknown>;
+    const weekday = Number(rule.weekday);
+    if (!Number.isInteger(weekday) || weekday < 0 || weekday > 6 || seenWeekdays.has(weekday)) throw badRequest("Cada dia da semana deve aparecer uma única vez.");
+    seenWeekdays.add(weekday);
+    const isWorking = booleanValue(rule.isWorking, false);
+    const capacityMinutes = nonNegativeInteger(rule.capacityMinutes, "capacidade do dia", defaultCapacityMinutes);
+    if (capacityMinutes > 1440) throw badRequest("A capacidade diária não pode ultrapassar 1440 minutos.");
+    return {
+      organization_id: organizationId,
+      weekday,
+      is_working: isWorking,
+      capacity_minutes: isWorking ? capacityMinutes : 0,
+    };
+  });
+  const [{ error: settingsError }, { error: rulesError }] = await Promise.all([
+    db.from("calendar_settings").upsert({ organization_id: organizationId, default_capacity_minutes: defaultCapacityMinutes }, { onConflict: "organization_id" }),
+    db.from("calendar_working_rules").upsert(rules, { onConflict: "organization_id,weekday" }),
+  ]);
+  if (settingsError) throw settingsError;
+  if (rulesError) throw rulesError;
+  return readCalendarSettings(db, organizationId);
+}
+
 async function handler(request: Request) {
   try {
     const method = ensurePost(request);
@@ -146,6 +236,16 @@ async function handler(request: Request) {
     if (action === "get") {
       const range = rangeFromPayload(payload);
       return json({ ok: true, range, ...(await readCalendar(db, config.organizationId, range.startDate, range.endDate)) });
+    }
+    if (action === "planning_data") {
+      const range = rangeFromPayload(payload);
+      return json({ ok: true, range, ...(await readPlanningData(db, config.organizationId, range.startDate, range.endDate)) });
+    }
+    if (action === "get_settings") {
+      return json({ ok: true, ...(await readCalendarSettings(db, config.organizationId)) });
+    }
+    if (action === "save_settings") {
+      return json({ ok: true, ...(await saveCalendarSettings(db, config.organizationId, payload)) });
     }
     if (action === "save_activity" || action === "save_day") {
       return json({ ok: true, ...(await saveActivity(db, config.organizationId, payload, action === "save_day")) });

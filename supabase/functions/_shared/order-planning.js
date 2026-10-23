@@ -89,7 +89,9 @@ export async function buildOrderPlan({ db, organizationId, input = {} }) {
     input.startDate || order.start_date || todayUTC(),
     "data de início",
   );
-  const requestedDueDate = input.requestedDueDate || order.requested_due_date || null;
+  const requestedDueDate = input.requestedDueDate !== undefined
+    ? input.requestedDueDate
+    : order.requested_due_date || null;
   const dueDate = requestedDueDate ? normalizeDate(requestedDueDate, "prazo de entrega") : null;
   if (dueDate && dueDate < startDate) {
     throw new OrderPlanningError("O prazo de entrega não pode ser anterior ao início.", 422);

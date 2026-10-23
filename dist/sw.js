@@ -1,8 +1,11 @@
-const CACHE_NAME = 'prelux-emissor-etiquetas-v3';
+const CACHE_NAME = 'prelux-emissor-etiquetas-v5';
 const APP_SHELL = [
   './',
   './index.html',
-  './js/core/api.js?v=13',
+  './css/operations.css?v=1',
+  './js/core/api.js?v=15',
+  './js/modules/production-calendar.js?v=2',
+  './js/modules/operations-admin.js?v=1',
   './manifest.webmanifest',
   './assets/PRE_RASTRE.png',
   './icons/icon-192.png',
@@ -22,7 +25,7 @@ self.addEventListener('fetch', event => {
 
   const request = event.request;
   const isNavigation = request.mode === 'navigate' || request.destination === 'document';
-  const isVersionSensitive = request.url.includes('/js/core/api.js') || request.url.includes('/sw.js');
+  const isVersionSensitive = request.url.includes('/js/core/api.js') || request.url.includes('/js/modules/production-calendar.js') || request.url.includes('/js/modules/operations-admin.js') || request.url.includes('/css/operations.css') || request.url.includes('/sw.js');
 
   if (isNavigation || isVersionSensitive) {
     event.respondWith(fetch(request).then(response => {
