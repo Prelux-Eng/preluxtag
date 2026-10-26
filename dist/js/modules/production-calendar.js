@@ -6,6 +6,7 @@
     exceptions: [],
     capacity: [],
     orders: [],
+    works: [],
     schedules: [],
     startedOrderIds: [],
     settings: { default_capacity_minutes: 480, rules: [] },
@@ -14,6 +15,8 @@
     pendingPlan: null,
     pendingOrderId: null,
     dragContext: null,
+    refreshPromise: null,
+    refreshPending: false,
   };
   const activeStatuses = new Set(["orcamento", "aprovado", "em_producao", "atrasado"]);
   const terminalStatuses = new Set(["concluido", "entregue", "cancelado"]);
@@ -90,8 +93,8 @@
   }
 
   function formatOrder(order) {
-    const reference = order?.order_number || String(order?.id || "").slice(0, 8).toUpperCase();
-    return `${reference}${order?.client_name ? ` · ${order.client_name}` : ""}`;
+    const reference = order?.order_number || "Pedido sem número";
+    return [reference, order?.work_name, order?.client_name].filter(Boolean).join(" · ");
   }
 
   function orderById(orderId) {
@@ -241,6 +244,7 @@
   }
 
   function renderCalendar() {
+    renderPlanningBacklog();
     if (!state.days.length) {
       $('planningCalendarState').className = "calendar-placeholder";
       $('planningCalendarState').innerHTML = '<div><strong>Calendário sem dados para este período</strong><p>Atualize o calendário para gerar os dias e habilitar os ajustes e a programação.</p></div>';
@@ -250,6 +254,46 @@
     else if (state.mode === "gantt") renderGantt();
     else renderMonth();
     renderSummary();
+  }
+
+  function pendingOrders() {
+    const scheduledOrderIds = new Set(state.schedules.map((schedule) => schedule.order_id));
+    return state.orders.filter((order) =>
+      activeStatuses.has(order.status)
+      && !terminalStatuses.has(order.status)
+      && !order.planned_end_date
+      && !state.startedOrderIds.includes(order.id)
+      && !scheduledOrderIds.has(order.id)
+    );
+  }
+
+  function renderPlanningBacklog() {
+    const list = $('planningBacklogList');
+    if (!list) return;
+    const pending = pendingOrders();
+    const activeOrderWorkIds = new Set(state.orders
+      .filter((order) => activeStatuses.has(order.status) && order.work_id)
+      .map((order) => order.work_id));
+    const waitingWorks = state.works.filter((work) =>
+      ["planejamento", "ativa"].includes(work.status) && !activeOrderWorkIds.has(work.id)
+    );
+    $('planningBacklogCount').textContent = String(pending.length);
+    list.innerHTML = pending.length ? pending.map((order) => {
+      const details = [
+        order.status ? `Status: ${order.status}` : "",
+        order.start_date ? `Início: ${formatDateBR(order.start_date)}` : "",
+        order.requested_due_date ? `Prazo: ${formatDateBR(order.requested_due_date)}` : "",
+      ].filter(Boolean).join(" · ");
+      return `<article class="planning-backlog-item"><div class="planning-backlog-item-main"><strong>${escapeHtml(formatOrder(order))}</strong><span>${escapeHtml(details || "Sem programação registrada")}</span></div><button class="btn" type="button" data-plan-order-id="${escapeHtml(order.id)}">Planejar</button></article>`;
+    }).join("") : `<p class="planning-backlog-empty">${state.orders.length ? "Nenhum pedido aguardando programação. Os pedidos ativos já têm programação ou estão em produção." : "Nenhum pedido ativo cadastrado. Ao salvar um pedido em Cadastros, ele aparecerá aqui automaticamente."}</p>`;
+    const works = $('planningBacklogWorks');
+    works.hidden = !waitingWorks.length;
+    works.innerHTML = waitingWorks.length
+      ? `<h4>Obras sem pedido de produção</h4>${waitingWorks.map((work) => {
+        const details = [work.status === "ativa" ? "Ativa" : "Planejamento", work.start_date ? `Início: ${formatDateBR(work.start_date)}` : "", work.requested_due_date ? `Prazo: ${formatDateBR(work.requested_due_date)}` : ""].filter(Boolean).join(" · ");
+        return `<div class="planning-backlog-work"><span><strong>${escapeHtml(work.work_number || work.name)}</strong>${work.work_number ? ` · ${escapeHtml(work.name)}` : ""}</span><span>${escapeHtml(details)} · vincule um pedido para programar a produção</span></div>`;
+      }).join("")}`
+      : "";
   }
 
   function populateOrderSelect(selectedId = "") {
@@ -497,7 +541,21 @@
     }
   }
 
-  async function refreshPlanning() {
+  function refreshPlanning() {
+    if (state.refreshPromise) {
+      state.refreshPending = true;
+      return state.refreshPromise;
+    }
+    state.refreshPromise = (async () => {
+      do {
+        state.refreshPending = false;
+        await refreshPlanningNow();
+      } while (state.refreshPending);
+    })().finally(() => { state.refreshPromise = null; });
+    return state.refreshPromise;
+  }
+
+  async function refreshPlanningNow() {
     const stateContainer = $('planningCalendarState');
     const connection = $('planningConnectionState');
     const config = window.PRELUX_CONFIG || {};
@@ -512,15 +570,27 @@
     stateContainer.innerHTML = '<div><strong>Carregando calendário…</strong><p>Buscando capacidade, exceções e programações.</p></div>';
     try {
       await window.PRELUX_API.rebuildCalendar(range.start, range.end);
-      const [calendar, planning, settings] = await Promise.all([
+      const [calendar, planning, settings, operations] = await Promise.all([
         window.PRELUX_API.getCalendar(range.start, range.end),
         window.PRELUX_API.getPlanningData(range.start, range.end),
         window.PRELUX_API.getCalendarSettings(),
+        window.PRELUX_API.getOperationsData().catch(() => null),
       ]);
       state.days = calendar.days || [];
       state.exceptions = calendar.exceptions || [];
       state.capacity = calendar.capacity || [];
-      state.orders = planning.orders || [];
+      const operationOrders = operations?.orders || [];
+      const operationOrderById = new Map(operationOrders.map((order) => [order.id, order]));
+      const planningOrders = planning.orders || [];
+      const planningOrderIds = new Set(planningOrders.map((order) => order.id));
+      state.orders = [
+        ...planningOrders.map((order) => {
+          const operationOrder = operationOrderById.get(order.id) || {};
+          return { ...operationOrder, ...order, work_id: order.work_id || operationOrder.work_id, work_name: order.work_name || operationOrder.work_name || "", client_name: order.client_name || operationOrder.client_name || "" };
+        }),
+        ...operationOrders.filter((order) => !planningOrderIds.has(order.id)),
+      ];
+      state.works = operations?.works || [];
       state.schedules = planning.schedules || [];
       state.startedOrderIds = planning.startedOrderIds || [];
       state.settings = settings.settings ? { ...settings.settings, rules: settings.rules || [] } : state.settings;
@@ -529,6 +599,9 @@
     } catch (error) {
       stateContainer.className = "calendar-placeholder";
       stateContainer.innerHTML = `<div><strong>Não foi possível carregar o calendário</strong><p>${escapeHtml(error.message || "Verifique a configuração da API.")}</p></div>`;
+      $('planningBacklogCount').textContent = "—";
+      $('planningBacklogList').innerHTML = `<p class="planning-backlog-empty">Não foi possível carregar os pedidos do cadastro: ${escapeHtml(error.message || "verifique a conexão e tente atualizar")}</p>`;
+      $('planningBacklogWorks').hidden = true;
       connection.innerHTML = '<span class="dot"></span><span>Backend configurado, mas a chamada não respondeu corretamente.</span>';
       showToast("Falha ao atualizar o calendário.");
     }
@@ -634,7 +707,7 @@
     document.querySelectorAll("[data-view]").forEach((button) => button.classList.toggle("active", button.dataset.view === view));
     if (planning) {
       window.scrollTo({ top: 0, behavior: "smooth" });
-      if (!state.days.length) refreshPlanning();
+      refreshPlanning();
       return;
     }
     if (operations) {
@@ -724,7 +797,17 @@
   $('planningNextBtn').addEventListener("click", () => setAppView("emissor"));
   $('planningActivityBtn').addEventListener("click", () => openCalendarActivity());
   $('planningSettingsBtn').addEventListener("click", openCalendarSettings);
-  $('planningOrderBtn').addEventListener("click", () => openOrderPlanner());
+  $('planningOrderBtn').addEventListener("click", async () => {
+    await refreshPlanning();
+    openOrderPlanner();
+  });
+  $('planningBacklogList').addEventListener("click", async (event) => {
+    const button = event.target.closest("[data-plan-order-id]");
+    if (!button) return;
+    const orderId = button.dataset.planOrderId;
+    await refreshPlanning();
+    openOrderPlanner(orderId);
+  });
   $('planningCalendarState').addEventListener("click", handleCalendarClick);
   $('planningCalendarState').addEventListener("keydown", (event) => {
     if ((event.key === "Enter" || event.key === " ") && event.target.matches("[data-calendar-date]")) {
@@ -750,6 +833,9 @@
   $('closeOrderPlan').addEventListener("click", closeOrderPlanner);
   $('cancelOrderPlan').addEventListener("click", closeOrderPlanner);
   $('orderPlanModal').addEventListener("click", (event) => { if (event.target.id === "orderPlanModal") closeOrderPlanner(); });
+  window.addEventListener("prelux:operations:changed", () => {
+    if (!$('planningView').hidden) refreshPlanning();
+  });
   $('closeCalendarDay').addEventListener("click", closeCalendarDay);
   $('cancelCalendarDay').addEventListener("click", closeCalendarDay);
   $('calendarDayModal').addEventListener("click", (event) => { if (event.target.id === "calendarDayModal") closeCalendarDay(); });

@@ -172,14 +172,14 @@
         <td><div class="row-actions">${order.hasResourceAllocation ? '<span class="ops-badge warn" title="Os itens são preservados para manter o histórico das alocações.">Alocação registrada</span>' : actionButton("edit", order.id, "Editar")}</div></td>
       </tr>`).join("") : `<tr><td colspan="7" class="empty">Nenhum pedido encontrado.</td></tr>`;
     } else if (state.tab === "pieces") {
-      $("operationsTable").innerHTML = tableHeader("Catálogo de peças", "Dimensões, armadura, ciclo, cura, estoque mínimo e moldes compatíveis.", "Pesquisar código ou peça", ["Código / peça", "Dimensões", "Peso / volume", "Ciclo / cura", "Estoque", "Moldes", "Ações"]);
-      const rows = data.pieceTypes.filter((piece) => `${piece.code} ${piece.name} ${piece.dimensions} ${piece.reinforcement_spec}`.toLocaleLowerCase().includes(filter));
+      $("operationsTable").innerHTML = tableHeader("Catálogo de peças", "Dimensões, peso, volume, tempo de produção, estoque mínimo e moldes compatíveis.", "Pesquisar código ou peça", ["Código / peça", "Dimensões", "Peso / volume", "Tempo de produção", "Estoque", "Moldes", "Ações"]);
+      const rows = data.pieceTypes.filter((piece) => `${piece.code} ${piece.name} ${piece.dimensions}`.toLocaleLowerCase().includes(filter));
       const moldById = new Map(data.molds.map((mold) => [mold.id, mold.code]));
       $("operationsRows").innerHTML = rows.length ? rows.map((piece) => `<tr>
         <td>${escapeHtml(piece.code)}<span class="muted">${escapeHtml(piece.name)}</span></td>
-        <td>${escapeHtml(piece.dimensions || "—")}<span class="muted">${piece.volume_m3 == null ? "Volume não informado" : `${Number(piece.volume_m3)} m³`}</span></td>
-        <td>${piece.weight_kg == null ? "—" : `${Number(piece.weight_kg)} kg`}<span class="muted">${escapeHtml(piece.reinforcement_spec || "Armadura não informada")}</span></td>
-        <td>${Number(piece.production_minutes_per_unit)} min<span class="muted">${piece.curing_days == null ? "Cura não informada" : `${Number(piece.curing_days)} dias de cura`}</span></td>
+        <td>${escapeHtml(piece.dimensions || "—")}</td>
+        <td>${piece.weight_kg == null ? "Peso não informado" : `${Number(piece.weight_kg)} kg`}<span class="muted">${piece.volume_m3 == null ? "Volume não informado" : `${Number(piece.volume_m3)} m³`}</span></td>
+        <td>${Number(piece.production_minutes_per_unit)} min/un.</td>
         <td>${Number(piece.initial_stock_quantity)}<span class="muted">mínimo ${Number(piece.stock_minimum_quantity)}</span></td>
         <td>${(piece.mold_ids || []).map((id) => escapeHtml(moldById.get(id) || "")).filter(Boolean).join(", ") || "—"}</td>
         <td><div class="row-actions">${actionButton("edit", piece.id, "Editar")}${actionButton("archive", piece.id, "Arquivar")}</div></td>
@@ -201,7 +201,7 @@
     const moldRows = rows.length ? rows.map((mold) => `<tr>
       <td>${escapeHtml(mold.code)}<span class="muted">${escapeHtml(mold.name)}</span></td>
       <td>${escapeHtml(mold.mold_type)}<span class="muted">${escapeHtml(mold.dimensions || "Dimensões não informadas")}</span></td>
-      <td>${Number(mold.cycle_minutes_per_unit)} min<span class="muted">preparação: 7 dias corridos</span></td>
+      <td>${mold.cycle_minutes_per_unit == null ? "Não informado" : `${Number(mold.cycle_minutes_per_unit)} min/un.`}<span class="muted">preparação: 7 dias corridos</span></td>
       <td>${(mold.piece_type_ids || []).map((id) => escapeHtml(pieceById.get(id) || "")).filter(Boolean).join(", ") || "—"}</td>
       <td>${badge(mold.status)}</td>
       <td><div class="row-actions">${actionButton("edit", mold.id, "Editar")}${actionButton("prepare", mold.id, "Preparar")}${actionButton("allocate", mold.id, "Alocar")}${mold.status !== "retirado" ? actionButton("archive", mold.id, "Retirar") : ""}</div></td>
@@ -321,7 +321,7 @@
       ${inputField("startDate", "Data de início", order?.start_date || today(), "date", { required: true })}
       ${inputField("requestedDueDate", "Prazo solicitado", order?.requested_due_date || "", "date", { optional: true })}
       ${selectField("status", "Status", order?.status || "orcamento", statusOptions)}
-      <div class="field full"><label>Itens do pedido <span>o ciclo é copiado do catálogo no salvamento</span></label><div class="ops-items" id="orderItems">${items.map(orderItemRow).join("")}</div><div class="ops-inline-actions"><button class="btn" type="button" id="addOrderItem">Adicionar item</button></div></div>
+      <div class="field full"><label>Itens do pedido <span>o tempo de produção é copiado do catálogo no salvamento</span></label><div class="ops-items" id="orderItems">${items.map(orderItemRow).join("")}</div><div class="ops-inline-actions"><button class="btn" type="button" id="addOrderItem">Adicionar item</button></div></div>
       ${textareaField("observations", "Observações", order?.observations || "")}
     </div>`;
     openModal(order ? "Editar pedido" : "Novo pedido", "O pedido será ligado à obra escolhida e poderá ser planejado no calendário.", body, "order", order);
@@ -353,15 +353,13 @@
       ${inputField("dimensions", "Dimensões", piece?.dimensions || "", "text", { placeholder: "Ex.: 1,20 × 0,30 × 0,25 m" })}
       ${inputField("weightKg", "Peso (kg)", piece?.weight_kg ?? "", "number", { min: 0, step: "0.001" })}
       ${inputField("volumeM3", "Volume (m³)", piece?.volume_m3 ?? "", "number", { min: 0, step: "0.000001" })}
-      ${inputField("reinforcementSpec", "Armadura", piece?.reinforcement_spec || "", "text", { placeholder: "Especificação ou referência" })}
       ${inputField("productionMinutesPerUnit", "Tempo de produção (min/un.)", piece?.production_minutes_per_unit ?? "", "number", { min: 1, step: 1, required: true })}
-      ${inputField("curingDays", "Cura (dias)", piece?.curing_days ?? "", "number", { min: 0, step: 1 })}
       ${inputField("initialStockQuantity", "Estoque inicial", piece?.initial_stock_quantity ?? 0, "number", { min: 0, step: 1 })}
       ${inputField("stockMinimumQuantity", "Estoque mínimo", piece?.stock_minimum_quantity ?? 0, "number", { min: 0, step: 1 })}
       ${multiSelectField("pieceMolds", "Moldes compatíveis", state.data.molds.filter((mold) => mold.status !== "retirado"), piece?.mold_ids || [], "Cadastre um molde primeiro")}
       ${textareaField("observations", "Observações", piece?.observations || "")}
     </div>`;
-    openModal(piece ? "Editar tipo de peça" : "Novo tipo de peça", "O ciclo e as dimensões ficam no catálogo usado pelos pedidos.", body, "piece", piece);
+    openModal(piece ? "Editar tipo de peça" : "Novo tipo de peça", "O tempo de produção e as dimensões ficam no catálogo usado pelos pedidos.", body, "piece", piece);
   }
 
   function openMoldForm(mold = null) {
@@ -563,9 +561,7 @@
           dimensions: formValue(form, "dimensions"),
           weightKg: formValue(form, "weightKg"),
           volumeM3: formValue(form, "volumeM3"),
-          reinforcementSpec: formValue(form, "reinforcementSpec"),
           productionMinutesPerUnit: Number(formValue(form, "productionMinutesPerUnit")),
-          curingDays: formValue(form, "curingDays"),
           initialStockQuantity: Number(formValue(form, "initialStockQuantity") || 0),
           stockMinimumQuantity: Number(formValue(form, "stockMinimumQuantity") || 0),
           observations: formValue(form, "observations"),
@@ -616,6 +612,9 @@
       }
       closeModal();
       toast("Cadastro salvo.");
+      if (kind === "work" || kind === "order") {
+        global.dispatchEvent(new CustomEvent("prelux:operations:changed", { detail: { kind, id } }));
+      }
       await refreshData(true);
     } catch (error) {
       showModalError(error.message || "Não foi possível salvar o cadastro.");
