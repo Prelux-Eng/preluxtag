@@ -41,7 +41,7 @@ test("distribui a produção entre dias e desconta a capacidade já ocupada", ()
   );
 });
 
-test("usa o estoque antes de criar necessidade de produção", () => {
+test("planeja a quantidade integral e ignora estoque disponível e estoque mínimo", () => {
   const result = planOrder({
     calendarDays: [{ date: "2026-01-05", is_working: true, capacity_minutes: 120 }],
     startDate: "2026-01-05",
@@ -53,14 +53,15 @@ test("usa o estoque antes de criar necessidade de produção", () => {
         quantity: 5,
         productionMinutesSnapshot: 60,
         stockAvailable: 3,
+        stockMinimumQuantity: 10,
       },
     ],
   });
 
-  assert.equal(result.totalStockQuantity, 3);
-  assert.equal(result.totalToProduce, 2);
+  assert.equal(result.totalToProduce, 5);
   assert.equal(result.totalPlannedQuantity, 2);
-  assert.equal(result.feasible, true);
+  assert.equal(result.totalRemainingQuantity, 3);
+  assert.equal(result.feasible, false);
 });
 
 test("retorna conflito quando o prazo não comporta a quantidade", () => {

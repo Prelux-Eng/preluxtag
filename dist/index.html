@@ -152,7 +152,7 @@
   </div>
   <div class="modal-backdrop" id="orderPlanModal" hidden>
     <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="orderPlanTitle">
-      <div class="modal-head"><div><h3 id="orderPlanTitle">Planejar pedido</h3><p id="orderPlanSubtitle">Calcule o prazo e a ocupação antes de gravar a programação.</p></div><button class="close-btn" id="closeOrderPlan" type="button" aria-label="Fechar">×</button></div>
+      <div class="modal-head"><div><h3 id="orderPlanTitle">Planejar pedido</h3><p id="orderPlanSubtitle">Defina as datas e confira a capacidade antes de gravar a programação.</p></div><button class="close-btn" id="closeOrderPlan" type="button" aria-label="Fechar">×</button></div>
       <form class="day-form" id="orderPlanForm">
         <div class="activity-form-grid">
           <div class="field full"><label for="planningOrderSelect">Pedido</label><select class="select" id="planningOrderSelect" required></select></div>
@@ -238,9 +238,9 @@
     $('clearBtn').addEventListener('click',resetForm); $('sampleBtn').addEventListener('click',()=>{fields.id.value='PILAR';fields.quantity.value=3;fields.client.value='Obra Exemplo - PRELUX';fields.notes.value='Conferir armadura e acabamento antes do carregamento.';previewIndex=1;updateNotesCounter();updatePreview();});$('search').addEventListener('input',renderRecords);
     $('recordsBody').addEventListener('click',e=>{const b=e.target.closest('button[data-action]');if(!b)return;const k=decodeURIComponent(b.dataset.key);const r=findRecord(k);if(b.dataset.action==='load')loadRecord(k);if(b.dataset.action==='png'&&r){loadRecord(k);setTimeout(()=>exportPng(labelId(1),1),80)}if(b.dataset.action==='delete'){if(confirm(`Excluir o lote ${recordRange(r)}?`)){setRecords(getRecords().filter(x=>recordKey(x)!==k));renderRecords();showToast('Registro excluído.')}}});
     updateNotesCounter();renderRecords();
-    if('serviceWorker' in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js?v=7').catch(()=>{}));
+    if('serviceWorker' in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js?v=8').catch(()=>{}));
   </script>
-  <script src="js/modules/production-calendar.js?v=4"></script>
+  <script src="js/modules/production-calendar.js?v=5"></script>
   <script src="js/modules/operations-admin.js?v=3"></script>
 </body>
 </html>

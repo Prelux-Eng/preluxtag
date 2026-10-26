@@ -333,7 +333,7 @@
     $('orderPlanTitle').textContent = move ? "Reprogramar pedido" : "Planejar pedido";
     $('orderPlanSubtitle').textContent = move
       ? `Movendo uma programação de ${formatDateBR(move.sourceDate)} para ${formatDateBR(move.targetDate)}. Revise o novo plano antes de gravar.`
-      : "Calcule o prazo e a ocupação antes de gravar a programação.";
+      : "Defina as datas e confira a capacidade antes de gravar a programação.";
     $('orderPlanModal').hidden = false;
     if (!eligible.length) showStatus("orderPlanStatus", "Não há pedidos disponíveis para planejar.");
     if (move && selected) calculateOrderPlan();
@@ -348,14 +348,14 @@
 
   function renderPlan(plan, order) {
     const statusText = plan.feasible ? "Cabe no prazo solicitado" : "Plano inviável no prazo atual";
-    const itemRows = (plan.items || []).map((item) => `<li>${escapeHtml(item.code || item.name || "Item")}: ${Number(item.plannedQuantity || 0)} un. programadas · ${Number(item.stockQuantityUsed || 0)} un. cobertas por estoque${Number(item.remainingQuantity || 0) ? ` · <strong>${Number(item.remainingQuantity)} un. sem data</strong>` : ""}</li>`).join("");
+    const itemRows = (plan.items || []).map((item) => `<li>${escapeHtml(item.code || item.name || "Item")}: ${Number(item.plannedQuantity || 0)} un. programadas${Number(item.remainingQuantity || 0) ? ` · <strong>${Number(item.remainingQuantity)} un. sem data</strong>` : ""}</li>`).join("");
     const conflictText = (plan.conflicts || []).map((conflict) => conflict.message || (conflict.type === "deadline" ? `${Number(conflict.remainingQuantity || 0)} unidades excedem a capacidade até o prazo.` : `Capacidade excedida em ${formatDateBR(conflict.date)}.`)).join(" ");
     const previousEnd = order?.planned_end_date ? formatDateBR(order.planned_end_date) : "sem programação";
     const nextEnd = plan.plannedEndDate ? formatDateBR(plan.plannedEndDate) : "sem data calculada";
     const shift = state.dragContext
       ? `<p>Data da atividade: ${formatDateBR(state.dragContext.sourceDate)} → ${formatDateBR(state.dragContext.targetDate)}. Início do pedido: ${formatDateBR(order?.start_date)} → ${formatDateBR(plan.startDate)}; prazo: ${order?.requested_due_date ? formatDateBR(order.requested_due_date) : "sem prazo"} → ${plan.dueDate ? formatDateBR(plan.dueDate) : "sem prazo"}; fim planejado: ${previousEnd} → ${nextEnd}.</p>`
       : `<p>Fim estimado: ${nextEnd}${plan.dueDate ? ` · prazo solicitado ${formatDateBR(plan.dueDate)}` : " · sem prazo solicitado"}.</p>`;
-    $('orderPlanPreview').innerHTML = `<h4>${escapeHtml(statusText)}</h4><div class="plan-summary-grid"><div><strong>${Number(plan.totalRequestedQuantity || 0)}</strong><span>unidades no pedido</span></div><div><strong>${Number(plan.totalPlannedQuantity || 0)}</strong><span>unidades programadas</span></div><div><strong>${minutesLabel(plan.totalPlannedMinutes || 0)}</strong><span>tempo alocado</span></div></div><p>${escapeHtml(formatOrder(order))}</p>${shift}<ul>${itemRows || "<li>Nenhuma linha de produção necessária; o pedido será atendido pelo estoque.</li>"}</ul>${!plan.feasible ? `<div class="plan-warning">${escapeHtml(conflictText || "A capacidade não atende ao pedido dentro do período calculado.")} Se confirmar, o pedido ficará parcialmente programado.</div>` : ""}`;
+    $('orderPlanPreview').innerHTML = `<h4>${escapeHtml(statusText)}</h4><div class="plan-summary-grid"><div><strong>${Number(plan.totalRequestedQuantity || 0)}</strong><span>unidades solicitadas</span></div><div><strong>${Number(plan.totalPlannedQuantity || 0)}</strong><span>unidades programadas</span></div><div><strong>${minutesLabel(plan.totalPlannedMinutes || 0)}</strong><span>tempo alocado no calendário</span></div></div><p>${escapeHtml(formatOrder(order))}</p>${shift}<ul>${itemRows || "<li>Não há itens para programar neste pedido.</li>"}</ul>${!plan.feasible ? `<div class="plan-warning">${escapeHtml(conflictText || "A capacidade não atende ao pedido dentro do período calculado.")} Se confirmar, o pedido ficará parcialmente programado.</div>` : ""}`;
     $('orderPlanPreview').hidden = false;
     $('infeasibleChoice').hidden = Boolean(plan.feasible);
     $('allowInfeasiblePlan').checked = false;
@@ -374,7 +374,7 @@
     button.disabled = true;
     button.textContent = "Calculando…";
     resetPlanPreview();
-    showStatus("orderPlanStatus", "Atualizando os dias necessários e calculando capacidade, estoque e prazo.");
+    showStatus("orderPlanStatus", "Atualizando as datas do calendário e calculando capacidade e prazo.");
     try {
       const rangeEnd = requestedDueDate || addDays(startDate, 365);
       await window.PRELUX_API.rebuildCalendar(startDate, rangeEnd);

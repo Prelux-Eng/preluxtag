@@ -93,7 +93,7 @@ function normalizedExistingSchedule(schedule) {
 }
 
 /**
- * Calcula um plano diário, respeitando capacidade em minutos e estoque.
+ * Calcula um plano diário usando as datas e a capacidade do calendário.
  *
  * A ordem dos itens recebidos é preservada. Assim, o comercial pode definir a
  * sequência dos tipos de peça no pedido e o restante da capacidade do dia é
@@ -136,7 +136,6 @@ export function planOrder({
   const schedules = [];
   const itemPlans = [];
   let totalRequestedQuantity = 0;
-  let totalStockQuantity = 0;
   let totalToProduce = 0;
   let totalPlannedQuantity = 0;
   let totalPlannedMinutes = 0;
@@ -145,11 +144,7 @@ export function planOrder({
     const itemId = String(readField(rawItem, "itemId", "item_id", ""));
     const pieceTypeId = String(readField(rawItem, "pieceTypeId", "piece_type_id", ""));
     const requestedQuantity = positiveInteger(readField(rawItem, "quantity", "quantity", 0));
-    const stockAvailable = positiveInteger(
-      readField(rawItem, "stockAvailable", "stock_available", 0),
-    );
-    const stockQuantityUsed = Math.min(requestedQuantity, stockAvailable);
-    const quantityToProduce = Math.max(requestedQuantity - stockQuantityUsed, 0);
+    const quantityToProduce = requestedQuantity;
     const productionMinutesPerUnit = Math.max(
       1,
       positiveInteger(
@@ -172,8 +167,6 @@ export function planOrder({
       code: rawItem.code ?? null,
       name: rawItem.name ?? null,
       requestedQuantity,
-      stockAvailable,
-      stockQuantityUsed,
       quantityToProduce,
       productionMinutesPerUnit,
       plannedQuantity: 0,
@@ -184,7 +177,6 @@ export function planOrder({
     };
 
     totalRequestedQuantity += requestedQuantity;
-    totalStockQuantity += stockQuantityUsed;
     totalToProduce += quantityToProduce;
 
     if (quantityToProduce > 0) {
@@ -262,7 +254,6 @@ export function planOrder({
     plannedEndDate,
     workingDays: workingDays.length,
     totalRequestedQuantity,
-    totalStockQuantity,
     totalToProduce,
     totalPlannedQuantity,
     totalPlannedMinutes,
