@@ -66,25 +66,6 @@ export async function buildOrderPlan({ db, organizationId, input = {} }) {
     .in("id", pieceTypeIds);
   throwIfError(pieceTypesError, "Não foi possível carregar os tipos de peça");
 
-  const { data: inventory, error: inventoryError } = pieceTypeIds.length
-    ? await db
-        .from("v_piece_inventory")
-        .select("piece_type_id, stock_quantity, reserved_quantity, available_stock_quantity, quantity_in_production")
-        .eq("organization_id", organizationId)
-        .in("piece_type_id", pieceTypeIds)
-    : { data: [], error: null };
-  throwIfError(inventoryError, "Não foi possível consultar o estoque");
-
-  const { data: ownReservations, error: ownReservationsError } = pieceTypeIds.length
-    ? await db
-        .from("stock_reservations")
-        .select("piece_type_id, quantity")
-        .eq("organization_id", organizationId)
-        .eq("order_id", orderId)
-        .eq("status", "reserved")
-    : { data: [], error: null };
-  throwIfError(ownReservationsError, "Não foi possível consultar as reservas do pedido");
-
   const startDate = normalizeDate(
     input.startDate || order.start_date || todayUTC(),
     "data de início",
@@ -132,22 +113,10 @@ export async function buildOrderPlan({ db, organizationId, input = {} }) {
   throwIfError(schedulesError, "Não foi possível consultar a capacidade ocupada");
 
   const pieceTypeById = new Map((pieceTypes || []).map((piece) => [piece.id, piece]));
-  const inventoryById = new Map((inventory || []).map((item) => [item.piece_type_id, item]));
-  const ownReservationById = new Map();
-  for (const reservation of ownReservations || []) {
-    ownReservationById.set(
-      reservation.piece_type_id,
-      (ownReservationById.get(reservation.piece_type_id) || 0) + numberOrZero(reservation.quantity),
-    );
-  }
 
   const plannerItems = rawItems.map((item) => {
     const piece = pieceTypeById.get(item.piece_type_id);
     if (!piece) throw new OrderPlanningError(`Tipo de peça ${item.piece_type_id} não encontrado.`, 422);
-    const inventoryRow = inventoryById.get(item.piece_type_id);
-    const availableStock =
-      numberOrZero(inventoryRow?.available_stock_quantity) +
-      numberOrZero(ownReservationById.get(item.piece_type_id));
     return {
       itemId: item.id,
       pieceTypeId: item.piece_type_id,
@@ -157,7 +126,6 @@ export async function buildOrderPlan({ db, organizationId, input = {} }) {
       productionMinutesSnapshot:
         numberOrZero(item.production_minutes_snapshot) ||
         numberOrZero(piece.production_minutes_per_unit),
-      stockAvailable: availableStock,
     };
   });
 
