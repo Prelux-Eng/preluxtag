@@ -101,6 +101,47 @@
     return state.orders.find((order) => order.id === orderId) || null;
   }
 
+  function dateSpan(record) {
+    const start = record?.start_date || record?.requested_due_date;
+    const end = record?.requested_due_date || record?.start_date;
+    if (!start || !end) return null;
+    return start <= end ? { start, end } : { start: end, end: start };
+  }
+
+  function spanContains(record, date) {
+    const span = dateSpan(record);
+    return Boolean(span && date >= span.start && date <= span.end);
+  }
+
+  function spanOverlaps(record, start, end) {
+    const span = dateSpan(record);
+    return Boolean(span && span.start <= end && span.end >= start);
+  }
+
+  function activeCalendarOrders() {
+    return state.orders.filter((order) => activeStatuses.has(order.status) && !terminalStatuses.has(order.status));
+  }
+
+  function activeCalendarWorks() {
+    return state.works.filter((work) => ["planejamento", "ativa"].includes(work.status));
+  }
+
+  function orderWindowLabel(order) {
+    const span = dateSpan(order);
+    const period = span
+      ? `${formatDateBR(span.start)}${span.end !== span.start ? ` a ${formatDateBR(span.end)}` : ""}`
+      : "sem datas cadastradas";
+    return `Pedido · ${formatOrder(order)} · ${period}`;
+  }
+
+  function workWindowLabel(work) {
+    const span = dateSpan(work);
+    const period = span
+      ? `${formatDateBR(span.start)}${span.end !== span.start ? ` a ${formatDateBR(span.end)}` : ""}`
+      : "sem datas cadastradas";
+    return `Obra · ${work.work_number || work.name}${work.work_number ? ` · ${work.name}` : ""} · ${period}`;
+  }
+
   function orderSchedules(orderId) {
     return state.schedules.filter((schedule) => schedule.order_id === orderId);
   }
@@ -148,14 +189,33 @@
     const selectedClass = date === state.selectedDate ? "selected" : "";
     const nonWorkingClass = day.is_working ? "" : "non-working";
     const activityLabel = note ? `<span class="calendar-day-activity" title="${escapeHtml(note)}">${escapeHtml(note)}</span>` : "";
+    const dateSchedules = schedulesForDate(date);
+    const scheduledOrderIds = new Set(dateSchedules.map((schedule) => schedule.order_id));
+    const dateOrders = activeCalendarOrders().filter((order) =>
+      spanContains(order, date) && !scheduledOrderIds.has(order.id)
+    );
+    const dateWorks = activeCalendarWorks().filter((work) => spanContains(work, date));
+    const events = [
+      ...dateSchedules.map((schedule) => ({ kind: "schedule", value: schedule })),
+      ...dateOrders.map((order) => ({ kind: "order", value: order })),
+      ...dateWorks.map((work) => ({ kind: "work", value: work })),
+    ];
     const eventLimit = options.week ? 8 : 3;
-    const eventRows = schedulesForDate(date).slice(0, eventLimit).map((schedule) => {
+    const eventRows = events.slice(0, eventLimit).map((event) => {
+      if (event.kind === "order") {
+        return `<span class="calendar-window-event order-window" title="${escapeHtml(orderWindowLabel(event.value))}">Pedido · ${escapeHtml(event.value.order_number || "Sem número")}</span>`;
+      }
+      if (event.kind === "work") {
+        const work = event.value;
+        return `<span class="calendar-window-event work-window" title="${escapeHtml(workWindowLabel(work))}">Obra · ${escapeHtml(work.work_number || work.name)}</span>`;
+      }
+      const schedule = event.value;
       const order = orderById(schedule.order_id);
       const canDrag = schedule.status === "planned" && !state.startedOrderIds.includes(schedule.order_id);
       const statusClass = schedule.status === "in_progress" ? "in-progress" : schedule.status === "done" ? "done" : "";
       return `<button class="calendar-event ${statusClass}" type="button" data-order-event="${escapeHtml(schedule.order_id)}" data-work-date="${date}" title="${escapeHtml(scheduleLabel(schedule))}"${canDrag ? ' draggable="true"' : ""}>${escapeHtml(formatOrder(order))} · ${escapeHtml(schedule.piece_code || "produção")} · ${Number(schedule.planned_quantity)} un.</button>`;
     }).join("");
-    const remainingEvents = schedulesForDate(date).length - eventLimit;
+    const remainingEvents = events.length - eventLimit;
     return `<div class="calendar-day ${nonWorkingClass} ${todayClass} ${selectedClass}" role="button" tabindex="0" data-calendar-date="${date}" title="Abrir ajustes de ${formatDateBR(date)}"><span class="calendar-day-head"><span class="calendar-day-number">${Number(date.slice(-2))}</span><span class="calendar-day-status">${day.is_working ? "útil" : "parado"}</span></span><span class="calendar-day-capacity">${day.is_working ? minutesLabel(day.capacity_minutes) : "Sem produção"}${capacity.planned_minutes ? ` · ${minutesLabel(capacity.planned_minutes)} programados` : ""}</span>${activityLabel}<span class="calendar-day-occupancy"><i class="${occupancyClass}" style="width:${width}%"></i></span><div class="calendar-events">${eventRows}${remainingEvents > 0 ? `<span class="calendar-event-more">+${remainingEvents} programações</span>` : ""}</div></div>`;
   }
 
@@ -187,7 +247,10 @@
   function renderGantt() {
     const { start, end } = monthBounds();
     const count = dateDistance(start, end) + 1;
-    const ordersWithSchedules = state.orders.filter((order) => state.schedules.some((item) => item.order_id === order.id));
+    const ordersWithDates = activeCalendarOrders().filter((order) =>
+      spanOverlaps(order, start, end) || state.schedules.some((item) => item.order_id === order.id)
+    );
+    const worksWithDates = activeCalendarWorks().filter((work) => spanOverlaps(work, start, end));
     const columnCount = count + 1;
     const template = `--gantt-days:${count}`;
     const headings = Array.from({ length: count }, (_, index) => {
@@ -196,12 +259,13 @@
       return `<div class="gantt-cell ${day.is_working ? "" : "off"}" data-calendar-date="${date}" title="${formatDateBR(date)} · ${day.is_working ? minutesLabel(day.capacity_minutes) : "sem produção"}"><span>${Number(date.slice(-2))}</span><small>${day.is_working ? `${Math.round(Number(day.capacity_minutes || 0) / 60)}h` : "—"}</small></div>`;
     }).join("");
     let rows = "";
-    for (const order of ordersWithSchedules) {
-      rows += `<div class="gantt-label" title="${escapeHtml(formatOrder(order))}">${escapeHtml(formatOrder(order))}</div>`;
+    for (const order of ordersWithDates) {
+      rows += `<div class="gantt-label" title="${escapeHtml(orderWindowLabel(order))}">Pedido · ${escapeHtml(order.order_number || "Sem número")}</div>`;
       for (let index = 0; index < count; index += 1) {
         const date = addDays(start, index);
         const day = getDay(date) || { is_working: false };
         const capacity = getCapacity(date) || {};
+        const window = spanContains(order, date) ? '<span class="gantt-order-window" aria-hidden="true"></span>' : "";
         const items = schedulesForDate(date).filter((schedule) => schedule.order_id === order.id);
         const work = items.map((schedule) => {
           const draggable = schedule.status === "planned" && !state.startedOrderIds.includes(order.id);
@@ -209,12 +273,22 @@
           return `<button class="gantt-work ${statusClass}" type="button" data-order-event="${escapeHtml(order.id)}" data-work-date="${date}" title="${escapeHtml(scheduleLabel(schedule))}"${draggable ? ' draggable="true"' : ""}>${escapeHtml(schedule.piece_code || "produção")}</button>`;
         }).join("");
         const over = Number(capacity.occupancy_percent || 0) > 100;
-        rows += `<div class="gantt-cell ${day.is_working ? "" : "off"} ${over ? "over" : ""}" data-calendar-date="${date}" title="${formatDateBR(date)} · ${minutesLabel(capacity.planned_minutes || 0)} / ${minutesLabel(day.capacity_minutes || 0)}">${work}</div>`;
+        rows += `<div class="gantt-cell ${day.is_working ? "" : "off"} ${over ? "over" : ""}" data-calendar-date="${date}" title="${formatDateBR(date)} · ${minutesLabel(capacity.planned_minutes || 0)} / ${minutesLabel(day.capacity_minutes || 0)}">${window}${work}</div>`;
       }
     }
-    const empty = ordersWithSchedules.length ? "" : '<div class="gantt-empty">Nenhuma programação de pedido neste mês.</div>';
+    for (const work of worksWithDates) {
+      rows += `<div class="gantt-label work-label" title="${escapeHtml(workWindowLabel(work))}">Obra · ${escapeHtml(work.work_number || work.name)}</div>`;
+      for (let index = 0; index < count; index += 1) {
+        const date = addDays(start, index);
+        const day = getDay(date) || { is_working: false };
+        const inRange = spanContains(work, date);
+        rows += `<div class="gantt-cell ${day.is_working ? "" : "off"}" data-calendar-date="${date}" title="${escapeHtml(workWindowLabel(work))}">${inRange ? '<span class="gantt-work-window" aria-hidden="true"></span>' : ""}</div>`;
+      }
+    }
+    const hasRows = ordersWithDates.length > 0 || worksWithDates.length > 0;
+    const empty = hasRows ? "" : '<div class="gantt-empty">Nenhum pedido ou obra com datas neste mês.</div>';
     $('planningCalendarState').className = "calendar-state calendar-gantt-view";
-    $('planningCalendarState').innerHTML = `<div class="gantt-wrap"><div class="gantt-group"><div class="gantt-resource">Produção<span>Recurso: capacidade agregada PRELUX · ${count} dias · arraste um bloco para replanejar</span></div><div class="gantt-timeline gantt-head" style="${template}"><div class="gantt-label">Pedido</div>${headings}</div>${ordersWithSchedules.length ? `<div class="gantt-timeline" style="${template}">${rows}</div>` : empty}</div></div>`;
+    $('planningCalendarState').innerHTML = `<div class="gantt-wrap"><div class="gantt-group"><div class="gantt-resource">Datas de pedidos e obras<span>Produção e capacidade aparecem dentro do período · ${count} dias</span></div><div class="gantt-timeline gantt-head" style="${template}"><div class="gantt-label">Cadastro</div>${headings}</div>${hasRows ? `<div class="gantt-timeline" style="${template}">${rows}</div>` : empty}</div></div>`;
     $('planningCalendarHeading').textContent = `Gantt · ${new Date(`${start}T00:00:00.000Z`).toLocaleDateString("pt-BR", { month: "long", year: "numeric", timeZone: "UTC" })}`;
   }
 
@@ -228,7 +302,10 @@
     const today = getDay(localToday());
     const exceptionCount = state.exceptions.length;
     const eventCount = state.schedules.length;
-    $('planningCalendarSummary').textContent = `${workingDays.length} dias úteis · ${minutesLabel(totalCapacity)} disponíveis · ${eventCount} programações · ${exceptionCount} atividade${exceptionCount === 1 ? "" : "s"} ativa${exceptionCount === 1 ? "" : "s"}. Arraste uma programação para simular a mudança e revisar o impacto.`;
+    const bounds = visibleBounds();
+    const datedOrders = activeCalendarOrders().filter((order) => spanOverlaps(order, bounds.start, bounds.end)).length;
+    const datedWorks = activeCalendarWorks().filter((work) => spanOverlaps(work, bounds.start, bounds.end)).length;
+    $('planningCalendarSummary').textContent = `${workingDays.length} dias úteis · ${minutesLabel(totalCapacity)} disponíveis · ${datedOrders} pedido${datedOrders === 1 ? "" : "s"} no período · ${datedWorks} obra${datedWorks === 1 ? "" : "s"} no período · ${eventCount} programações · ${exceptionCount} atividade${exceptionCount === 1 ? "" : "s"} ativa${exceptionCount === 1 ? "" : "s"}.`;
     $('planningOrdersKpi').textContent = String(activeOrders);
     $('planningOccupancyKpi').textContent = `${occupancy}%`;
     $('planningCapacityKpi').textContent = today ? minutesLabel(today.capacity_minutes || 0) : "—";
@@ -291,7 +368,7 @@
     works.innerHTML = waitingWorks.length
       ? `<h4>Obras sem pedido de produção</h4>${waitingWorks.map((work) => {
         const details = [work.status === "ativa" ? "Ativa" : "Planejamento", work.start_date ? `Início: ${formatDateBR(work.start_date)}` : "", work.requested_due_date ? `Prazo: ${formatDateBR(work.requested_due_date)}` : ""].filter(Boolean).join(" · ");
-        return `<div class="planning-backlog-work"><span><strong>${escapeHtml(work.work_number || work.name)}</strong>${work.work_number ? ` · ${escapeHtml(work.name)}` : ""}</span><span>${escapeHtml(details)} · vincule um pedido para programar a produção</span></div>`;
+        return `<div class="planning-backlog-work"><span><strong>${escapeHtml(work.work_number || work.name)}</strong>${work.work_number ? ` · ${escapeHtml(work.name)}` : ""}</span><span>${escapeHtml(details)} · a obra aparece nas datas do calendário; vincule um pedido para programar as peças</span></div>`;
       }).join("")}`
       : "";
   }
