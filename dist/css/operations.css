@@ -1,4 +1,21 @@
 #operationsView[hidden]{display:none!important}
+.planning-backlog{margin-bottom:20px;padding:18px 20px}
+.planning-backlog-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}
+.planning-backlog-head h3{margin:0;font-size:15px}
+.planning-backlog-head p{margin:5px 0 0;color:var(--muted);font-size:12px;line-height:1.5}
+.planning-backlog-count{display:grid;place-items:center;flex:0 0 auto;min-width:30px;height:30px;border-radius:999px;background:#edf7ff;color:#145f95;font-size:13px;font-weight:850}
+.planning-backlog-list{display:grid;gap:8px;margin-top:14px}
+.planning-backlog-empty{margin:0;padding:12px;border-radius:9px;background:#f7f9fb;color:var(--muted);font-size:12px;line-height:1.5}
+.planning-backlog-item{display:flex;align-items:center;justify-content:space-between;gap:14px;border:1px solid #e1e8ee;border-radius:10px;padding:11px 12px;background:#fbfcfd}
+.planning-backlog-item-main{min-width:0}
+.planning-backlog-item-main strong{display:block;overflow:hidden;color:var(--ink);font-size:12px;text-overflow:ellipsis;white-space:nowrap}
+.planning-backlog-item-main span{display:block;margin-top:4px;color:var(--muted);font-size:11px;line-height:1.45}
+.planning-backlog-item .btn{flex:0 0 auto}
+.planning-backlog-works{display:grid;gap:7px;margin-top:14px;padding-top:13px;border-top:1px solid #edf1f4}
+.planning-backlog-works[hidden]{display:none!important}
+.planning-backlog-works h4{margin:0;color:#536575;font-size:11px;text-transform:uppercase;letter-spacing:.04em}
+.planning-backlog-work{display:flex;justify-content:space-between;gap:12px;color:#536575;font-size:11px;line-height:1.45}
+.planning-backlog-work strong{color:var(--ink)}
 .operations-toolbar{align-items:center}
 .operations-status{margin:0 0 18px;padding:12px 14px;border:1px solid #d7e1ea;border-radius:10px;background:#fff;color:#536575;font-size:12px;line-height:1.5}
 .operations-status.error{border-color:#efc4c8;background:#fff3f4;color:#9a2e36}
@@ -51,6 +68,9 @@
   .operations-table{min-width:680px}
 }
 @media(max-width:620px){
+  .planning-backlog{padding:14px}
+  .planning-backlog-item{align-items:flex-start;flex-direction:column}
+  .planning-backlog-item .btn{width:100%}
   .ops-form-grid{grid-template-columns:1fr}
   .ops-form-grid .field.full{grid-column:auto}
   .ops-item-row{grid-template-columns:minmax(0,1fr) minmax(85px,.4fr) auto}

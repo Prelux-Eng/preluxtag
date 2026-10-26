@@ -9,7 +9,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <link rel="manifest" href="manifest.webmanifest" />
-  <link rel="stylesheet" href="css/operations.css?v=1" />
+  <link rel="stylesheet" href="css/operations.css?v=2" />
   <link rel="apple-touch-icon" href="icons/icon-192.png" />
   <title>PRELUX · Emissor de etiquetas</title>
   <style>
@@ -77,6 +77,11 @@
           <div class="card metric-card"><small>Capacidade de hoje</small><strong id="planningCapacityKpi">0 h</strong><span>minutos configurados</span></div>
           <div class="card metric-card"><small>Dias acima da capacidade</small><strong id="planningAlertsKpi">0</strong><span>no intervalo visível</span></div>
         </div>
+        <section class="card planning-backlog" aria-labelledby="planningBacklogTitle">
+          <div class="planning-backlog-head"><div><h3 id="planningBacklogTitle">Pedidos aguardando planejamento</h3><p>Cadastros novos são sincronizados automaticamente. A programação entra no calendário depois de confirmar a prévia.</p></div><span class="planning-backlog-count" id="planningBacklogCount">0</span></div>
+          <div class="planning-backlog-list" id="planningBacklogList" aria-live="polite"><p class="planning-backlog-empty">Carregando pedidos do cadastro…</p></div>
+          <div class="planning-backlog-works" id="planningBacklogWorks" hidden></div>
+        </section>
         <div class="planning-grid">
           <section class="card calendar-card"><div class="calendar-toolbar"><h3 id="planningCalendarHeading">Calendário mensal</h3><div class="calendar-controls"><div class="segmented" role="group" aria-label="Visão do calendário"><button type="button" data-calendar-mode="month" aria-pressed="true">Mês</button><button type="button" data-calendar-mode="week" aria-pressed="false">Semana</button><button type="button" data-calendar-mode="gantt" aria-pressed="false">Gantt</button></div><div class="actions"><button class="btn" id="planningSettingsBtn" type="button">Semana padrão</button><button class="btn" id="planningOrderBtn" type="button">Planejar pedido</button><button class="btn" id="planningActivityBtn" type="button">Nova atividade</button><div class="month-control"><label for="planningAnchor" class="sr-only">Data de referência</label><input id="planningAnchor" type="date" /><button class="icon-btn" id="planningPrevious" type="button" aria-label="Período anterior">‹</button><button class="icon-btn" id="planningNextPeriod" type="button" aria-label="Próximo período">›</button></div></div></div></div><div class="planning-summary" id="planningCalendarSummary">Carregando capacidade, pedidos e programações.</div><div class="calendar-placeholder" id="planningCalendarState"><div><strong>Calendário pronto para receber a programação</strong><p>Atualize o calendário para carregar os dias da fábrica e começar a ajustar a capacidade.</p></div></div><div class="calendar-legend"><span><i class="work"></i> dia útil</span><span><i class="off"></i> sem produção</span><span><i class="activity"></i> atividade ou programação</span><span>Arraste um pedido para outra data para ver o impacto antes de confirmar.</span></div></section>
           <section class="card"><div class="module-note"><h3>Capacidade configurada</h3><p>O calendário usa as regras semanais e exceções salvas no banco.</p><div class="connection-state" id="planningConnectionState"><span class="dot"></span><span>Conectando ao backend de produção.</span></div></div><div class="planning-list"><div><span>Semana padrão</span><strong id="planningWorkdaysSummary">Segunda a sexta</strong></div><div><span>Capacidade padrão</span><strong id="planningDefaultCapacitySummary">8 h por dia</strong></div><div><span>Etapa cadastrada</span><strong>Produção</strong></div><div><span>Recurso</span><strong>Capacidade agregada PRELUX</strong></div></div><p class="scope-note">O calendário mostra a capacidade agregada da fábrica. A alocação por molde e item do pedido fica em Cadastros; ainda não aparece como linha separada no Gantt.</p></section>
@@ -233,9 +238,9 @@
     $('clearBtn').addEventListener('click',resetForm); $('sampleBtn').addEventListener('click',()=>{fields.id.value='PILAR';fields.quantity.value=3;fields.client.value='Obra Exemplo - PRELUX';fields.notes.value='Conferir armadura e acabamento antes do carregamento.';previewIndex=1;updateNotesCounter();updatePreview();});$('search').addEventListener('input',renderRecords);
     $('recordsBody').addEventListener('click',e=>{const b=e.target.closest('button[data-action]');if(!b)return;const k=decodeURIComponent(b.dataset.key);const r=findRecord(k);if(b.dataset.action==='load')loadRecord(k);if(b.dataset.action==='png'&&r){loadRecord(k);setTimeout(()=>exportPng(labelId(1),1),80)}if(b.dataset.action==='delete'){if(confirm(`Excluir o lote ${recordRange(r)}?`)){setRecords(getRecords().filter(x=>recordKey(x)!==k));renderRecords();showToast('Registro excluído.')}}});
     updateNotesCounter();renderRecords();
-    if('serviceWorker' in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js?v=5').catch(()=>{}));
+    if('serviceWorker' in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js?v=7').catch(()=>{}));
   </script>
-  <script src="js/modules/production-calendar.js?v=2"></script>
-  <script src="js/modules/operations-admin.js?v=1"></script>
+  <script src="js/modules/production-calendar.js?v=4"></script>
+  <script src="js/modules/operations-admin.js?v=3"></script>
 </body>
 </html>

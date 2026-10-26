@@ -138,7 +138,7 @@ async function deleteActivity(db: ReturnType<typeof createAdminClient>, organiza
 async function readPlanningData(db: ReturnType<typeof createAdminClient>, organizationId: string, startDate: string, endDate: string) {
   const [{ data: orders, error: ordersError }, { data: schedules, error: schedulesError }] = await Promise.all([
     db.from("orders")
-      .select("id, order_number, client_id, start_date, requested_due_date, planned_end_date, status")
+      .select("id, order_number, work_id, client_id, start_date, requested_due_date, planned_end_date, status")
       .eq("organization_id", organizationId)
       .eq("is_active", true)
       .order("start_date")
@@ -155,11 +155,15 @@ async function readPlanningData(db: ReturnType<typeof createAdminClient>, organi
   if (schedulesError) throw schedulesError;
 
   const clientIds = [...new Set((orders || []).map((order) => order.client_id).filter(Boolean))];
+  const workIds = [...new Set((orders || []).map((order) => order.work_id).filter(Boolean))];
   const pieceTypeIds = [...new Set((schedules || []).map((schedule) => schedule.piece_type_id).filter(Boolean))];
   const orderIds = (orders || []).map((order) => order.id);
-  const [clientsResult, pieceTypesResult, startedResult] = await Promise.all([
+  const [clientsResult, worksResult, pieceTypesResult, startedResult] = await Promise.all([
     clientIds.length
       ? db.from("clients").select("id, name").eq("organization_id", organizationId).in("id", clientIds)
+      : Promise.resolve({ data: [], error: null }),
+    workIds.length
+      ? db.from("works").select("id, name").eq("organization_id", organizationId).in("id", workIds)
       : Promise.resolve({ data: [], error: null }),
     pieceTypeIds.length
       ? db.from("piece_types").select("id, code, name").eq("organization_id", organizationId).in("id", pieceTypeIds)
@@ -169,13 +173,19 @@ async function readPlanningData(db: ReturnType<typeof createAdminClient>, organi
       : Promise.resolve({ data: [], error: null }),
   ]);
   if (clientsResult.error) throw clientsResult.error;
+  if (worksResult.error) throw worksResult.error;
   if (pieceTypesResult.error) throw pieceTypesResult.error;
   if (startedResult.error) throw startedResult.error;
 
   const clientById = new Map((clientsResult.data || []).map((client) => [client.id, client.name]));
+  const workById = new Map((worksResult.data || []).map((work) => [work.id, work.name]));
   const pieceById = new Map((pieceTypesResult.data || []).map((piece) => [piece.id, piece]));
   return {
-    orders: (orders || []).map((order) => ({ ...order, client_name: clientById.get(order.client_id) || "" })),
+    orders: (orders || []).map((order) => ({
+      ...order,
+      work_name: workById.get(order.work_id) || "",
+      client_name: clientById.get(order.client_id) || "",
+    })),
     schedules: (schedules || []).map((schedule) => ({
       ...schedule,
       piece_code: pieceById.get(schedule.piece_type_id)?.code || "",

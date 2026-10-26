@@ -98,7 +98,7 @@ async function readOperationsData(db: any, organizationId: string) {
       .eq("organization_id", organizationId).eq("is_active", true).order("name").limit(1000),
     db.from("orders").select("id, order_number, work_id, client_id, start_date, requested_due_date, planned_end_date, status, observations, is_active, created_at, updated_at")
       .eq("organization_id", organizationId).eq("is_active", true).order("start_date", { ascending: false }).limit(1000),
-    db.from("piece_types").select("id, category_id, code, name, dimensions, weight_kg, volume_m3, reinforcement_spec, production_minutes_per_unit, curing_days, initial_stock_quantity, stock_minimum_quantity, observations, is_active")
+    db.from("piece_types").select("id, category_id, code, name, dimensions, weight_kg, volume_m3, production_minutes_per_unit, initial_stock_quantity, stock_minimum_quantity, observations, is_active")
       .eq("organization_id", organizationId).order("code").limit(1000),
     db.from("molds").select("id, code, name, mold_type, dimensions, cycle_minutes_per_unit, preparation_days, status, observations, created_at, updated_at")
       .eq("organization_id", organizationId).order("code").limit(1000),
@@ -243,9 +243,7 @@ async function handler(request: Request) {
         dimensions: textValue(input.dimensions, "as dimensões", 180),
         weightKg: decimalValue(input.weightKg, "O peso", true),
         volumeM3: decimalValue(input.volumeM3, "O volume", true),
-        reinforcementSpec: textValue(input.reinforcementSpec, "a especificação da armadura", 500),
-        productionMinutesPerUnit: integerValue(input.productionMinutesPerUnit, "O ciclo de produção", 1),
-        curingDays: integerValue(input.curingDays, "O tempo de cura", 0, true),
+        productionMinutesPerUnit: integerValue(input.productionMinutesPerUnit, "O tempo de produção", 1),
         initialStockQuantity: integerValue(input.initialStockQuantity ?? 0, "O estoque inicial", 0),
         stockMinimumQuantity: integerValue(input.stockMinimumQuantity ?? 0, "O estoque mínimo", 0),
         observations: textValue(input.observations, "as observações", 1000),
@@ -263,7 +261,7 @@ async function handler(request: Request) {
         name: textValue(input.name, "o nome do molde", 180, true),
         moldType: textValue(input.moldType, "o tipo do molde", 120, true),
         dimensions: textValue(input.dimensions, "as dimensões", 180),
-        cycleMinutesPerUnit: integerValue(input.cycleMinutesPerUnit, "O ciclo do molde", 1),
+        cycleMinutesPerUnit: integerValue(input.cycleMinutesPerUnit, "O ciclo do molde", 1, true),
         status: enumValue(input.status, MOLD_STATUSES, "ativo", "Status do molde"),
         observations: textValue(input.observations, "as observações", 1000),
       };
