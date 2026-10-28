@@ -5,7 +5,7 @@ O backend usa Supabase/PostgreSQL e Edge Functions em Deno. O PWA consome o cale
 ## Publicação
 
 1. Crie um projeto no Supabase.
-2. Execute `database/001_initial_schema.sql` até `database/006_position_based_planning.sql`, nessa ordem. Em uma instalação que já tem 001–005, aplique apenas a migração 006 antes de publicar as funções alteradas.
+2. Em uma instalação nova, execute as migrações `database/001_initial_schema.sql` até `database/008_stage5_work_order_inheritance.sql`, nessa ordem. No Site existente, que já aplicou 001–007, aplique somente a migração 008 antes de publicar a Edge Function `operations-admin` atualizada.
 3. Instale a CLI do Supabase e faça login.
 4. Configure somente o identificador da organização no projeto:
 
@@ -54,6 +54,11 @@ Todos recebem `POST` com JSON e aceitam `OPTIONS` para CORS.
 | `operations-admin` com `action: save_allocation` | recurso, pedido/peça e período | Reserva molde ou registra exceção justificada de outro recurso |
 
 Ao salvar ou replanejar um pedido, `operations-admin` chama o motor e regrava em uma transação a fila dos pedidos ainda não iniciados, por data de início e ordem de cadastro. Se um prazo solicitado for inviável, a programação calcula a data base mais próxima e retorna o aviso junto com o pedido salvo. As Edge Functions alteradas dependem da migração 006, que instala o RPC `commit_planning_queue`.
+
+Ao vincular um pedido a uma obra, `operations-admin` consulta e usa o cliente e a
+data de início da obra. A migração 008 reforça essa regra em gatilhos do banco e
+propaga alterações da obra para pedidos ainda não iniciados; o backend recalcula
+a fila depois de uma mudança de data.
 
 O prazo base usa quatro posições, uma concretagem por posição em cada dia útil, dois dias corridos de cura e acabamento no primeiro dia útil seguinte. O tempo de produção fica como registro e não limita capacidade. A falta de material não altera esta programação base; a validação de liberação por materiais pertence às etapas de BOM e produção.
 

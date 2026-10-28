@@ -15,6 +15,7 @@ Execute os arquivos na ordem abaixo pelo SQL Editor ou pela CLI do Supabase:
 5. `005_optional_mold_cycle.sql`
 6. `006_position_based_planning.sql`
 7. `007_stage4_piece_catalog_positions.sql`
+8. `008_stage5_work_order_inheritance.sql`
 
 Em uma instalação que já aplicou 001–005, execute `006_position_based_planning.sql`.
 Ela cria P01–P04, ordens unitárias, alocações por posição, ajustes manuais de
@@ -60,3 +61,24 @@ O tempo de setup para trocar a configuração de uma posição não foi informad
 não entra no prazo calculado. A preparação de sete dias do molde continua no
 cadastro operacional existente; a liberação por preparação será conectada ao
 início da produção na Etapa 5.
+
+## Etapa 5 · herança de obra e combinações de moldes
+
+A etapa reaproveita `works`, `orders`, `order_items`, `piece_types`, `mold_catalog`,
+`piece_type_molds`, `mold_positions`, `production_orders` e `allocations`. Não
+cria cópias dessas tabelas nem altera registros existentes. O diagrama e as
+chaves relevantes estão em [`ER.md`](ER.md).
+
+Ao salvar pedido vinculado a uma obra, a interface preenche cliente e data de
+início da obra e deixa esses campos somente leitura. A Edge Function consulta a
+obra novamente, usa seu `client_id` e `start_date` e impede o salvamento se a
+data da obra estiver vazia. Pedido sem obra continua aceitando cliente e data
+informados manualmente.
+
+As sugestões de molde vêm do catálogo atual: as três entradas fixas de braço;
+para Pilar e Viga, cada valor de LEITO combinado com cada valor de LATERAL. A
+combinação escolhida é persistida na tabela existente `piece_type_molds`. As
+medidas X/Y/Z permanecem manuais e o cálculo atual de volume e peso não muda.
+Não são criadas tabelas novas. A migração 008 acrescenta a view calculada de
+combinações e funções/triggers para manter os campos herdados do pedido
+sincronizados com a obra e recalcular a fila quando sua data de início mudar.

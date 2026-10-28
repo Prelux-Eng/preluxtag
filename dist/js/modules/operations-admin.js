@@ -117,6 +117,7 @@
       if (event.target.id === "preparationStartDate") updatePreparationEnd();
       if (event.target.id === "orderWorkId") syncOrderClientHelp();
       if (event.target.id === "pieceKind") updatePieceMoldFields();
+      if (event.target.id === "pieceMoldPair") syncPieceMoldPair();
       if (event.target.id === "positionConfigurationKind") updatePositionConfigFields();
     });
     $("operationsModalBody").addEventListener("input", (event) => {
@@ -333,8 +334,9 @@
     const max = options.max != null ? ` max="${escapeHtml(options.max)}"` : "";
     const step = options.step != null ? ` step="${escapeHtml(options.step)}"` : "";
     const disabled = options.disabled ? " disabled" : "";
+    const readonly = options.readonly ? " readonly" : "";
     const placeholder = options.placeholder ? ` placeholder="${escapeHtml(options.placeholder)}"` : "";
-    return `<div class="field${full}"><label for="${id}">${label}${options.optional ? " <span>opcional</span>" : ""}</label><input class="input" id="${id}" name="${id}" type="${type}" value="${escapeHtml(value)}"${required}${min}${max}${step}${disabled}${placeholder}></div>`;
+    return `<div class="field${full}"><label for="${id}">${label}${options.optional ? " <span>opcional</span>" : ""}</label><input class="input" id="${id}" name="${id}" type="${type}" value="${escapeHtml(value)}"${required}${min}${max}${step}${disabled}${readonly}${placeholder}></div>`;
   }
 
   function selectField(id, label, value, options, config = {}) {
@@ -403,7 +405,7 @@
       ${selectField("orderWorkId", "Obra", order?.work_id || "", workOptions, { optional: true, placeholder: "Pedido sem obra vinculada" })}
       ${inputField("clientName", "Cliente (quando não houver obra)", order?.client_name || "", "text", { placeholder: "Cliente do pedido" })}
       <div class="ops-form-hint full" id="orderClientHelp">Ao escolher uma obra, o pedido usa automaticamente o cliente cadastrado nela.</div>
-      ${inputField("startDate", "Data de início", order?.start_date || today(), "date", { required: true })}
+      ${inputField("startDate", "Data de início", order?.start_date || today(), "date", { required: true, readonly: Boolean(order?.work_id) })}
       ${inputField("requestedDueDate", "Prazo solicitado", order?.requested_due_date || "", "date", { optional: true })}
       ${selectField("status", "Status", order?.status || "orcamento", statusOptions)}
       <div class="field full"><label>Itens do pedido <span>o tempo de produção é copiado do catálogo no salvamento</span></label><div class="ops-items" id="orderItems">${items.map(orderItemRow).join("")}</div><div class="ops-inline-actions"><button class="btn" type="button" id="addOrderItem">Adicionar item</button></div></div>
@@ -420,15 +422,23 @@
   function syncOrderClientHelp() {
     const workSelect = $("orderWorkId");
     const clientInput = $("clientName");
+    const startDateInput = $("startDate");
     const help = $("orderClientHelp");
-    if (!workSelect || !clientInput || !help) return;
+    if (!workSelect || !clientInput || !startDateInput || !help) return;
     const work = state.data.works.find((item) => item.id === workSelect.value);
     clientInput.disabled = Boolean(work);
     clientInput.required = !work;
-    if (work) clientInput.value = work.client_name || "";
-    help.textContent = work
-      ? `Cliente da obra: ${work.client_name || "não informado"}.`
-      : "Sem obra vinculada, informe o cliente do pedido.";
+    startDateInput.readOnly = Boolean(work);
+    startDateInput.required = true;
+    if (work) {
+      clientInput.value = work.client_name || "";
+      startDateInput.value = work.start_date || "";
+      help.textContent = work.start_date
+        ? `Cliente e data de início herdados da obra (${dateBR(work.start_date)}).`
+        : "Cadastre a data de início da obra antes de vincular este pedido.";
+    } else {
+      help.textContent = "Sem obra vinculada, informe o cliente e a data de início do pedido.";
+    }
   }
 
   function openPieceForm(piece = null) {
@@ -436,8 +446,8 @@
     const molds = piece?.mold_catalogs || {};
     const typeOptions = [["braco", "Braço"], ["pilar", "Pilar"], ["viga", "Viga"]];
     const armOptions = catalogChoices("BRACO");
-    const bedOptions = catalogChoices("LEITO");
-    const sideOptions = catalogChoices("LATERAL");
+    const combinations = moldCombinationsFor("pilar");
+    const selectedPair = molds.leito && molds.lateral ? `${molds.leito}|${molds.lateral}` : "";
     const body = `<div class="ops-form-grid">
       ${inputField("code", "Código da peça", piece?.code || "", "text", { required: true })}
       ${inputField("name", "Nome da peça", piece?.name || "", "text", { required: true })}
@@ -453,8 +463,9 @@
       ${inputField("productionMinutesPerUnit", "Tempo de produção (min/un.)", piece?.production_minutes_per_unit ?? "", "number", { min: 1, step: 1, required: true })}
       <div class="ops-form-hint">O tempo fica registrado no cadastro e não limita a capacidade do planejamento.</div>
       ${selectField("pieceMoldBraco", "Molde BRAÇO", molds.braco || "", armOptions, { required: true, placeholder: "Selecione uma medida" })}
-      ${selectField("pieceMoldLeito", "Molde LEITO", molds.leito || "", bedOptions, { required: true, placeholder: "Selecione uma medida" })}
-      ${selectField("pieceMoldLateral", "Molde LATERAL", molds.lateral || "", sideOptions, { required: true, placeholder: "Selecione uma medida" })}
+      ${selectField("pieceMoldPair", "Combinação de moldes LEITO × LATERAL", selectedPair, combinations, { required: true, placeholder: "Selecione uma combinação" })}
+      <input type="hidden" id="pieceMoldLeito" name="pieceMoldLeito" value="${escapeHtml(molds.leito || "")}" />
+      <input type="hidden" id="pieceMoldLateral" name="pieceMoldLateral" value="${escapeHtml(molds.lateral || "")}" />
       ${textareaField("observations", "Observações", piece?.observations || "")}
     </div>`;
     openModal(piece ? "Editar peça" : "Nova peça", "Dimensões em centímetros; volume e peso são calculados ao informar X, Y e Z.", body, "piece", piece);
@@ -501,23 +512,48 @@
       .map((item) => [item.code, `${moldType === "BRACO" ? "BRAÇO" : moldType} ${item.measure_label} cm`]);
   }
 
+  function moldCombinationsFor(pieceKind) {
+    const combinations = state.data?.moldCombinations;
+    if (Array.isArray(combinations)) {
+      return combinations.filter((item) => item.piece_kind === pieceKind && item.configuration_kind === "pilar_viga")
+        .map((item) => [item.option_key || item.key, item.label]);
+    }
+    const beds = catalogChoices("LEITO");
+    const sides = catalogChoices("LATERAL");
+    return beds.flatMap(([bedCode, bedLabel]) => sides.map(([sideCode, sideLabel]) => [
+      `${bedCode}|${sideCode}`,
+      `${bedLabel} × ${sideLabel}`,
+    ]));
+  }
+
+  function syncPieceMoldPair() {
+    const [bedCode = "", sideCode = ""] = String($("pieceMoldPair")?.value || "").split("|");
+    if ($("pieceMoldLeito")) $("pieceMoldLeito").value = bedCode;
+    if ($("pieceMoldLateral")) $("pieceMoldLateral").value = sideCode;
+  }
+
   function updatePieceMoldFields() {
     const kind = $("pieceKind")?.value;
     const arm = $("pieceMoldBraco");
-    const bed = $("pieceMoldLeito");
-    const side = $("pieceMoldLateral");
-    if (!arm || !bed || !side) return;
+    const pair = $("pieceMoldPair");
+    if (!arm || !pair) return;
+    const armField = arm.closest(".field");
+    const pairField = pair.closest(".field");
     if (!kind) {
-      [arm, bed, side].forEach((select) => { select.closest(".field").hidden = true; select.required = false; });
+      armField.hidden = true;
+      pairField.hidden = true;
+      arm.required = false;
+      pair.required = false;
       return;
     }
     const isArm = kind === "braco";
-    arm.closest(".field").hidden = !isArm;
-    bed.closest(".field").hidden = isArm;
-    side.closest(".field").hidden = isArm;
+    armField.hidden = !isArm;
+    pairField.hidden = isArm;
     arm.required = isArm;
-    bed.required = !isArm;
-    side.required = !isArm;
+    pair.required = !isArm;
+    if (isArm) pair.value = "";
+    else arm.value = "";
+    syncPieceMoldPair();
   }
 
   function updatePositionConfigFields() {
@@ -701,7 +737,7 @@
     save.textContent = "Salvando…";
     try {
       if (kind === "work") {
-        await global.PRELUX_API.saveWork({
+        const response = await global.PRELUX_API.saveWork({
           id,
           workNumber: formValue(form, "workNumber"),
           name: formValue(form, "name"),
@@ -713,10 +749,15 @@
           status: formValue(form, "status"),
           observations: formValue(form, "observations"),
         });
+        if (response?.planning?.warning) savedNotice = `Obra salva. ${response.planning.warning}`;
+        else if (response?.planning?.committed) savedNotice = "Obra salva e pedidos vinculados replanejados.";
       } else if (kind === "order") {
         const workId = formValue(form, "orderWorkId");
         const clientName = formValue(form, "clientName");
         if (!workId && !clientName) throw new Error("Informe o cliente ou vincule o pedido a uma obra.");
+        const work = workId ? state.data.works.find((item) => item.id === workId) : null;
+        if (workId && !work?.start_date) throw new Error("Cadastre a data de início da obra antes de vincular este pedido.");
+        const startDate = work?.start_date || formValue(form, "startDate");
         const items = [...form.querySelectorAll(".ops-item-row")].map((row) => ({
           pieceTypeId: row.querySelector("[data-item-piece]").value,
           quantity: Number(row.querySelector("[data-item-quantity]").value),
@@ -728,7 +769,7 @@
           orderNumber: formValue(form, "orderNumber"),
           workId,
           clientName,
-          startDate: formValue(form, "startDate"),
+          startDate,
           requestedDueDate: formValue(form, "requestedDueDate"),
           status: formValue(form, "status"),
           observations: formValue(form, "observations"),

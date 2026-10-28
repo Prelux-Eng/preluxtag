@@ -93,6 +93,32 @@ async function resolveClientId(db: any, organizationId: string, input: Record<st
   return data.id;
 }
 
+function buildMoldCombinations(catalog: any[]) {
+  const arms = catalog.filter((item) => item.mold_type === "BRACO");
+  const beds = catalog.filter((item) => item.mold_type === "LEITO");
+  const sides = catalog.filter((item) => item.mold_type === "LATERAL");
+  return [
+    ...arms.map((arm) => ({
+      key: arm.code,
+      piece_kind: "braco",
+      configuration_kind: "braco",
+      braco_catalog_code: arm.code,
+      leito_catalog_code: null,
+      lateral_catalog_code: null,
+      label: `BRAÇO ${arm.measure_label} cm`,
+    })),
+    ...["pilar", "viga"].flatMap((pieceKind) => beds.flatMap((bed) => sides.map((side) => ({
+      key: `${bed.code}|${side.code}`,
+      piece_kind: pieceKind,
+      configuration_kind: "pilar_viga",
+      braco_catalog_code: null,
+      leito_catalog_code: bed.code,
+      lateral_catalog_code: side.code,
+      label: `LEITO ${bed.measure_label} cm × LATERAL ${side.measure_label} cm`,
+    })))),
+  ];
+}
+
 async function readOperationsData(db: any, organizationId: string) {
   const [clientsResult, worksResult, ordersResult, piecesResult, moldsResult, compatResult, preparationsResult, allocationsResult, catalogResult, pieceMoldsResult, positionsResult] = await Promise.all([
     db.from("clients").select("id, name, document, contact_name, phone, email, address, is_active")
@@ -120,6 +146,12 @@ async function readOperationsData(db: any, organizationId: string) {
   const results = [clientsResult, worksResult, ordersResult, piecesResult, moldsResult, compatResult, preparationsResult, allocationsResult, catalogResult, pieceMoldsResult, positionsResult];
   const labels = ["clientes", "obras", "pedidos", "tipos de peça", "moldes", "compatibilidades", "preparações", "alocações", "catálogo fixo de moldes", "moldes das peças", "posições de molde"];
   results.forEach((result, index) => { if (result.error) throwDbError(result.error, `Não foi possível carregar ${labels[index]}.`); });
+  const combinationsResult = await db.from("piece_mold_combinations")
+    .select("piece_kind, configuration_kind, option_key, braco_catalog_code, leito_catalog_code, lateral_catalog_code, label, sort_order")
+    .order("piece_kind").order("sort_order");
+  const moldCombinations = combinationsResult.error
+    ? buildMoldCombinations(catalogResult.data || [])
+    : combinationsResult.data || [];
 
   const orderIds = (ordersResult.data || []).map((order: any) => order.id);
   const itemsResult = orderIds.length
@@ -181,6 +213,7 @@ async function readOperationsData(db: any, organizationId: string) {
       piece_type_ids: pieceIdsByMold.get(mold.id) || [],
     })),
     moldCatalog: catalogResult.data || [],
+    moldCombinations,
     positions: positionsResult.data || [],
     preparations: preparationsResult.data || [],
     allocations: allocationsResult.data || [],
@@ -235,20 +268,38 @@ async function handler(request: Request) {
       if (record.startDate && record.requestedDueDate && record.requestedDueDate < record.startDate) {
         throw badRequest("A data prevista da obra não pode ser anterior ao início.");
       }
+      let previousStartDate: string | null = null;
+      if (record.id) {
+        const { data: previousWork, error: previousError } = await db.from("works")
+          .select("start_date").eq("organization_id", organizationId).eq("id", record.id).maybeSingle();
+        if (previousError) throwDbError(previousError, "Não foi possível consultar a obra antes da atualização.");
+        previousStartDate = previousWork?.start_date || null;
+      }
       const { data, error } = await db.rpc("save_work_record", { p_org_id: organizationId, p_record: record });
       if (error) throwDbError(error, "Não foi possível salvar a obra.");
-      return json({ ok: true, work: data });
+      let planning: Record<string, unknown> | null = null;
+      if (record.id && previousStartDate !== (data?.start_date || null)) {
+        try {
+          planning = await replanOpenQueue(db, organizationId);
+        } catch {
+          planning = { committed: false, warning: "A obra foi salva, mas o calendário não pôde ser recalculado. Atualize o planejamento." };
+        }
+      }
+      return json({ ok: true, work: data, planning });
     }
 
     if (action === "save_order") {
       const workId = textValue(input.workId, "a obra", 80);
       let clientId: string;
+      let inheritedStartDate: string | null = null;
       if (workId) {
-        const { data: work, error } = await db.from("works").select("id, client_id")
+        const { data: work, error } = await db.from("works").select("id, client_id, start_date")
           .eq("organization_id", organizationId).eq("id", workId).eq("is_active", true).maybeSingle();
         if (error) throwDbError(error, "Não foi possível localizar a obra.");
         if (!work) throw badRequest("Obra não encontrada ou inativa.", 404);
+        if (!work.start_date) throw badRequest("Cadastre a data de início da obra antes de vincular este pedido.");
         clientId = work.client_id;
+        inheritedStartDate = work.start_date;
       } else {
         clientId = await resolveClientId(db, organizationId, input);
       }
@@ -265,7 +316,7 @@ async function handler(request: Request) {
         orderNumber: textValue(input.orderNumber, "o número do pedido", 80),
         workId: workId || null,
         clientId,
-        startDate: dateValue(input.startDate, "data de início")!,
+        startDate: inheritedStartDate || dateValue(input.startDate, "data de início")!,
         requestedDueDate: dateValue(input.requestedDueDate, "prazo", true),
         status: enumValue(input.status, ORDER_STATUSES, "orcamento", "Status do pedido"),
         observations: textValue(input.observations, "as observações", 1000),
