@@ -78,7 +78,12 @@ function normalizedPosition(position) {
   const code = String(readField(position, "code", "code", "")).trim();
   const status = String(position?.status ?? "disponivel");
   if (!/^P0[1-4]$/.test(code)) throw new PlannerError(`Posição de molde inválida: ${code || "sem código"}.`);
-  return { code, status };
+  const catalogCodes = [
+    readField(position, "bracoCatalogCode", "braco_catalog_code"),
+    readField(position, "leitoCatalogCode", "leito_catalog_code"),
+    readField(position, "lateralCatalogCode", "lateral_catalog_code"),
+  ].filter(Boolean).map((value) => String(value).trim());
+  return { code, status, catalogCodes };
 }
 
 function normalizedItem(item, index) {
@@ -95,6 +100,11 @@ function normalizedItem(item, index) {
     "O tempo de produção registrado",
     { minimum: 0, fallback: 0 },
   );
+  const rawRequiredMoldCodes = readField(item, "requiredMoldCodes", "required_mold_codes", []);
+  const requiredMoldCodes = Array.isArray(rawRequiredMoldCodes)
+    ? rawRequiredMoldCodes.map((value) => String(value).trim()).filter(Boolean).sort()
+    : [];
+  const requiresMoldConfig = Boolean(readField(item, "requiresMoldConfig", "requires_mold_config", requiredMoldCodes.length > 0));
 
   if (!itemId || !pieceTypeId) {
     throw new PlannerError(`O item ${index + 1} precisa ter identificador e peça válidos.`);
@@ -108,7 +118,16 @@ function normalizedItem(item, index) {
     quantity,
     curingDays,
     productionMinutesPerUnit,
+    requiredMoldCodes,
+    requiresMoldConfig,
   };
+}
+
+function positionCanProduce(position, item) {
+  if (!item.requiredMoldCodes.length) return !item.requiresMoldConfig;
+  const configured = [...position.catalogCodes].sort();
+  return configured.length === item.requiredMoldCodes.length &&
+    configured.every((code, index) => code === item.requiredMoldCodes[index]);
 }
 
 function scheduleDate(schedule) {
@@ -288,6 +307,14 @@ export function planOrder({
   if (!normalizedItems.length) throw new PlannerError("O pedido precisa ter ao menos um item.");
 
   const conflicts = [];
+  const itemsWithoutPosition = normalizedItems.filter((item) => !positionList.some((position) => positionCanProduce(position, item)));
+  for (const item of itemsWithoutPosition) {
+    conflicts.push({
+      type: "mold_configuration",
+      pieceTypeId: item.pieceTypeId,
+      message: `Nenhuma posição tem a configuração de moldes cadastrada para ${item.code || item.name || "esta peça"}.`,
+    });
+  }
   const occupiedByDate = new Map();
   reserveExistingCapacity({
     existingSchedules,
@@ -312,7 +339,9 @@ export function planOrder({
     for (const castDate of workingDates) {
       if (itemUnits.length >= item.quantity) break;
       const occupied = occupiedByDate.get(castDate) || new Map();
-      const freePositions = positionList.filter((position) => !occupied.has(position.code));
+      const freePositions = positionList.filter((position) =>
+        !occupied.has(position.code) && positionCanProduce(position, item)
+      );
 
       for (const position of freePositions) {
         if (itemUnits.length >= item.quantity) break;
@@ -411,17 +440,19 @@ export function planOrder({
   }
   if (totalRemainingQuantity > 0) {
     conflicts.push({
-      type: "horizon",
+      type: itemsWithoutPosition.length ? "mold_configuration" : "horizon",
       dueDate: due,
       suggestedDueDate: null,
       remainingQuantity: totalRemainingQuantity,
-      message: `O horizonte não comporta ${totalRemainingQuantity} unidade(s); amplie o horizonte ou revise as posições disponíveis.`,
+      message: itemsWithoutPosition.length
+        ? `Há ${totalRemainingQuantity} unidade(s) sem posição com a configuração de moldes exigida; revise os moldes nas posições P01–P04.`
+        : `O horizonte não comporta ${totalRemainingQuantity} unidade(s); amplie o horizonte ou revise as posições disponíveis.`,
     });
   }
 
   const totalPlannedMinutes = units.reduce((sum, unit) => sum + unit.productionMinutesSnapshot, 0);
   const feasible = totalRemainingQuantity === 0 && dueMet && !conflicts.some((item) =>
-    item.type === "capacity" || item.type === "position"
+    item.type === "capacity" || item.type === "position" || item.type === "mold_configuration"
   );
 
   return {

@@ -152,6 +152,61 @@ test("posição em manutenção reduz a capacidade daquele conjunto de posiçõe
   assert.equal(result.units.some((unit) => unit.positionCode === "P01"), false);
 });
 
+test("peça só usa posição com a mesma configuração de molde cadastrada", () => {
+  const positions = [
+    { code: "P01", status: "disponivel", configuration_kind: "pilar_viga", leito_catalog_code: "LEITO_25", lateral_catalog_code: "LATERAL_40" },
+    { code: "P02", status: "disponivel", configuration_kind: "pilar_viga", leito_catalog_code: "LEITO_30", lateral_catalog_code: "LATERAL_40" },
+    { code: "P03", status: "disponivel", configuration_kind: "braco", braco_catalog_code: "BRACO_25X35" },
+    { code: "P04", status: "disponivel" },
+  ];
+  const result = planOrder({
+    calendarDays: calendar("2026-01-05", "2026-01-12"),
+    startDate: "2026-01-05",
+    planningHorizonDays: 3,
+    positions,
+    items: [{ ...item({ quantity: 2 }), code: "VIGA-01", requiredMoldCodes: ["LEITO_25", "LATERAL_40"] }],
+  });
+
+  assert.deepEqual(result.units.map((unit) => [unit.castDate, unit.positionCode]), [
+    ["2026-01-05", "P01"],
+    ["2026-01-06", "P01"],
+  ]);
+  assert.equal(result.feasible, true);
+});
+
+test("peça sem configuração compatível fica no backlog com motivo explícito", () => {
+  const result = planOrder({
+    calendarDays: calendar("2026-01-05", "2026-01-12"),
+    startDate: "2026-01-05",
+    planningHorizonDays: 3,
+    positions: [{ code: "P01", status: "disponivel", configuration_kind: "braco", braco_catalog_code: "BRACO_25X35" }],
+    items: [{ ...item({ quantity: 1 }), code: "PILAR-01", requiredMoldCodes: ["LEITO_25", "LATERAL_40"] }],
+  });
+
+  assert.equal(result.totalRemainingQuantity, 1);
+  assert.equal(result.units.length, 0);
+  assert.equal(result.feasible, false);
+  assert.equal(result.conflicts.some((conflict) => conflict.type === "mold_configuration"), true);
+});
+
+test("tipo novo sem os moldes obrigatórios não é alocado em posição livre", () => {
+  const result = planOrder({
+    calendarDays: calendar("2026-01-05", "2026-01-12"),
+    startDate: "2026-01-05",
+    planningHorizonDays: 3,
+    positions: DEFAULT_POSITION_CODES_FOR_TEST(),
+    items: [{ ...item({ quantity: 1 }), code: "PILAR-LEGADO", requiresMoldConfig: true, requiredMoldCodes: [] }],
+  });
+
+  assert.equal(result.totalRemainingQuantity, 1);
+  assert.equal(result.units.length, 0);
+  assert.equal(result.conflicts.some((conflict) => conflict.type === "mold_configuration"), true);
+});
+
+function DEFAULT_POSITION_CODES_FOR_TEST() {
+  return ["P01", "P02", "P03", "P04"].map((code) => ({ code, status: "disponivel" }));
+}
+
 test("fila global ordena pedidos por início e depois pela ordem de cadastro", async () => {
   const db = mockDb({
     orders: [
@@ -180,6 +235,34 @@ test("fila global ordena pedidos por início e depois pela ordem de cadastro", a
   assert.equal(result.plans[2].plan.units[0].castDate, "2026-01-06");
   assert.equal(result.targetPlan.order.id, "order-newer");
   assert.equal(result.targetPlan.units[0].curingDays, 2);
+});
+
+test("fila carrega os moldes do cadastro da peça para restringir as posições", async () => {
+  const db = mockDb({
+    orders: [{ id: "order-1", organization_id: "org-1", order_number: "PV-1", client_id: "client-1", is_active: true, start_date: "2026-01-05", requested_due_date: null, status: "aprovado", created_at: "2026-01-01T10:00:00Z" }],
+    calendar_settings: [{ organization_id: "org-1", planning_horizon_days: 5, default_capacity_minutes: 480 }],
+    calendar_working_rules: [],
+    calendar_exceptions: [],
+    mold_positions: [
+      { id: "p1", organization_id: "org-1", code: "P01", status: "disponivel", configuration_kind: "pilar_viga", leito_catalog_code: "LEITO_25", lateral_catalog_code: "LATERAL_40" },
+      { id: "p2", organization_id: "org-1", code: "P02", status: "disponivel", configuration_kind: "braco", braco_catalog_code: "BRACO_25X35" },
+      { id: "p3", organization_id: "org-1", code: "P03", status: "disponivel", configuration_kind: "pilar_viga", leito_catalog_code: "LEITO_30", lateral_catalog_code: "LATERAL_40" },
+      { id: "p4", organization_id: "org-1", code: "P04", status: "disponivel", configuration_kind: "pilar_viga", leito_catalog_code: "LEITO_25", lateral_catalog_code: "LATERAL_50" },
+    ],
+    order_items: [{ id: "item-1", organization_id: "org-1", order_id: "order-1", piece_type_id: "piece-1", quantity: 1, production_minutes_snapshot: 30, sequence: 1 }],
+    piece_types: [{ id: "piece-1", organization_id: "org-1", code: "VIGA-01", name: "Viga 01", piece_kind: "viga", production_minutes_per_unit: 30 }],
+    piece_type_molds: [
+      { organization_id: "org-1", piece_type_id: "piece-1", role: "leito", catalog_code: "LEITO_25" },
+      { organization_id: "org-1", piece_type_id: "piece-1", role: "lateral", catalog_code: "LATERAL_40" },
+    ],
+    production_orders: [],
+    production_schedules: [],
+    allocations: [],
+  });
+
+  const result = await buildPlanningQueue({ db, organizationId: "org-1", input: { orderId: "order-1" } });
+  assert.deepEqual(result.targetPlan.units.map((unit) => unit.positionCode), ["P01"]);
+  assert.equal(result.targetPlan.feasible, true);
 });
 
 test("exceção de calendário afeta concretagem e acabamento, mas não a cura", () => {

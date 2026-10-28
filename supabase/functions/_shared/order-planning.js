@@ -185,7 +185,7 @@ export async function buildPlanningQueue({ db, organizationId, input = {} }) {
       .eq("organization_id", organizationId)
       .maybeSingle(),
     db.from("mold_positions")
-      .select("id, code, status")
+      .select("id, code, status, configuration_kind, braco_catalog_code, leito_catalog_code, lateral_catalog_code")
       .eq("organization_id", organizationId)
       .order("code", { ascending: true }),
   ]);
@@ -268,12 +268,26 @@ export async function buildPlanningQueue({ db, organizationId, input = {} }) {
   const pieceTypeIds = [...new Set((itemsResult.data || []).map((item) => item.piece_type_id))];
   const piecesResult = pieceTypeIds.length
     ? await db.from("piece_types")
-      .select("id, code, name, production_minutes_per_unit")
+      .select("id, code, name, piece_kind, production_minutes_per_unit")
       .eq("organization_id", organizationId)
       .in("id", pieceTypeIds)
     : { data: [], error: null };
   throwIfError(piecesResult.error, "Não foi possível carregar as peças da fila");
   const pieceById = new Map((piecesResult.data || []).map((piece) => [piece.id, piece]));
+  const requirementsResult = pieceTypeIds.length
+    ? await db.from("piece_type_molds")
+      .select("piece_type_id, role, catalog_code")
+      .eq("organization_id", organizationId)
+      .in("piece_type_id", pieceTypeIds)
+      .limit(5000)
+    : { data: [], error: null };
+  throwIfError(requirementsResult.error, "Não foi possível carregar os moldes exigidos pelas peças");
+  const requiredMoldsByPiece = new Map();
+  for (const requirement of requirementsResult.data || []) {
+    const required = requiredMoldsByPiece.get(requirement.piece_type_id) || [];
+    required.push(requirement.catalog_code);
+    requiredMoldsByPiece.set(requirement.piece_type_id, required);
+  }
 
   const configuredHorizon = positiveSetting(settingsResult.data?.planning_horizon_days, 365);
   const queue = orders
@@ -350,6 +364,8 @@ export async function buildPlanningQueue({ db, organizationId, input = {} }) {
         pieceTypeId: item.piece_type_id,
         code: piece.code,
         name: piece.name,
+        requiredMoldCodes: requiredMoldsByPiece.get(item.piece_type_id) || [],
+        requiresMoldConfig: ["braco", "pilar", "viga"].includes(piece.piece_kind),
         quantity: item.quantity,
         curingDays: DEFAULT_CURING_DAYS,
         productionMinutesSnapshot: numberOrZero(item.production_minutes_snapshot) ||

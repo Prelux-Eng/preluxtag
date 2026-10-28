@@ -17,6 +17,7 @@
 .planning-backlog-work{display:flex;justify-content:space-between;gap:12px;color:#536575;font-size:11px;line-height:1.45}
 .planning-backlog-work strong{color:var(--ink)}
 .operations-toolbar{align-items:center}
+.operations-view .metric-grid{grid-template-columns:repeat(5,minmax(0,1fr))}
 .operations-status{margin:0 0 18px;padding:12px 14px;border:1px solid #d7e1ea;border-radius:10px;background:#fff;color:#536575;font-size:12px;line-height:1.5}
 .operations-status.error{border-color:#efc4c8;background:#fff3f4;color:#9a2e36}
 .operations-tabs{display:flex;gap:7px;flex-wrap:wrap;padding:12px 18px;border-bottom:1px solid var(--line);background:#fbfcfd}
@@ -45,7 +46,12 @@
 .ops-form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
 .ops-form-grid .field{margin:0}
 .ops-form-grid .field.full{grid-column:1/-1}
+.ops-form-grid .field[hidden]{display:none!important}
 .ops-form-grid .field label{display:block}
+.ops-computed-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;padding:13px;border:1px solid #cfe5f5;border-radius:10px;background:#f4faff}
+.ops-computed-metrics div{min-width:0}
+.ops-computed-metrics small,.ops-computed-metrics span{display:block;color:var(--muted);font-size:10px}
+.ops-computed-metrics strong{display:block;margin:4px 0;color:#145f95;font-size:16px;overflow-wrap:anywhere}
 .ops-form-grid .field .select[multiple]{min-height:120px;padding:8px}
 .ops-form-grid .field .select[multiple] option{padding:5px}
 .ops-items{display:grid;gap:9px;padding:11px;border:1px solid #e1e8ee;border-radius:10px;background:#fafcfd}
@@ -63,16 +69,19 @@
 .ops-modal-actions{display:flex;justify-content:flex-end;gap:9px;padding:12px 22px 22px}
 .ops-modal-actions .btn[disabled]{opacity:.55;cursor:wait}
 @media(max-width:760px){
+  .operations-view .metric-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
   .operations-list-head{align-items:flex-start;flex-direction:column}
   .operations-list-head .search{width:100%}
   .operations-table{min-width:680px}
 }
 @media(max-width:620px){
+  .operations-view .metric-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
   .planning-backlog{padding:14px}
   .planning-backlog-item{align-items:flex-start;flex-direction:column}
   .planning-backlog-item .btn{width:100%}
   .ops-form-grid{grid-template-columns:1fr}
   .ops-form-grid .field.full{grid-column:auto}
+  .ops-computed-metrics{grid-template-columns:1fr}
   .ops-item-row{grid-template-columns:minmax(0,1fr) minmax(85px,.4fr) auto}
   .ops-item-row .ops-item-observations{grid-column:1/3}
   .ops-checklist{grid-template-columns:1fr}

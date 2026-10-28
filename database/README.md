@@ -14,10 +14,16 @@ Execute os arquivos na ordem abaixo pelo SQL Editor ou pela CLI do Supabase:
 4. `004_works_pieces_molds.sql`
 5. `005_optional_mold_cycle.sql`
 6. `006_position_based_planning.sql`
+7. `007_stage4_piece_catalog_positions.sql`
 
 Em uma instalação que já aplicou 001–005, execute `006_position_based_planning.sql`.
 Ela cria P01–P04, ordens unitárias, alocações por posição, ajustes manuais de
 prazo e mantém `production_schedules` como resumo compatível com a tela atual.
+Em seguida, aplique `007_stage4_piece_catalog_positions.sql` para incluir os
+catálogos fixos, dimensões X/Y/Z, requisitos de molde por peça e configuração
+das quatro posições. Após a migração, publique a Edge Function
+`operations-admin` atualizada para habilitar os novos formulários e o vínculo
+de compatibilidade com o planejador.
 
 O script cria a organização inicial com o ID:
 
@@ -42,7 +48,15 @@ dois dias corridos de cura como regra fixa desta etapa e programa acabamento no
 primeiro dia útil seguinte. O ciclo antigo de cura salvo no cadastro não altera
 esse cálculo.
 
-PREMISSA ainda pendente: o tempo de setup ao trocar a configuração de uma
-posição não foi informado e, por isso, não entra no prazo calculado. A regra de
-preparação de sete dias do molde continua no cadastro operacional existente; a
-liberação por preparação será conectada ao início da produção na etapa 5.
+O catálogo fixo da Etapa 4 contém LEITO 20, 25, 30, 35, 40, 50, 60 cm;
+LATERAL 25, 30, 40, 50, 60 cm; e BRAÇO 25x35, 25x52, 30x60 cm. Peças Braço
+selecionam um molde BRAÇO. Peças Pilar e Viga selecionam um LEITO e um LATERAL.
+Cada posição recebe uma dessas configurações, e o planejador só aloca a peça em
+uma posição compatível. Posições ainda sem configuração não atendem às peças
+que tenham requisitos de molde cadastrados. A configuração não pode mudar
+durante uma concretagem em andamento; a fila futura é recalculada ao salvar.
+
+O tempo de setup para trocar a configuração de uma posição não foi informado e
+não entra no prazo calculado. A preparação de sete dias do molde continua no
+cadastro operacional existente; a liberação por preparação será conectada ao
+início da produção na Etapa 5.

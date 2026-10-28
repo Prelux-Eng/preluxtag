@@ -1,11 +1,12 @@
 (function attachOperationsAdmin(global) {
   const $ = (id) => document.getElementById(id);
-  const state = { data: null, tab: "works", loading: false, query: "" };
+  const state = { data: null, tab: "works", loading: false, query: "", supportsStage4: false };
   const tabs = [
     ["works", "Obras"],
     ["orders", "Pedidos"],
     ["pieces", "Peças"],
     ["molds", "Moldes"],
+    ["positions", "Posições"],
   ];
 
   function escapeHtml(value) {
@@ -47,6 +48,7 @@
       orcamento: "Orçamento", aprovado: "Aprovado", em_producao: "Em produção", concluido: "Concluído",
       entregue: "Entregue", atrasado: "Atrasado", cancelado: "Cancelado", ativo: "Ativo",
       manutencao: "Manutenção", bloqueado: "Bloqueado", retirado: "Retirado", planejada: "Planejada",
+      disponivel: "Disponível", em_preparacao: "Em preparação", em_manutencao: "Em manutenção",
       em_andamento: "Em andamento", aguardando_aprovacao: "Aguardando aprovação", aprovada: "Aprovada",
       reprovada: "Reprovada", planned: "Planejada", in_progress: "Em andamento", done: "Concluída",
       cancelled: "Cancelada",
@@ -55,9 +57,9 @@
   }
 
   function badge(value) {
-    const tone = ["ativa", "concluida", "aprovado", "em_producao", "concluido", "entregue", "ativo", "aprovada", "done"].includes(value)
+    const tone = ["ativa", "concluida", "aprovado", "em_producao", "concluido", "entregue", "ativo", "aprovada", "done", "disponivel"].includes(value)
       ? "good"
-      : ["atrasado", "manutencao", "aguardando_aprovacao", "em_andamento", "in_progress"].includes(value)
+      : ["atrasado", "manutencao", "em_manutencao", "em_preparacao", "aguardando_aprovacao", "em_andamento", "in_progress"].includes(value)
         ? "warn"
         : ["cancelada", "cancelado", "bloqueado", "retirado", "reprovada", "cancelled"].includes(value)
           ? "bad" : "";
@@ -74,7 +76,7 @@
   function shell() {
     $("operationsView").innerHTML = `
       <div class="toolbar operations-toolbar">
-        <div><h2>Cadastros de produção</h2><p>Obras e pedidos, catálogo de peças, moldes e preparação para produção.</p></div>
+        <div><h2>Cadastros de produção</h2><p>Obras, pedidos, catálogo de peças, moldes e quatro posições de produção.</p></div>
         <div class="actions"><button class="btn" id="operationsRefresh" type="button">Atualizar dados</button><button class="btn primary" id="operationsNew" type="button">Nova obra</button></div>
       </div>
       <div class="metric-grid">
@@ -82,6 +84,7 @@
         <div class="card metric-card"><small>Pedidos abertos</small><strong id="operationsOrdersMetric">—</strong><span>pedidos não entregues ou cancelados</span></div>
         <div class="card metric-card"><small>Tipos de peça</small><strong id="operationsPiecesMetric">—</strong><span>catálogo ativo</span></div>
         <div class="card metric-card"><small>Moldes disponíveis</small><strong id="operationsMoldsMetric">—</strong><span>moldes ativos</span></div>
+        <div class="card metric-card"><small>Posições configuradas</small><strong id="operationsPositionsMetric">—</strong><span>de 4 posições físicas</span></div>
       </div>
       <div class="operations-status" id="operationsStatus">Carregando cadastros.</div>
       <section class="card operations-panel">
@@ -113,6 +116,11 @@
       if (event.target.id === "allocationResourceKind") updateAllocationFields();
       if (event.target.id === "preparationStartDate") updatePreparationEnd();
       if (event.target.id === "orderWorkId") syncOrderClientHelp();
+      if (event.target.id === "pieceKind") updatePieceMoldFields();
+      if (event.target.id === "positionConfigurationKind") updatePositionConfigFields();
+    });
+    $("operationsModalBody").addEventListener("input", (event) => {
+      if (["dimensionXcm", "dimensionYcm", "dimensionZcm"].includes(event.target.id)) updatePieceMetrics();
     });
     $("operationsModalBody").addEventListener("click", (event) => {
       if (event.target.id === "addOrderItem") addOrderItemRow();
@@ -124,8 +132,9 @@
     $("operationsTabs").innerHTML = tabs.map(([key, label]) =>
       `<button type="button" data-operations-tab="${key}" aria-pressed="${key === state.tab}">${label}</button>`
     ).join("");
-    const labels = { works: "Nova obra", orders: "Novo pedido", pieces: "Novo tipo de peça", molds: "Novo molde" };
+    const labels = { works: "Nova obra", orders: "Novo pedido", pieces: "Nova peça", molds: "Novo molde", positions: "Gerenciar posições" };
     $("operationsNew").textContent = labels[state.tab];
+    $("operationsNew").hidden = state.tab === "positions";
   }
 
   function metric(id, value) { $(id).textContent = String(value); }
@@ -137,6 +146,7 @@
     metric("operationsOrdersMetric", data.orders.filter((order) => !["entregue", "cancelado"].includes(order.status)).length);
     metric("operationsPiecesMetric", data.pieceTypes.length);
     metric("operationsMoldsMetric", data.molds.filter((mold) => mold.status === "ativo").length);
+    metric("operationsPositionsMetric", state.supportsStage4 ? data.positions.filter((position) => Boolean(position.configuration_kind)).length : "—");
   }
 
   function tableHeader(title, description, placeholder, headers) {
@@ -145,6 +155,51 @@
 
   function actionButton(action, id, label) {
     return `<button class="icon-btn" type="button" data-ops-action="${action}" data-id="${escapeHtml(id)}">${label}</button>`;
+  }
+
+  function formatNumber(value, digits = 2) {
+    const number = Number(value);
+    return Number.isFinite(number) ? new Intl.NumberFormat("pt-BR", { maximumFractionDigits: digits }).format(number) : "—";
+  }
+
+  function pieceTypeLabel(value) {
+    return ({ braco: "Braço", pilar: "Pilar", viga: "Viga" })[value] || "Tipo pendente";
+  }
+
+  function catalogLabel(code) {
+    const item = (state.data?.moldCatalog || []).find((row) => row.code === code);
+    return item ? `${item.mold_type === "BRACO" ? "BRAÇO" : item.mold_type} ${item.measure_label} cm` : "Molde não informado";
+  }
+
+  function pieceMoldSummary(piece) {
+    const molds = piece.mold_catalogs || {};
+    if (molds.braco) return escapeHtml(catalogLabel(molds.braco));
+    if (molds.leito || molds.lateral) return `${escapeHtml(catalogLabel(molds.leito))}<span class="muted">+ ${escapeHtml(catalogLabel(molds.lateral))}</span>`;
+    return "Configuração pendente";
+  }
+
+  function calculatedVolumeCm3(piece) {
+    if (piece.volume_cm3 != null) return Number(piece.volume_cm3);
+    const dimensions = [piece.dimension_x_cm, piece.dimension_y_cm, piece.dimension_z_cm].map(Number);
+    return dimensions.every((value) => Number.isFinite(value) && value > 0) ? dimensions.reduce((total, value) => total * value, 1) : null;
+  }
+
+  function pieceMetricsLabel(piece) {
+    const volumeCm3 = calculatedVolumeCm3(piece);
+    if (volumeCm3 == null) {
+      return '<td>Dimensões pendentes<span class="muted">Revise X, Y e Z para calcular volume e peso</span></td>';
+    }
+    const volumeM3 = piece.volume_m3 == null ? volumeCm3 / 1_000_000 : Number(piece.volume_m3);
+    const weightKg = piece.weight_kg == null ? volumeCm3 * 2.5 / 1000 : Number(piece.weight_kg);
+    return `<td>${formatNumber(volumeCm3, 3)} cm³<span class="muted">${formatNumber(volumeM3, 6)} m³ · ${formatNumber(weightKg, 3)} kg</span></td>`;
+  }
+
+  function positionConfigLabel(position) {
+    if (position.configuration_kind === "braco" && position.braco_catalog_code) return catalogLabel(position.braco_catalog_code);
+    if (position.configuration_kind === "pilar_viga" && position.leito_catalog_code && position.lateral_catalog_code) {
+      return `${catalogLabel(position.leito_catalog_code)} + ${catalogLabel(position.lateral_catalog_code)}`;
+    }
+    return "Configuração pendente";
   }
 
   function renderTable(query = state.query) {
@@ -172,19 +227,22 @@
         <td><div class="row-actions">${order.hasResourceAllocation ? '<span class="ops-badge warn" title="Os itens são preservados para manter o histórico das alocações.">Alocação registrada</span>' : actionButton("edit", order.id, "Editar")}</div></td>
       </tr>`).join("") : `<tr><td colspan="7" class="empty">Nenhum pedido encontrado.</td></tr>`;
     } else if (state.tab === "pieces") {
-      $("operationsTable").innerHTML = tableHeader("Catálogo de peças", "Dimensões, peso, volume, tempo de produção, estoque mínimo e moldes compatíveis.", "Pesquisar código ou peça", ["Código / peça", "Dimensões", "Peso / volume", "Tempo de produção", "Estoque", "Moldes", "Ações"]);
-      const rows = data.pieceTypes.filter((piece) => `${piece.code} ${piece.name} ${piece.dimensions}`.toLocaleLowerCase().includes(filter));
-      const moldById = new Map(data.molds.map((mold) => [mold.id, mold.code]));
+      $("operationsTable").innerHTML = tableHeader("Catálogo de peças", "Tipos fixos, dimensões em centímetros e métricas calculadas automaticamente.", "Pesquisar código ou peça", ["Código / peça", "Tipo", "Dimensões X × Y × Z", "Volume / peso", "Tempo registrado", "Moldes", "Ações"]);
+      const rows = data.pieceTypes.filter((piece) => `${piece.code} ${piece.name} ${piece.piece_kind || ""} ${piece.dimensions}`.toLocaleLowerCase().includes(filter));
       $("operationsRows").innerHTML = rows.length ? rows.map((piece) => `<tr>
         <td>${escapeHtml(piece.code)}<span class="muted">${escapeHtml(piece.name)}</span></td>
-        <td>${escapeHtml(piece.dimensions || "—")}</td>
-        <td>${piece.weight_kg == null ? "Peso não informado" : `${Number(piece.weight_kg)} kg`}<span class="muted">${piece.volume_m3 == null ? "Volume não informado" : `${Number(piece.volume_m3)} m³`}</span></td>
-        <td>${Number(piece.production_minutes_per_unit)} min/un.</td>
-        <td>${Number(piece.initial_stock_quantity)}<span class="muted">mínimo ${Number(piece.stock_minimum_quantity)}</span></td>
-        <td>${(piece.mold_ids || []).map((id) => escapeHtml(moldById.get(id) || "")).filter(Boolean).join(", ") || "—"}</td>
+        <td>${escapeHtml(pieceTypeLabel(piece.piece_kind))}</td>
+        <td>${piece.dimension_x_cm == null ? escapeHtml(piece.dimensions || "Não informado") : `${Number(piece.dimension_x_cm)} × ${Number(piece.dimension_y_cm)} × ${Number(piece.dimension_z_cm)} cm`}</td>
+        ${pieceMetricsLabel(piece)}
+        <td>${Number(piece.production_minutes_per_unit)} min/un.<span class="muted">apenas registro</span></td>
+        <td>${pieceMoldSummary(piece)}</td>
         <td><div class="row-actions">${actionButton("edit", piece.id, "Editar")}${actionButton("archive", piece.id, "Arquivar")}</div></td>
-      </tr>`).join("") : `<tr><td colspan="7" class="empty">Nenhum tipo de peça encontrado.</td></tr>`;
+      </tr>`).join("") : `<tr><td colspan="7" class="empty">Nenhuma peça encontrada.</td></tr>`;
     } else {
+      if (state.tab === "positions") {
+        renderPositions(filter);
+        return;
+      }
       renderMolds(filter);
       return;
     }
@@ -199,8 +257,8 @@
     const orderItemById = new Map();
     for (const order of data.orders) for (const item of order.items) orderItemById.set(item.id, { item, order });
     const moldRows = rows.length ? rows.map((mold) => `<tr>
-      <td>${escapeHtml(mold.code)}<span class="muted">${escapeHtml(mold.name)}</span></td>
-      <td>${escapeHtml(mold.mold_type)}<span class="muted">${escapeHtml(mold.dimensions || "Dimensões não informadas")}</span></td>
+      <td>${escapeHtml(mold.catalog_code ? catalogLabel(mold.catalog_code) : (mold.catalog_label || mold.name || "Molde legado"))}</td>
+      <td>${escapeHtml(mold.code)}<span class="muted">${mold.catalog_code ? "identificador gerado" : "cadastro legado"}</span></td>
       <td>${mold.cycle_minutes_per_unit == null ? "Não informado" : `${Number(mold.cycle_minutes_per_unit)} min/un.`}<span class="muted">preparação: 7 dias corridos</span></td>
       <td>${(mold.piece_type_ids || []).map((id) => escapeHtml(pieceById.get(id) || "")).filter(Boolean).join(", ") || "—"}</td>
       <td>${badge(mold.status)}</td>
@@ -219,13 +277,31 @@
       return `<tr><td>${escapeHtml(resource)}</td><td>${escapeHtml(product)}${override}</td><td>${dateBR(allocation.start_date)} – ${dateBR(allocation.end_date)}</td><td>${badge(allocation.status)}</td><td><div class="row-actions">${actionButton("edit-allocation", allocation.id, "Editar")}${allocation.status !== "cancelled" ? actionButton("cancel-allocation", allocation.id, "Cancelar") : ""}</div></td></tr>`;
     }).join("") || `<tr><td colspan="5" class="empty">Nenhuma alocação de produção registrada.</td></tr>`;
     $("operationsTable").innerHTML = `
-      <div class="operations-list-head"><div><h3>Moldes</h3><p>Compatibilidade, ciclo, preparação e alocação da produção.</p></div><input class="search" id="operationsSearch" value="${escapeHtml(state.query)}" placeholder="Pesquisar molde, tipo ou dimensão" aria-label="Pesquisar moldes" /></div>
-      <div class="table-wrap"><table class="operations-table"><thead><tr><th>Código / molde</th><th>Tipo / dimensões</th><th>Ciclo</th><th>Compatibilidade</th><th>Status</th><th>Ações</th></tr></thead><tbody id="moldRows">${moldRows}</tbody></table></div>
+      <div class="operations-list-head"><div><h3>Moldes</h3><p>Catálogo fixo de medidas, ciclo opcional e preparação de sete dias corridos.</p></div><input class="search" id="operationsSearch" value="${escapeHtml(state.query)}" placeholder="Pesquisar molde ou medida" aria-label="Pesquisar moldes" /></div>
+      <div class="table-wrap"><table class="operations-table"><thead><tr><th>Molde</th><th>Identificador</th><th>Ciclo</th><th>Compatibilidade</th><th>Status</th><th>Ações</th></tr></thead><tbody id="moldRows">${moldRows}</tbody></table></div>
       <div class="operations-list-head"><div><h3>Preparações</h3><p>Sete dias corridos; produção depende de checklist aprovado.</p></div><button class="btn" type="button" data-ops-action="new-preparation">Nova preparação</button></div>
       <div class="table-wrap"><table class="operations-table"><thead><tr><th>Molde</th><th>Período contínuo</th><th>Status</th><th>Aprovador</th><th>Ações</th></tr></thead><tbody>${preparationRows}</tbody></table></div>
       <div class="operations-list-head"><div><h3>Alocações</h3><p>O mesmo molde não pode ser reservado em períodos sobrepostos.</p></div><button class="btn" type="button" data-ops-action="new-allocation">Alocar produção</button></div>
       <div class="table-wrap"><table class="operations-table"><thead><tr><th>Recurso</th><th>Pedido / peça</th><th>Período</th><th>Status</th><th>Ações</th></tr></thead><tbody>${allocationRows}</tbody></table></div>
       <p class="operations-help">Preparação: limpeza, aplicação de desmoldante e montagem precisam estar marcadas antes da aprovação. Conflitos de outros recursos só são mantidos com justificativa e responsável registrados.</p>`;
+    $("operationsSearch").addEventListener("input", (event) => { state.query = event.target.value; renderTable(state.query); });
+  }
+
+  function renderPositions(filter) {
+    const positions = state.data.positions || [];
+    const rows = positions.filter((position) => `${position.code} ${position.status} ${positionConfigLabel(position)}`.toLocaleLowerCase().includes(filter));
+    const positionRows = rows.map((position) => `<tr>
+      <td>${escapeHtml(position.code)}</td>
+      <td>${escapeHtml(positionConfigLabel(position))}<span class="muted">${position.configuration_kind === "pilar_viga" ? "LEITO e LATERAL na mesma posição" : position.configuration_kind === "braco" ? "Molde único" : "Selecione a configuração"}</span></td>
+      <td>${badge(position.status)}</td>
+      <td>${escapeHtml(position.notes || "—")}</td>
+      <td><div class="row-actions">${actionButton("edit-position", position.id, "Configurar")}</div></td>
+    </tr>`).join("") || `<tr><td colspan="5" class="empty">Nenhuma posição encontrada.</td></tr>`;
+    const setupStatus = state.supportsStage4 ? "" : `<div class="ops-form-hint full">Para configurar posições e moldes, aplique database/007_stage4_piece_catalog_positions.sql e publique a Edge Function operations-admin atualizada.</div>`;
+    $("operationsTable").innerHTML = `<div class="operations-list-head"><div><h3>Posições físicas de molde</h3><p>Quatro posições fixas. Cada concretagem ocupa uma posição por um dia útil e a configuração seleciona a quais peças ela atende.</p></div><input class="search" id="operationsSearch" value="${escapeHtml(state.query)}" placeholder="Pesquisar posição ou molde" aria-label="Pesquisar posições" /></div>
+      ${setupStatus}
+      <div class="table-wrap"><table class="operations-table"><thead><tr><th>Posição</th><th>Configuração</th><th>Status</th><th>Observações</th><th>Ações</th></tr></thead><tbody>${positionRows}</tbody></table></div>
+      <p class="operations-help">Braço usa uma medida BRAÇO. Pilar e Viga usam um LEITO e um LATERAL na mesma posição. Tempo de setup permanece sem valor informado.</p>`;
     $("operationsSearch").addEventListener("input", (event) => { state.query = event.target.value; renderTable(state.query); });
   }
 
@@ -278,10 +354,19 @@
   }
 
   function openNew() {
+    if (["pieces", "molds", "positions"].includes(state.tab) && !ensureStage4()) return;
     if (state.tab === "works") return openWorkForm();
     if (state.tab === "orders") return openOrderForm();
     if (state.tab === "pieces") return openPieceForm();
-    return openMoldForm();
+    if (state.tab === "molds") return openMoldForm();
+  }
+
+  function ensureStage4() {
+    if (state.supportsStage4) return true;
+    const message = "Os cadastros novos da Etapa 4 aguardam a migração 007 e a Edge Function operations-admin atualizada no Supabase.";
+    showStatus(message, true);
+    toast("Aplique a migração 007 no Supabase para continuar.");
+    return false;
   }
 
   function openWorkForm(work = null) {
@@ -347,34 +432,124 @@
   }
 
   function openPieceForm(piece = null) {
+    if (!ensureStage4()) return;
+    const molds = piece?.mold_catalogs || {};
+    const typeOptions = [["braco", "Braço"], ["pilar", "Pilar"], ["viga", "Viga"]];
+    const armOptions = catalogChoices("BRACO");
+    const bedOptions = catalogChoices("LEITO");
+    const sideOptions = catalogChoices("LATERAL");
     const body = `<div class="ops-form-grid">
-      ${inputField("code", "Código / tipo", piece?.code || "", "text", { required: true })}
-      ${inputField("name", "Nome", piece?.name || "", "text", { required: true })}
-      ${inputField("dimensions", "Dimensões", piece?.dimensions || "", "text", { placeholder: "Ex.: 1,20 × 0,30 × 0,25 m" })}
-      ${inputField("weightKg", "Peso (kg)", piece?.weight_kg ?? "", "number", { min: 0, step: "0.001" })}
-      ${inputField("volumeM3", "Volume (m³)", piece?.volume_m3 ?? "", "number", { min: 0, step: "0.000001" })}
+      ${inputField("code", "Código da peça", piece?.code || "", "text", { required: true })}
+      ${inputField("name", "Nome da peça", piece?.name || "", "text", { required: true })}
+      ${selectField("pieceKind", "Tipo fixo", piece?.piece_kind || "", typeOptions, { required: true, placeholder: "Selecione Braço, Pilar ou Viga" })}
+      ${inputField("dimensionXcm", "Dimensão X (cm)", piece?.dimension_x_cm ?? "", "number", { min: 0.001, step: "0.001", required: true })}
+      ${inputField("dimensionYcm", "Dimensão Y (cm)", piece?.dimension_y_cm ?? "", "number", { min: 0.001, step: "0.001", required: true })}
+      ${inputField("dimensionZcm", "Dimensão Z (cm)", piece?.dimension_z_cm ?? "", "number", { min: 0.001, step: "0.001", required: true })}
+      <div class="ops-computed-metrics full" aria-live="polite">
+        <div><small>Volume</small><strong id="pieceVolumeCm3">—</strong><span>cm³</span></div>
+        <div><small>Volume</small><strong id="pieceVolumeM3">—</strong><span>m³</span></div>
+        <div><small>Peso estimado</small><strong id="pieceWeightKg">—</strong><span>kg</span></div>
+      </div>
       ${inputField("productionMinutesPerUnit", "Tempo de produção (min/un.)", piece?.production_minutes_per_unit ?? "", "number", { min: 1, step: 1, required: true })}
-      ${inputField("initialStockQuantity", "Estoque inicial", piece?.initial_stock_quantity ?? 0, "number", { min: 0, step: 1 })}
-      ${inputField("stockMinimumQuantity", "Estoque mínimo", piece?.stock_minimum_quantity ?? 0, "number", { min: 0, step: 1 })}
-      ${multiSelectField("pieceMolds", "Moldes compatíveis", state.data.molds.filter((mold) => mold.status !== "retirado"), piece?.mold_ids || [], "Cadastre um molde primeiro")}
+      <div class="ops-form-hint">O tempo fica registrado no cadastro e não limita a capacidade do planejamento.</div>
+      ${selectField("pieceMoldBraco", "Molde BRAÇO", molds.braco || "", armOptions, { required: true, placeholder: "Selecione uma medida" })}
+      ${selectField("pieceMoldLeito", "Molde LEITO", molds.leito || "", bedOptions, { required: true, placeholder: "Selecione uma medida" })}
+      ${selectField("pieceMoldLateral", "Molde LATERAL", molds.lateral || "", sideOptions, { required: true, placeholder: "Selecione uma medida" })}
       ${textareaField("observations", "Observações", piece?.observations || "")}
     </div>`;
-    openModal(piece ? "Editar tipo de peça" : "Novo tipo de peça", "O tempo de produção e as dimensões ficam no catálogo usado pelos pedidos.", body, "piece", piece);
+    openModal(piece ? "Editar peça" : "Nova peça", "Dimensões em centímetros; volume e peso são calculados ao informar X, Y e Z.", body, "piece", piece);
+    updatePieceMoldFields();
+    updatePieceMetrics();
   }
 
   function openMoldForm(mold = null) {
+    if (!ensureStage4()) return;
+    const moldOptions = (state.data.moldCatalog || []).map((item) => [item.code, `${item.mold_type === "BRACO" ? "BRAÇO" : item.mold_type} ${item.measure_label} cm`]);
     const body = `<div class="ops-form-grid">
-      ${inputField("code", "Código do molde", mold?.code || "", "text", { required: true })}
-      ${inputField("name", "Nome", mold?.name || "", "text", { required: true })}
-      ${inputField("moldType", "Tipo / configuração", mold?.mold_type || "", "text", { required: true, placeholder: "Ex.: pilar, viga, braço" })}
-      ${inputField("dimensions", "Dimensões", mold?.dimensions || "", "text", { placeholder: "Dimensões úteis do molde" })}
-      ${inputField("cycleMinutesPerUnit", "Ciclo (min/un.)", mold?.cycle_minutes_per_unit ?? "", "number", { min: 1, step: 1, required: true })}
+      ${selectField("catalogCode", "Molde do catálogo fixo", mold?.catalog_code || "", moldOptions, { required: true, placeholder: "Selecione tipo e medida" })}
+      ${inputField("cycleMinutesPerUnit", "Ciclo (min/un.)", mold?.cycle_minutes_per_unit ?? "", "number", { min: 1, step: 1, optional: true })}
       ${selectField("status", "Status", mold?.status || "ativo", [["ativo", "Ativo"], ["manutencao", "Manutenção"], ["bloqueado", "Bloqueado"], ["retirado", "Retirado"]])}
-      ${multiSelectField("moldPieces", "Peças compatíveis", state.data.pieceTypes, mold?.piece_type_ids || [], "Cadastre um tipo de peça primeiro")}
       <div class="ops-form-hint">A preparação tem duração fixa de sete dias corridos e precisa ser aprovada antes da produção.</div>
       ${textareaField("observations", "Observações", mold?.observations || "")}
     </div>`;
-    openModal(mold ? "Editar molde" : "Novo molde", "Cadastre somente moldes reais da unidade e associe as peças compatíveis.", body, "mold", mold);
+    openModal(mold ? "Editar molde" : "Novo molde", "Tipo e medida vêm do catálogo fixo; o identificador é gerado pelo sistema.", body, "mold", mold);
+  }
+
+  function openPositionForm(position) {
+    if (!ensureStage4()) return;
+    const typeOptions = [["braco", "Braço"], ["pilar_viga", "Pilar / Viga"]];
+    const armOptions = catalogChoices("BRACO");
+    const bedOptions = catalogChoices("LEITO");
+    const sideOptions = catalogChoices("LATERAL");
+    const body = `<div class="ops-form-grid">
+      <input type="hidden" id="positionCode" name="positionCode" value="${escapeHtml(position.code)}" />
+      <div class="field"><label>Posição física</label><input class="input" value="${escapeHtml(position.code)}" disabled /></div>
+      ${selectField("status", "Status", position.status || "disponivel", [["disponivel", "Disponível"], ["em_preparacao", "Em preparação"], ["em_producao", "Em produção"], ["em_manutencao", "Em manutenção"]])}
+      ${selectField("positionConfigurationKind", "Configuração da posição", position.configuration_kind || "", typeOptions, { required: true, placeholder: "Selecione a configuração" })}
+      ${selectField("positionMoldBraco", "Molde BRAÇO", position.braco_catalog_code || "", armOptions, { required: true, placeholder: "Selecione uma medida" })}
+      ${selectField("positionMoldLeito", "Molde LEITO", position.leito_catalog_code || "", bedOptions, { required: true, placeholder: "Selecione uma medida" })}
+      ${selectField("positionMoldLateral", "Molde LATERAL", position.lateral_catalog_code || "", sideOptions, { required: true, placeholder: "Selecione uma medida" })}
+      ${textareaField("positionNotes", "Observações", position.notes || "")}
+      <div class="ops-form-hint full">A configuração vale para os pedidos compatíveis e a fila de planejamento será recalculada ao salvar. Tempo de setup permanece sem valor informado.</div>
+    </div>`;
+    openModal(`Configurar posição ${position.code}`, "Defina o conjunto fixo de moldes instalado nesta posição.", body, "position", position);
+    updatePositionConfigFields();
+  }
+
+  function catalogChoices(moldType) {
+    return (state.data?.moldCatalog || []).filter((item) => item.mold_type === moldType)
+      .map((item) => [item.code, `${moldType === "BRACO" ? "BRAÇO" : moldType} ${item.measure_label} cm`]);
+  }
+
+  function updatePieceMoldFields() {
+    const kind = $("pieceKind")?.value;
+    const arm = $("pieceMoldBraco");
+    const bed = $("pieceMoldLeito");
+    const side = $("pieceMoldLateral");
+    if (!arm || !bed || !side) return;
+    if (!kind) {
+      [arm, bed, side].forEach((select) => { select.closest(".field").hidden = true; select.required = false; });
+      return;
+    }
+    const isArm = kind === "braco";
+    arm.closest(".field").hidden = !isArm;
+    bed.closest(".field").hidden = isArm;
+    side.closest(".field").hidden = isArm;
+    arm.required = isArm;
+    bed.required = !isArm;
+    side.required = !isArm;
+  }
+
+  function updatePositionConfigFields() {
+    const kind = $("positionConfigurationKind")?.value;
+    const arm = $("positionMoldBraco");
+    const bed = $("positionMoldLeito");
+    const side = $("positionMoldLateral");
+    if (!arm || !bed || !side) return;
+    if (!kind) {
+      [arm, bed, side].forEach((select) => { select.closest(".field").hidden = true; select.required = false; });
+      return;
+    }
+    const isArm = kind === "braco";
+    arm.closest(".field").hidden = !isArm;
+    bed.closest(".field").hidden = isArm;
+    side.closest(".field").hidden = isArm;
+    arm.required = isArm;
+    bed.required = !isArm;
+    side.required = !isArm;
+  }
+
+  function updatePieceMetrics() {
+    const x = Number(String($("dimensionXcm")?.value || "").replace(",", "."));
+    const y = Number(String($("dimensionYcm")?.value || "").replace(",", "."));
+    const z = Number(String($("dimensionZcm")?.value || "").replace(",", "."));
+    const valid = [x, y, z].every((value) => Number.isFinite(value) && value > 0);
+    const volumeCm3 = valid ? x * y * z : null;
+    const volumeM3 = valid ? volumeCm3 / 1_000_000 : null;
+    const weightKg = valid ? volumeCm3 * 2.5 / 1000 : null;
+    $("pieceVolumeCm3").textContent = valid ? formatNumber(volumeCm3, 3) : "—";
+    $("pieceVolumeM3").textContent = valid ? formatNumber(volumeM3, 6) : "—";
+    $("pieceWeightKg").textContent = valid ? formatNumber(weightKg, 3) : "—";
   }
 
   function openPreparationForm(mold, preparation = null) {
@@ -456,9 +631,15 @@
     if (action === "edit") {
       if (state.tab === "works") return openWorkForm(data.works.find((item) => item.id === id));
       if (state.tab === "orders") return openOrderForm(data.orders.find((item) => item.id === id));
-      if (state.tab === "pieces") return openPieceForm(data.pieceTypes.find((item) => item.id === id));
+      if (state.tab === "pieces") {
+        if (!ensureStage4()) return;
+        return openPieceForm(data.pieceTypes.find((item) => item.id === id));
+      }
+      if (state.tab === "positions") return openPositionForm(data.positions.find((item) => item.id === id));
+      if (state.tab === "molds" && !ensureStage4()) return;
       return openMoldForm(data.molds.find((item) => item.id === id));
     }
+    if (action === "edit-position") return openPositionForm(data.positions.find((item) => item.id === id));
     if (action === "prepare") return openPreparationForm(data.molds.find((item) => item.id === id));
     if (action === "allocate") return openAllocationForm(data.molds.find((item) => item.id === id));
     if (action === "edit-preparation") return openPreparationForm(null, data.preparations.find((item) => item.id === id));
@@ -561,33 +742,42 @@
           savedNotice = "Pedido salvo e incluído automaticamente no planejamento.";
         }
       } else if (kind === "piece") {
-        const moldSelect = $("pieceMolds");
-        await global.PRELUX_API.savePieceType({
+        const response = await global.PRELUX_API.savePieceType({
           id,
           code: formValue(form, "code"),
           name: formValue(form, "name"),
-          dimensions: formValue(form, "dimensions"),
-          weightKg: formValue(form, "weightKg"),
-          volumeM3: formValue(form, "volumeM3"),
+          pieceKind: formValue(form, "pieceKind"),
+          dimensionXcm: formValue(form, "dimensionXcm"),
+          dimensionYcm: formValue(form, "dimensionYcm"),
+          dimensionZcm: formValue(form, "dimensionZcm"),
           productionMinutesPerUnit: Number(formValue(form, "productionMinutesPerUnit")),
-          initialStockQuantity: Number(formValue(form, "initialStockQuantity") || 0),
-          stockMinimumQuantity: Number(formValue(form, "stockMinimumQuantity") || 0),
           observations: formValue(form, "observations"),
-          moldIds: moldSelect ? [...moldSelect.selectedOptions].map((option) => option.value) : [],
+          moldCatalogs: formValue(form, "pieceKind") === "braco"
+            ? { braco: formValue(form, "pieceMoldBraco") }
+            : { leito: formValue(form, "pieceMoldLeito"), lateral: formValue(form, "pieceMoldLateral") },
         });
+        if (response?.planning?.warning) savedNotice = `Peça salva. ${response.planning.warning}`;
+        else if (response?.planning?.committed) savedNotice = "Peça salva e planejamento recalculado.";
       } else if (kind === "mold") {
-        const pieceSelect = $("moldPieces");
         await global.PRELUX_API.saveMold({
           id,
-          code: formValue(form, "code"),
-          name: formValue(form, "name"),
-          moldType: formValue(form, "moldType"),
-          dimensions: formValue(form, "dimensions"),
-          cycleMinutesPerUnit: Number(formValue(form, "cycleMinutesPerUnit")),
+          catalogCode: formValue(form, "catalogCode"),
+          cycleMinutesPerUnit: formValue(form, "cycleMinutesPerUnit"),
           status: formValue(form, "status"),
           observations: formValue(form, "observations"),
-          pieceTypeIds: pieceSelect ? [...pieceSelect.selectedOptions].map((option) => option.value) : [],
         });
+      } else if (kind === "position") {
+        const response = await global.PRELUX_API.saveMoldPosition({
+          code: formValue(form, "positionCode"),
+          status: formValue(form, "status"),
+          configurationKind: formValue(form, "positionConfigurationKind"),
+          bracoCatalogCode: formValue(form, "positionConfigurationKind") === "braco" ? formValue(form, "positionMoldBraco") : "",
+          leitoCatalogCode: formValue(form, "positionConfigurationKind") === "pilar_viga" ? formValue(form, "positionMoldLeito") : "",
+          lateralCatalogCode: formValue(form, "positionConfigurationKind") === "pilar_viga" ? formValue(form, "positionMoldLateral") : "",
+          notes: formValue(form, "positionNotes"),
+        });
+        if (response?.planning?.warning) savedNotice = `Posição salva. ${response.planning.warning}`;
+        else if (response?.planning?.committed) savedNotice = "Posição salva e planejamento recalculado.";
       } else if (kind === "preparation") {
         await global.PRELUX_API.saveMoldPreparation({
           id,
@@ -620,7 +810,7 @@
       }
       closeModal();
       toast(savedNotice);
-      if (kind === "work" || kind === "order") {
+      if (kind === "work" || kind === "order" || kind === "position" || kind === "piece") {
         global.dispatchEvent(new CustomEvent("prelux:operations:changed", { detail: { kind, id } }));
       }
       await refreshData(true);
@@ -638,13 +828,21 @@
     try {
       const response = await global.PRELUX_API.getOperationsData();
       state.data = response;
+      state.supportsStage4 = Number(response?.schemaVersion || 0) >= 4 &&
+        Array.isArray(response?.moldCatalog) && Array.isArray(response?.positions);
       renderMetrics();
       state.query = $("operationsSearch")?.value || state.query;
       renderTable(state.query);
-      showStatus("Cadastros conectados ao banco PRELUX.");
+      showStatus(state.supportsStage4
+        ? "Cadastros de obras, pedidos, peças, moldes e posições conectados ao banco PRELUX."
+        : "Obras e pedidos conectados. Os cadastros de peças, moldes e posições aguardam a migração 007 e a Edge Function da Etapa 4.");
     } catch (error) {
-      showStatus(error.message || "Não foi possível carregar os cadastros. Confira a configuração do backend e aplique a migração 004.", true);
-      if (!state.data) $("operationsTable").innerHTML = `<div class="calendar-placeholder"><div><strong>Cadastros indisponíveis</strong><p>${escapeHtml(error.message || "Confira o backend e a migração de dados desta etapa.")}</p></div></div>`;
+      const rawMessage = error.message || "Não foi possível carregar os cadastros.";
+      const message = /posi[cç][aã]o|cat[aá]logo fixo|moldes das pe[cç]as/i.test(rawMessage)
+        ? `O banco ainda precisa da migração 007 da Etapa 4. ${rawMessage}`
+        : rawMessage;
+      showStatus(message, true);
+      if (!state.data) $("operationsTable").innerHTML = `<div class="calendar-placeholder"><div><strong>Cadastros indisponíveis</strong><p>${escapeHtml(message)}</p></div></div>`;
     } finally {
       state.loading = false;
     }
