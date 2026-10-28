@@ -6,7 +6,9 @@ permanecem somente como dado de registro nas programações legadas.
 
 ## Aplicação no Supabase
 
-Execute os arquivos na ordem abaixo pelo SQL Editor ou pela CLI do Supabase:
+Em uma instalação nova, execute os arquivos na ordem abaixo pelo SQL Editor do
+Supabase. Os scripts ficam em `database/` e não são descobertos automaticamente
+por `supabase db push`.
 
 1. `001_initial_schema.sql`
 2. `002_stage2_functions.sql`
