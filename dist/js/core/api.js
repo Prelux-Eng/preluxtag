@@ -84,6 +84,10 @@
       invoke("calendar-admin", { action: "delete_activity", id, startDate, endDate }),
     planOrder: (input) => invoke("plan-order", input),
     commitOrderPlan: (input) => invoke("commit-order-plan", input),
+    calculatePieceMetrics: (input) =>
+      invoke("operations-admin", { action: "calculate_piece_metrics", ...input }),
+    saveDelayAdjustment: (input) =>
+      invoke("operations-admin", { action: "save_delay_adjustment", ...input }),
     getOperationsData: () => invoke("operations-admin", { action: "bootstrap" }),
     saveWork: (input) => invoke("operations-admin", { action: "save_work", ...input }),
     saveOrder: (input) => invoke("operations-admin", { action: "save_order", ...input }),

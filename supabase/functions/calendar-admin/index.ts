@@ -136,9 +136,9 @@ async function deleteActivity(db: ReturnType<typeof createAdminClient>, organiza
 }
 
 async function readPlanningData(db: ReturnType<typeof createAdminClient>, organizationId: string, startDate: string, endDate: string) {
-  const [{ data: orders, error: ordersError }, { data: schedules, error: schedulesError }] = await Promise.all([
+  const [{ data: orders, error: ordersError }, { data: schedules, error: schedulesError }, { data: units, error: unitsError }, { data: positions, error: positionsError }] = await Promise.all([
     db.from("orders")
-      .select("id, order_number, work_id, client_id, start_date, requested_due_date, planned_end_date, status")
+      .select("id, order_number, work_id, client_id, start_date, planned_start_date, requested_due_date, planned_end_date, forecast_end_date, status")
       .eq("organization_id", organizationId)
       .eq("is_active", true)
       .order("start_date")
@@ -150,36 +150,108 @@ async function readPlanningData(db: ReturnType<typeof createAdminClient>, organi
       .gte("work_date", startDate)
       .lte("work_date", endDate)
       .order("work_date"),
+    db.from("production_orders")
+      .select("id, order_id, order_item_id, unit_sequence, planned_cast_date, planned_cure_start_date, planned_cure_end_date, planned_finish_date, planned_end_date, forecast_end_date, curing_days, production_minutes_snapshot, status")
+      .eq("organization_id", organizationId)
+      .in("status", ["planned", "in_progress", "done"])
+      .lte("planned_cast_date", endDate)
+      .gte("planned_end_date", startDate)
+      .order("planned_cast_date")
+      .limit(10000),
+    db.from("mold_positions")
+      .select("id, code, status")
+      .eq("organization_id", organizationId)
+      .order("code"),
   ]);
   if (ordersError) throw ordersError;
   if (schedulesError) throw schedulesError;
+  if (unitsError) throw unitsError;
+  if (positionsError) throw positionsError;
 
   const clientIds = [...new Set((orders || []).map((order) => order.client_id).filter(Boolean))];
   const workIds = [...new Set((orders || []).map((order) => order.work_id).filter(Boolean))];
-  const pieceTypeIds = [...new Set((schedules || []).map((schedule) => schedule.piece_type_id).filter(Boolean))];
+  const unitIds = (units || []).map((unit) => unit.id);
+  const orderItemIds = [...new Set([
+    ...(schedules || []).map((schedule) => schedule.order_item_id),
+    ...(units || []).map((unit) => unit.order_item_id),
+  ].filter(Boolean))];
   const orderIds = (orders || []).map((order) => order.id);
-  const [clientsResult, worksResult, pieceTypesResult, startedResult] = await Promise.all([
+  const [clientsResult, worksResult, itemsResult, allocationsResult, legacyStartedResult, unitStartedResult] = await Promise.all([
     clientIds.length
       ? db.from("clients").select("id, name").eq("organization_id", organizationId).in("id", clientIds)
       : Promise.resolve({ data: [], error: null }),
     workIds.length
       ? db.from("works").select("id, name").eq("organization_id", organizationId).in("id", workIds)
       : Promise.resolve({ data: [], error: null }),
-    pieceTypeIds.length
-      ? db.from("piece_types").select("id, code, name").eq("organization_id", organizationId).in("id", pieceTypeIds)
+    orderItemIds.length
+      ? db.from("order_items").select("id, order_id, piece_type_id, sequence").eq("organization_id", organizationId).in("id", orderItemIds)
+      : Promise.resolve({ data: [], error: null }),
+    unitIds.length
+      ? db.from("allocations").select("production_order_id, mold_position_id, scheduled_date, status").eq("organization_id", organizationId).in("production_order_id", unitIds).in("status", ["planned", "in_progress", "done"]).limit(10000)
       : Promise.resolve({ data: [], error: null }),
     orderIds.length
-      ? db.from("production_schedules").select("order_id").eq("organization_id", organizationId).in("order_id", orderIds).in("status", ["in_progress", "done"])
+      ? db.from("production_schedules").select("order_id").eq("organization_id", organizationId).in("order_id", orderIds).in("status", ["in_progress", "done"]).limit(10000)
+      : Promise.resolve({ data: [], error: null }),
+    orderIds.length
+      ? db.from("production_orders").select("order_id").eq("organization_id", organizationId).in("order_id", orderIds).in("status", ["in_progress", "done", "scrapped"]).limit(10000)
       : Promise.resolve({ data: [], error: null }),
   ]);
   if (clientsResult.error) throw clientsResult.error;
   if (worksResult.error) throw worksResult.error;
+  if (itemsResult.error) throw itemsResult.error;
+  if (allocationsResult.error) throw allocationsResult.error;
+  if (legacyStartedResult.error) throw legacyStartedResult.error;
+  if (unitStartedResult.error) throw unitStartedResult.error;
+
+  const pieceTypeIds = [...new Set((itemsResult.data || []).map((item) => item.piece_type_id).filter(Boolean))];
+  const itemPositions = [...new Set((allocationsResult.data || []).map((allocation) => allocation.mold_position_id).filter(Boolean))];
+  const [pieceTypesResult, allocatedPositionsResult] = await Promise.all([
+    pieceTypeIds.length
+      ? db.from("piece_types").select("id, code, name").eq("organization_id", organizationId).in("id", pieceTypeIds)
+      : Promise.resolve({ data: [], error: null }),
+    itemPositions.length
+      ? db.from("mold_positions").select("id, code").eq("organization_id", organizationId).in("id", itemPositions)
+      : Promise.resolve({ data: [], error: null }),
+  ]);
   if (pieceTypesResult.error) throw pieceTypesResult.error;
-  if (startedResult.error) throw startedResult.error;
+  if (allocatedPositionsResult.error) throw allocatedPositionsResult.error;
 
   const clientById = new Map((clientsResult.data || []).map((client) => [client.id, client.name]));
   const workById = new Map((worksResult.data || []).map((work) => [work.id, work.name]));
   const pieceById = new Map((pieceTypesResult.data || []).map((piece) => [piece.id, piece]));
+  const itemById = new Map((itemsResult.data || []).map((item) => [item.id, item]));
+  const positionById = new Map((allocatedPositionsResult.data || []).map((position) => [position.id, position.code]));
+  const allocationByUnit = new Map((allocationsResult.data || []).map((allocation) => [allocation.production_order_id, allocation]));
+  const activePositionCount = (positions || []).filter((position) => position.status !== "em_manutencao").length;
+  const occupancyByDate = new Map<string, Set<string>>();
+  const productionOrders = (units || []).map((unit) => {
+    const item = itemById.get(unit.order_item_id);
+    const piece = pieceById.get(item?.piece_type_id);
+    const allocation = allocationByUnit.get(unit.id);
+    const positionCode = positionById.get(allocation?.mold_position_id) || null;
+    if (unit.planned_cast_date >= startDate && unit.planned_cast_date <= endDate && positionCode) {
+      const occupied = occupancyByDate.get(unit.planned_cast_date) || new Set<string>();
+      occupied.add(positionCode);
+      occupancyByDate.set(unit.planned_cast_date, occupied);
+    }
+    return {
+      ...unit,
+      piece_type_id: item?.piece_type_id || null,
+      sequence: item?.sequence || null,
+      piece_code: piece?.code || "",
+      piece_name: piece?.name || "",
+      position_code: positionCode,
+      allocation_status: allocation?.status || null,
+      scheduled_date: allocation?.scheduled_date || unit.planned_cast_date,
+    };
+  });
+  const capacityByPositions = [...occupancyByDate.entries()].map(([date, occupied]) => ({
+    date,
+    capacity_positions: activePositionCount,
+    occupied_positions: occupied.size,
+    available_positions: Math.max(0, activePositionCount - occupied.size),
+    occupancy_percent: activePositionCount ? Math.round((occupied.size / activePositionCount) * 100) : 0,
+  })).sort((a, b) => a.date.localeCompare(b.date));
   return {
     orders: (orders || []).map((order) => ({
       ...order,
@@ -191,7 +263,13 @@ async function readPlanningData(db: ReturnType<typeof createAdminClient>, organi
       piece_code: pieceById.get(schedule.piece_type_id)?.code || "",
       piece_name: pieceById.get(schedule.piece_type_id)?.name || "",
     })),
-    startedOrderIds: [...new Set((startedResult.data || []).map((schedule) => schedule.order_id))],
+    productionOrders,
+    capacityByPositions,
+    positions: positions || [],
+    startedOrderIds: [...new Set([
+      ...(legacyStartedResult.data || []).map((schedule) => schedule.order_id),
+      ...(unitStartedResult.data || []).map((unit) => unit.order_id),
+    ])],
   };
 }
 

@@ -4,10 +4,13 @@
     mode: "month",
     days: [],
     exceptions: [],
-    capacity: [],
     orders: [],
     works: [],
     schedules: [],
+    productionOrders: [],
+    positions: [],
+    capacityByPositions: [],
+    unitPlanningAvailable: false,
     startedOrderIds: [],
     settings: { default_capacity_minutes: 480, rules: [] },
     selectedDate: null,
@@ -83,15 +86,6 @@
     return day && month && year ? `${day}/${month}/${year}` : "—";
   }
 
-  function minutesLabel(value) {
-    const minutes = Math.max(0, Number(value) || 0);
-    const hours = Math.floor(minutes / 60);
-    const rest = minutes % 60;
-    if (hours && rest) return `${hours} h ${rest} min`;
-    if (hours) return `${hours} h`;
-    return `${rest} min`;
-  }
-
   function formatOrder(order) {
     const reference = order?.order_number || "Pedido sem número";
     return [reference, order?.work_name, order?.client_name].filter(Boolean).join(" · ");
@@ -156,10 +150,6 @@
     return state.days.find((day) => day.date === date) || null;
   }
 
-  function getCapacity(date) {
-    return state.capacity.find((day) => day.date === date) || null;
-  }
-
   function exceptionsForDate(date) {
     return state.exceptions
       .filter((item) => item.start_date <= date && item.end_date >= date)
@@ -168,6 +158,85 @@
 
   function schedulesForDate(date) {
     return state.schedules.filter((schedule) => schedule.work_date === date);
+  }
+
+  const DEFAULT_POSITION_CODES = ["P01", "P02", "P03", "P04"];
+
+  function activePositionCount() {
+    const unavailable = new Set(state.positions
+      .filter((position) => position.status === "em_manutencao")
+      .map((position) => position.code));
+    return DEFAULT_POSITION_CODES.filter((code) => !unavailable.has(code)).length;
+  }
+
+  function productionUnitsForDate(date) {
+    return state.productionOrders.filter((unit) => unit.planned_cast_date === date);
+  }
+
+  function positionStats(date) {
+    const day = getDay(date) || { is_working: false };
+    const positionCount = activePositionCount();
+    const capacity = state.capacityByPositions.find((item) => item.date === date);
+    const plannedUnits = state.unitPlanningAvailable
+      ? productionUnitsForDate(date).length
+      : schedulesForDate(date).reduce((sum, schedule) => sum + Math.max(0, Number(schedule.planned_quantity) || 0), 0);
+    const assignedPositions = state.unitPlanningAvailable
+      ? new Set(productionUnitsForDate(date).map((unit) => unit.position_code).filter(Boolean)).size
+      : schedulesForDate(date).reduce((sum, schedule) => sum + Math.max(0, Number(schedule.planned_quantity) || 0), 0);
+    const occupied = Math.max(Number(capacity?.occupied_positions) || 0, assignedPositions, plannedUnits);
+    const available = day.is_working ? positionCount : 0;
+    return {
+      positionCount,
+      plannedUnits,
+      occupied,
+      available,
+      overCapacity: occupied > available,
+    };
+  }
+
+  function unitOrder(unit) {
+    return unit.order_id || "";
+  }
+
+  function unitPieceLabel(unit) {
+    return unit.piece_code || unit.piece_name || "Peça";
+  }
+
+  function phaseEventsForDate(date) {
+    if (!state.unitPlanningAvailable) {
+      return schedulesForDate(date).map((schedule) => ({ kind: "casting", value: schedule, quantity: Number(schedule.planned_quantity) || 0 }));
+    }
+    const units = state.productionOrders;
+    const result = [];
+    const groups = new Map();
+    const addGroup = (kind, unit, keyPart = "") => {
+      const orderId = unitOrder(unit);
+      const key = `${kind}|${orderId}|${unitPieceLabel(unit)}|${keyPart}`;
+      const group = groups.get(key) || { kind, value: unit, quantity: 0 };
+      group.quantity += 1;
+      groups.set(key, group);
+    };
+    for (const unit of units) {
+      if (unit.planned_cast_date === date) addGroup("casting", unit, unit.position_code || "unallocated");
+      if (unit.planned_cure_start_date && unit.planned_cure_end_date && date >= unit.planned_cure_start_date && date <= unit.planned_cure_end_date) {
+        addGroup("curing", unit);
+      }
+      if (unit.planned_finish_date === date) addGroup("finish", unit);
+    }
+    result.push(...groups.values());
+    return result;
+  }
+
+  function phaseEventLabel(event) {
+    const value = event.value;
+    const order = orderById(unitOrder(value));
+    const reference = order?.order_number || "Pedido";
+    const piece = value.piece_code || value.piece_name || "Peça";
+    if (event.kind === "casting") {
+      const position = value.position_code || "sem posição";
+      return `${position} · ${reference} · ${piece}${event.quantity > 1 ? ` ×${event.quantity}` : ""}`;
+    }
+    return `${event.kind === "curing" ? "Cura" : "Acabamento"} · ${reference} · ${piece}${event.quantity > 1 ? ` ×${event.quantity}` : ""}`;
   }
 
   function showStatus(id, message, isError = false) {
@@ -179,24 +248,24 @@
 
   function renderDay(date, options = {}) {
     const day = getDay(date) || { is_working: false, capacity_minutes: 0 };
-    const capacity = getCapacity(date) || {};
-    const occupancy = Math.max(0, Number(capacity.occupancy_percent) || 0);
+    const stats = positionStats(date);
+    const occupancy = stats.positionCount ? Math.round(stats.occupied / stats.positionCount * 100) : 0;
     const width = Math.min(100, occupancy);
-    const occupancyClass = occupancy > 100 ? "over" : occupancy >= 80 ? "high" : "";
+    const occupancyClass = stats.overCapacity ? "over" : occupancy >= 75 ? "high" : "";
     const activities = exceptionsForDate(date);
     const note = activities[0]?.name || day.note || "";
     const todayClass = date === localToday() ? "today" : "";
     const selectedClass = date === state.selectedDate ? "selected" : "";
     const nonWorkingClass = day.is_working ? "" : "non-working";
     const activityLabel = note ? `<span class="calendar-day-activity" title="${escapeHtml(note)}">${escapeHtml(note)}</span>` : "";
-    const dateSchedules = schedulesForDate(date);
-    const scheduledOrderIds = new Set(dateSchedules.map((schedule) => schedule.order_id));
+    const datePhases = phaseEventsForDate(date);
+    const scheduledOrderIds = new Set(datePhases.map((event) => unitOrder(event.value)).filter(Boolean));
     const dateOrders = activeCalendarOrders().filter((order) =>
       spanContains(order, date) && !scheduledOrderIds.has(order.id)
     );
     const dateWorks = activeCalendarWorks().filter((work) => spanContains(work, date));
     const events = [
-      ...dateSchedules.map((schedule) => ({ kind: "schedule", value: schedule })),
+      ...datePhases,
       ...dateOrders.map((order) => ({ kind: "order", value: order })),
       ...dateWorks.map((work) => ({ kind: "work", value: work })),
     ];
@@ -209,14 +278,22 @@
         const work = event.value;
         return `<span class="calendar-window-event work-window" title="${escapeHtml(workWindowLabel(work))}">Obra · ${escapeHtml(work.work_number || work.name)}</span>`;
       }
-      const schedule = event.value;
-      const order = orderById(schedule.order_id);
-      const canDrag = schedule.status === "planned" && !state.startedOrderIds.includes(schedule.order_id);
-      const statusClass = schedule.status === "in_progress" ? "in-progress" : schedule.status === "done" ? "done" : "";
-      return `<button class="calendar-event ${statusClass}" type="button" data-order-event="${escapeHtml(schedule.order_id)}" data-work-date="${date}" title="${escapeHtml(scheduleLabel(schedule))}"${canDrag ? ' draggable="true"' : ""}>${escapeHtml(formatOrder(order))} · ${escapeHtml(schedule.piece_code || "produção")} · ${Number(schedule.planned_quantity)} un.</button>`;
+      const value = event.value;
+      const orderId = unitOrder(value);
+      const order = orderById(orderId);
+      const isCasting = event.kind === "casting";
+      const statusClass = value.status === "in_progress" ? "in-progress" : value.status === "done" ? "done" : "";
+      const canDrag = isCasting && value.status === "planned" && orderId && !state.startedOrderIds.includes(orderId);
+      const className = event.kind === "casting" ? "casting-event" : event.kind === "curing" ? "curing-event" : "finish-event";
+      const title = `${phaseEventLabel(event)} · ${formatDateBR(date)}${event.kind === "curing" ? " · cura não ocupa posição" : ""}`;
+      const label = state.unitPlanningAvailable ? phaseEventLabel(event) : `${formatOrder(order)} · ${value.piece_code || "produção"} · ${Number(value.planned_quantity)} un.`;
+      return `<button class="calendar-event ${className} ${statusClass}" type="button" data-order-event="${escapeHtml(orderId)}" data-work-date="${date}" title="${escapeHtml(title)}"${canDrag ? ' draggable="true"' : ""}>${escapeHtml(label)}</button>`;
     }).join("");
     const remainingEvents = events.length - eventLimit;
-    return `<div class="calendar-day ${nonWorkingClass} ${todayClass} ${selectedClass}" role="button" tabindex="0" data-calendar-date="${date}" title="Abrir ajustes de ${formatDateBR(date)}"><span class="calendar-day-head"><span class="calendar-day-number">${Number(date.slice(-2))}</span><span class="calendar-day-status">${day.is_working ? "útil" : "parado"}</span></span><span class="calendar-day-capacity">${day.is_working ? minutesLabel(day.capacity_minutes) : "Sem produção"}${capacity.planned_minutes ? ` · ${minutesLabel(capacity.planned_minutes)} programados` : ""}</span>${activityLabel}<span class="calendar-day-occupancy"><i class="${occupancyClass}" style="width:${width}%"></i></span><div class="calendar-events">${eventRows}${remainingEvents > 0 ? `<span class="calendar-event-more">+${remainingEvents} programações</span>` : ""}</div></div>`;
+    const positionLabel = day.is_working
+      ? `${stats.occupied}/${stats.positionCount} posições${stats.overCapacity ? " · conflito" : ""}`
+      : stats.plannedUnits ? `Sem produção · ${stats.plannedUnits} concretagem(ns)` : "Sem produção";
+    return `<div class="calendar-day ${nonWorkingClass} ${todayClass} ${selectedClass}" role="button" tabindex="0" data-calendar-date="${date}" title="Abrir ajustes de ${formatDateBR(date)}"><span class="calendar-day-head"><span class="calendar-day-number">${Number(date.slice(-2))}</span><span class="calendar-day-status">${day.is_working ? "útil" : "parado"}</span></span><span class="calendar-day-capacity ${stats.overCapacity ? "position-conflict" : ""}">${positionLabel}</span>${activityLabel}<span class="calendar-day-occupancy"><i class="${occupancyClass}" style="width:${width}%"></i></span><div class="calendar-events">${eventRows}${remainingEvents > 0 ? `<span class="calendar-event-more">+${remainingEvents} etapas</span>` : ""}</div></div>`;
   }
 
   function renderMonth() {
@@ -247,68 +324,117 @@
   function renderGantt() {
     const { start, end } = monthBounds();
     const count = dateDistance(start, end) + 1;
+    const unitsInRange = state.productionOrders.filter((unit) =>
+      (unit.planned_cast_date >= start && unit.planned_cast_date <= end)
+      || (unit.planned_cure_start_date && unit.planned_cure_start_date <= end && unit.planned_cure_end_date >= start)
+      || (unit.planned_finish_date >= start && unit.planned_finish_date <= end)
+    );
     const ordersWithDates = activeCalendarOrders().filter((order) =>
-      spanOverlaps(order, start, end) || state.schedules.some((item) => item.order_id === order.id)
+      spanOverlaps(order, start, end)
+      || unitsInRange.some((unit) => unit.order_id === order.id)
+      || state.schedules.some((item) => item.order_id === order.id && item.work_date >= start && item.work_date <= end)
     );
     const worksWithDates = activeCalendarWorks().filter((work) => spanOverlaps(work, start, end));
-    const columnCount = count + 1;
     const template = `--gantt-days:${count}`;
     const headings = Array.from({ length: count }, (_, index) => {
       const date = addDays(start, index);
       const day = getDay(date) || { is_working: false };
-      return `<div class="gantt-cell ${day.is_working ? "" : "off"}" data-calendar-date="${date}" title="${formatDateBR(date)} · ${day.is_working ? minutesLabel(day.capacity_minutes) : "sem produção"}"><span>${Number(date.slice(-2))}</span><small>${day.is_working ? `${Math.round(Number(day.capacity_minutes || 0) / 60)}h` : "—"}</small></div>`;
+      const stats = positionStats(date);
+      return `<div class="gantt-cell ${day.is_working ? "" : "off"}" data-calendar-date="${date}" title="${formatDateBR(date)} · ${day.is_working ? `${stats.occupied}/${stats.positionCount} posições` : "sem produção"}"><span>${Number(date.slice(-2))}</span><small>${day.is_working ? `${stats.occupied}/${stats.positionCount}` : "—"}</small></div>`;
     }).join("");
     let rows = "";
-    for (const order of ordersWithDates) {
-      rows += `<div class="gantt-label" title="${escapeHtml(orderWindowLabel(order))}">Pedido · ${escapeHtml(order.order_number || "Sem número")}</div>`;
+    const appendRow = (label, getContent, rowClass = "") => {
+      rows += `<div class="gantt-label ${rowClass}">${escapeHtml(label)}</div>`;
       for (let index = 0; index < count; index += 1) {
         const date = addDays(start, index);
         const day = getDay(date) || { is_working: false };
-        const capacity = getCapacity(date) || {};
-        const window = spanContains(order, date) ? '<span class="gantt-order-window" aria-hidden="true"></span>' : "";
-        const items = schedulesForDate(date).filter((schedule) => schedule.order_id === order.id);
-        const work = items.map((schedule) => {
-          const draggable = schedule.status === "planned" && !state.startedOrderIds.includes(order.id);
-          const statusClass = schedule.status === "in_progress" ? "in-progress" : schedule.status === "done" ? "done" : "";
-          return `<button class="gantt-work ${statusClass}" type="button" data-order-event="${escapeHtml(order.id)}" data-work-date="${date}" title="${escapeHtml(scheduleLabel(schedule))}"${draggable ? ' draggable="true"' : ""}>${escapeHtml(schedule.piece_code || "produção")}</button>`;
-        }).join("");
-        const over = Number(capacity.occupancy_percent || 0) > 100;
-        rows += `<div class="gantt-cell ${day.is_working ? "" : "off"} ${over ? "over" : ""}" data-calendar-date="${date}" title="${formatDateBR(date)} · ${minutesLabel(capacity.planned_minutes || 0)} / ${minutesLabel(day.capacity_minutes || 0)}">${window}${work}</div>`;
+        const stats = positionStats(date);
+        rows += `<div class="gantt-cell ${day.is_working ? "" : "off"} ${stats.overCapacity ? "over" : ""}" data-calendar-date="${date}" title="${formatDateBR(date)} · ${day.is_working ? `${stats.occupied}/${stats.positionCount} posições` : "sem produção"}">${getContent(date)}</div>`;
       }
+    };
+    const ganttUnitsFor = (date, kind, positionCode = null) => unitsInRange.filter((unit) => {
+      if (kind === "casting") return unit.planned_cast_date === date && (!positionCode || unit.position_code === positionCode);
+      if (kind === "curing") return unit.planned_cure_start_date && unit.planned_cure_end_date && date >= unit.planned_cure_start_date && date <= unit.planned_cure_end_date;
+      return unit.planned_finish_date === date;
+    });
+    const positionMeta = new Map(state.positions.map((position) => [position.code, position]));
+    const positionCodes = [...new Set([...DEFAULT_POSITION_CODES, ...state.positions.map((position) => position.code)])].sort();
+    rows += `<div class="gantt-stage-heading">Concretagem · ocupa uma posição somente no dia marcado</div>`;
+    for (const code of positionCodes) {
+      const position = positionMeta.get(code);
+      const unavailable = position?.status === "em_manutencao";
+      appendRow(`${code}${unavailable ? " · manutenção" : ""}`, (date) => {
+        if (state.unitPlanningAvailable) {
+          return ganttUnitsFor(date, "casting", code).map((unit) => {
+            const orderId = unit.order_id;
+            const order = orderById(orderId);
+            const draggable = unit.status === "planned" && orderId && !state.startedOrderIds.includes(orderId);
+            const label = `${escapeHtml(order?.order_number || "Pedido")} · ${escapeHtml(unitPieceLabel(unit))}`;
+            return `<button class="gantt-work casting-work" type="button" data-order-event="${escapeHtml(orderId)}" data-work-date="${date}" title="${escapeHtml(phaseEventLabel({ kind: "casting", value: unit, quantity: 1 }))}"${draggable ? ' draggable="true"' : ""}>${label}</button>`;
+          }).join("");
+        }
+        return "";
+      }, unavailable ? "position-unavailable" : "position-label");
+    }
+    if (state.unitPlanningAvailable) {
+      const unallocatedUnits = unitsInRange.filter((unit) => unit.planned_cast_date >= start && unit.planned_cast_date <= end && !unit.position_code);
+      if (unallocatedUnits.length) {
+        appendRow("Sem posição alocada", (date) => unallocatedUnits.filter((unit) => unit.planned_cast_date === date).map((unit) => {
+          const order = orderById(unit.order_id);
+          return `<span class="gantt-work unallocated-work" title="Concretagem sem posição atribuída">${escapeHtml(order?.order_number || "Pedido")} · ${escapeHtml(unitPieceLabel(unit))}</span>`;
+        }).join(""), "position-unavailable");
+      }
+    } else {
+      appendRow("Programação resumida · sem posição individual", (date) => schedulesForDate(date).map((schedule) => {
+        const order = orderById(schedule.order_id);
+        return `<button class="gantt-work casting-work" type="button" data-order-event="${escapeHtml(schedule.order_id)}" data-work-date="${date}" title="${escapeHtml(scheduleLabel(schedule))}">${escapeHtml(order?.order_number || "Pedido")} · ${escapeHtml(schedule.piece_code || "produção")} ×${Number(schedule.planned_quantity) || 0}</button>`;
+      }).join(""), "position-unavailable");
+    }
+    rows += `<div class="gantt-stage-heading">Cura · intervalo corrido, sem ocupar posição</div>`;
+    appendRow("Cura", (date) => ganttUnitsFor(date, "curing").map((unit) => {
+      const order = orderById(unit.order_id);
+      return `<span class="gantt-work curing-work" title="${escapeHtml(order?.order_number || "Pedido")} · ${escapeHtml(unitPieceLabel(unit))} · cura de ${formatDateBR(unit.planned_cure_start_date)} a ${formatDateBR(unit.planned_cure_end_date)}">${escapeHtml(order?.order_number || "Pedido")} · ${escapeHtml(unitPieceLabel(unit))}</span>`;
+    }).join(""), "phase-label curing-label");
+    rows += `<div class="gantt-stage-heading">Acabamento · primeiro dia útil após a cura</div>`;
+    appendRow("Acabamento", (date) => ganttUnitsFor(date, "finish").map((unit) => {
+      const order = orderById(unit.order_id);
+      return `<button class="gantt-work finish-work" type="button" data-order-event="${escapeHtml(unit.order_id)}" data-work-date="${date}" title="${escapeHtml(order?.order_number || "Pedido")} · ${escapeHtml(unitPieceLabel(unit))} · acabamento">${escapeHtml(order?.order_number || "Pedido")} · ${escapeHtml(unitPieceLabel(unit))}</button>`;
+    }).join(""), "phase-label finish-label");
+    rows += `<div class="gantt-stage-heading">Datas dos pedidos e das obras cadastradas</div>`;
+    for (const order of ordersWithDates) {
+      appendRow(`Pedido · ${order.order_number || "Sem número"}`, (date) => spanContains(order, date) ? '<span class="gantt-order-window" aria-hidden="true"></span>' : "", "order-label");
     }
     for (const work of worksWithDates) {
-      rows += `<div class="gantt-label work-label" title="${escapeHtml(workWindowLabel(work))}">Obra · ${escapeHtml(work.work_number || work.name)}</div>`;
-      for (let index = 0; index < count; index += 1) {
-        const date = addDays(start, index);
-        const day = getDay(date) || { is_working: false };
-        const inRange = spanContains(work, date);
-        rows += `<div class="gantt-cell ${day.is_working ? "" : "off"}" data-calendar-date="${date}" title="${escapeHtml(workWindowLabel(work))}">${inRange ? '<span class="gantt-work-window" aria-hidden="true"></span>' : ""}</div>`;
-      }
+      appendRow(`Obra · ${work.work_number || work.name}`, (date) => spanContains(work, date) ? '<span class="gantt-work-window" aria-hidden="true"></span>' : "", "work-label");
     }
     const hasRows = ordersWithDates.length > 0 || worksWithDates.length > 0;
-    const empty = hasRows ? "" : '<div class="gantt-empty">Nenhum pedido ou obra com datas neste mês.</div>';
+    const hasPhaseEvents = state.unitPlanningAvailable ? unitsInRange.length > 0 : state.schedules.length > 0;
+    const empty = hasRows || hasPhaseEvents ? "" : '<div class="gantt-empty">Nenhuma concretagem, etapa, pedido ou obra neste mês.</div>';
     $('planningCalendarState').className = "calendar-state calendar-gantt-view";
-    $('planningCalendarState').innerHTML = `<div class="gantt-wrap"><div class="gantt-group"><div class="gantt-resource">Datas de pedidos e obras<span>Produção e capacidade aparecem dentro do período · ${count} dias</span></div><div class="gantt-timeline gantt-head" style="${template}"><div class="gantt-label">Cadastro</div>${headings}</div>${hasRows ? `<div class="gantt-timeline" style="${template}">${rows}</div>` : empty}</div></div>`;
+    $('planningCalendarState').innerHTML = `<div class="gantt-wrap"><div class="gantt-group"><div class="gantt-resource">Etapas e posições de produção<span>${count} dias · quatro posições físicas · a cura não ocupa posição</span></div><div class="gantt-timeline gantt-head" style="${template}"><div class="gantt-label">Etapa / recurso</div>${headings}</div><div class="gantt-timeline" style="${template}">${rows}${empty}</div></div></div>`;
     $('planningCalendarHeading').textContent = `Gantt · ${new Date(`${start}T00:00:00.000Z`).toLocaleDateString("pt-BR", { month: "long", year: "numeric", timeZone: "UTC" })}`;
   }
 
   function renderSummary() {
     const workingDays = state.days.filter((day) => day.is_working);
-    const totalCapacity = workingDays.reduce((sum, day) => sum + Number(day.capacity_minutes || 0), 0);
-    const totalPlanned = state.capacity.reduce((sum, day) => sum + Number(day.planned_minutes || 0), 0);
-    const occupancy = totalCapacity ? Math.round(totalPlanned / totalCapacity * 100) : 0;
-    const alertDays = state.capacity.filter((day) => Number(day.occupancy_percent || 0) > 100).length;
+    const capacityPositions = workingDays.reduce((sum) => sum + activePositionCount(), 0);
+    const plannedPositions = workingDays.reduce((sum, day) => sum + positionStats(day.date).plannedUnits, 0);
+    const occupancy = capacityPositions ? Math.round(plannedPositions / capacityPositions * 100) : 0;
+    const alertDays = state.days.filter((day) => positionStats(day.date).overCapacity).length;
     const activeOrders = state.orders.filter((order) => activeStatuses.has(order.status)).length;
     const today = getDay(localToday());
-    const exceptionCount = state.exceptions.length;
-    const eventCount = state.schedules.length;
+    const todayStats = today ? positionStats(today.date) : null;
     const bounds = visibleBounds();
+    const exceptionCount = state.exceptions.length;
+    const eventCount = state.unitPlanningAvailable
+      ? state.productionOrders.filter((unit) => unit.planned_cast_date >= bounds.start && unit.planned_cast_date <= bounds.end).length
+      : state.schedules.reduce((sum, schedule) => sum + (Number(schedule.planned_quantity) || 0), 0);
     const datedOrders = activeCalendarOrders().filter((order) => spanOverlaps(order, bounds.start, bounds.end)).length;
     const datedWorks = activeCalendarWorks().filter((work) => spanOverlaps(work, bounds.start, bounds.end)).length;
-    $('planningCalendarSummary').textContent = `${workingDays.length} dias úteis · ${minutesLabel(totalCapacity)} disponíveis · ${datedOrders} pedido${datedOrders === 1 ? "" : "s"} no período · ${datedWorks} obra${datedWorks === 1 ? "" : "s"} no período · ${eventCount} programações · ${exceptionCount} atividade${exceptionCount === 1 ? "" : "s"} ativa${exceptionCount === 1 ? "" : "s"}.`;
+    $('planningCalendarSummary').textContent = `${workingDays.length} dias úteis · ${eventCount} ${eventCount === 1 ? "concretagem" : "concretagens"} no período · ${datedOrders} pedido${datedOrders === 1 ? "" : "s"} e ${datedWorks} obra${datedWorks === 1 ? "" : "s"} no período · ${exceptionCount} atividade${exceptionCount === 1 ? "" : "s"} de calendário.`;
     $('planningOrdersKpi').textContent = String(activeOrders);
     $('planningOccupancyKpi').textContent = `${occupancy}%`;
-    $('planningCapacityKpi').textContent = today ? minutesLabel(today.capacity_minutes || 0) : "—";
+    $('planningCapacityKpi').textContent = todayStats ? `${todayStats.occupied}/${todayStats.positionCount}` : "—";
     $('planningAlertsKpi').textContent = String(alertDays);
     const weekdayNames = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
     const workingWeekdays = state.settings.rules.length
@@ -317,7 +443,7 @@
     $('planningWorkdaysSummary').textContent = workingWeekdays.length
       ? workingWeekdays.map((weekday) => weekdayNames[weekday]).join(", ")
       : "Sem dias definidos";
-    $('planningDefaultCapacitySummary').textContent = minutesLabel(state.settings.default_capacity_minutes);
+    $('planningDefaultCapacitySummary').textContent = `${activePositionCount()} posições por dia útil`;
   }
 
   function renderCalendar() {
@@ -334,14 +460,21 @@
   }
 
   function pendingOrders() {
-    const scheduledOrderIds = new Set(state.schedules.map((schedule) => schedule.order_id));
     return state.orders.filter((order) =>
       activeStatuses.has(order.status)
       && !terminalStatuses.has(order.status)
       && !order.planned_end_date
       && !state.startedOrderIds.includes(order.id)
-      && !scheduledOrderIds.has(order.id)
     );
+  }
+
+  function scheduledCountInVisibleRange(orderId) {
+    if (state.unitPlanningAvailable) {
+      return state.productionOrders.filter((unit) => unit.order_id === orderId).length;
+    }
+    return state.schedules
+      .filter((schedule) => schedule.order_id === orderId)
+      .reduce((sum, schedule) => sum + (Number(schedule.planned_quantity) || 0), 0);
   }
 
   function renderPlanningBacklog() {
@@ -356,13 +489,17 @@
     );
     $('planningBacklogCount').textContent = String(pending.length);
     list.innerHTML = pending.length ? pending.map((order) => {
+      const visibleScheduled = scheduledCountInVisibleRange(order.id);
+      const total = (order.items || []).reduce((sum, item) => sum + (Number(item.quantity) || 0), 0);
       const details = [
         order.status ? `Status: ${order.status}` : "",
         order.start_date ? `Início: ${formatDateBR(order.start_date)}` : "",
         order.requested_due_date ? `Prazo: ${formatDateBR(order.requested_due_date)}` : "",
+        visibleScheduled ? `${visibleScheduled}${total ? ` de ${total}` : ""} un. programadas no período visível` : "",
       ].filter(Boolean).join(" · ");
-      return `<article class="planning-backlog-item"><div class="planning-backlog-item-main"><strong>${escapeHtml(formatOrder(order))}</strong><span>${escapeHtml(details || "Sem programação registrada")}</span></div><button class="btn" type="button" data-plan-order-id="${escapeHtml(order.id)}">Planejar</button></article>`;
-    }).join("") : `<p class="planning-backlog-empty">${state.orders.length ? "Nenhum pedido aguardando programação. Os pedidos ativos já têm programação ou estão em produção." : "Nenhum pedido ativo cadastrado. Ao salvar um pedido em Cadastros, ele aparecerá aqui automaticamente."}</p>`;
+      const explanation = visibleScheduled ? `Programação parcial ou sem término calculado: ${visibleScheduled} unidade(s) aparecem no intervalo selecionado.` : "Sem programação registrada para o pedido.";
+      return `<article class="planning-backlog-item"><div class="planning-backlog-item-main"><strong>${escapeHtml(formatOrder(order))}</strong><span>${escapeHtml(details || "Sem datas cadastradas")}</span><small>${escapeHtml(explanation)}</small></div><button class="btn" type="button" data-plan-order-id="${escapeHtml(order.id)}">Planejar</button></article>`;
+    }).join("") : `<p class="planning-backlog-empty">${state.orders.length ? "Nenhum pedido aguardando programação. Os pedidos ativos já têm data de término ou estão em produção." : "Nenhum pedido ativo cadastrado. Ao salvar um pedido em Cadastros, ele aparecerá aqui automaticamente."}</p>`;
     const works = $('planningBacklogWorks');
     works.hidden = !waitingWorks.length;
     works.innerHTML = waitingWorks.length
@@ -424,20 +561,29 @@
   }
 
   function renderPlan(plan, order) {
-    const statusText = plan.feasible ? "Cabe no prazo solicitado" : "Plano inviável no prazo atual";
+    const queueMessages = (plan.queueWarnings || []).flatMap((entry) =>
+      (entry.conflicts || []).map((conflict) => `Pedido ${entry.orderNumber || entry.orderId}: ${conflict.message}`)
+    ).slice(0, 5);
+    const requiresConfirmation = !plan.feasible || queueMessages.length > 0;
+    const statusText = plan.feasible
+      ? queueMessages.length ? "A fila tem outros pedidos com prazo inviável" : "Cabe no prazo solicitado"
+      : "Plano inviável no prazo atual";
     const itemRows = (plan.items || []).map((item) => `<li>${escapeHtml(item.code || item.name || "Item")}: ${Number(item.plannedQuantity || 0)} un. programadas${Number(item.remainingQuantity || 0) ? ` · <strong>${Number(item.remainingQuantity)} un. sem data</strong>` : ""}</li>`).join("");
-    const conflictText = (plan.conflicts || []).map((conflict) => conflict.message || (conflict.type === "deadline" ? `${Number(conflict.remainingQuantity || 0)} unidades excedem a capacidade até o prazo.` : `Capacidade excedida em ${formatDateBR(conflict.date)}.`)).join(" ");
+    const conflictText = [
+      ...(plan.conflicts || []).map((conflict) => conflict.message || (conflict.type === "deadline" ? `${Number(conflict.remainingQuantity || 0)} unidades excedem a capacidade até o prazo.` : `Capacidade excedida em ${formatDateBR(conflict.date)}.`)),
+      ...queueMessages,
+    ].join(" ");
     const previousEnd = order?.planned_end_date ? formatDateBR(order.planned_end_date) : "sem programação";
     const nextEnd = plan.plannedEndDate ? formatDateBR(plan.plannedEndDate) : "sem data calculada";
     const shift = state.dragContext
       ? `<p>Data da atividade: ${formatDateBR(state.dragContext.sourceDate)} → ${formatDateBR(state.dragContext.targetDate)}. Início do pedido: ${formatDateBR(order?.start_date)} → ${formatDateBR(plan.startDate)}; prazo: ${order?.requested_due_date ? formatDateBR(order.requested_due_date) : "sem prazo"} → ${plan.dueDate ? formatDateBR(plan.dueDate) : "sem prazo"}; fim planejado: ${previousEnd} → ${nextEnd}.</p>`
       : `<p>Fim estimado: ${nextEnd}${plan.dueDate ? ` · prazo solicitado ${formatDateBR(plan.dueDate)}` : " · sem prazo solicitado"}.</p>`;
-    $('orderPlanPreview').innerHTML = `<h4>${escapeHtml(statusText)}</h4><div class="plan-summary-grid"><div><strong>${Number(plan.totalRequestedQuantity || 0)}</strong><span>unidades solicitadas</span></div><div><strong>${Number(plan.totalPlannedQuantity || 0)}</strong><span>unidades programadas</span></div><div><strong>${minutesLabel(plan.totalPlannedMinutes || 0)}</strong><span>tempo alocado no calendário</span></div></div><p>${escapeHtml(formatOrder(order))}</p>${shift}<ul>${itemRows || "<li>Não há itens para programar neste pedido.</li>"}</ul>${!plan.feasible ? `<div class="plan-warning">${escapeHtml(conflictText || "A capacidade não atende ao pedido dentro do período calculado.")} Se confirmar, o pedido ficará parcialmente programado.</div>` : ""}`;
+    $('orderPlanPreview').innerHTML = `<h4>${escapeHtml(statusText)}</h4><div class="plan-summary-grid"><div><strong>${Number(plan.totalRequestedQuantity || 0)}</strong><span>unidades solicitadas</span></div><div><strong>${Number(plan.totalPlannedQuantity || 0)}</strong><span>unidades programadas</span></div><div><strong>${escapeHtml(plan.plannedEndDate ? formatDateBR(plan.plannedEndDate) : "—")}</strong><span>fim estimado</span></div></div><p>${escapeHtml(formatOrder(order))}</p>${shift}<ul>${itemRows || "<li>Não há itens para programar neste pedido.</li>"}</ul>${requiresConfirmation ? `<div class="plan-warning">${escapeHtml(conflictText || "A capacidade não atende ao pedido dentro do período calculado.")} Se confirmar, o sistema gravará as programações possíveis da fila.</div>` : ""}`;
     $('orderPlanPreview').hidden = false;
-    $('infeasibleChoice').hidden = Boolean(plan.feasible);
+    $('infeasibleChoice').hidden = !requiresConfirmation;
     $('allowInfeasiblePlan').checked = false;
-    $('commitOrderPlan').textContent = plan.feasible ? "Confirmar programação" : "Confirmar plano incompleto";
-    $('commitOrderPlan').disabled = !plan.feasible;
+    $('commitOrderPlan').textContent = requiresConfirmation ? "Confirmar programação da fila" : "Confirmar programação";
+    $('commitOrderPlan').disabled = requiresConfirmation;
   }
 
   async function calculateOrderPlan(event) {
@@ -457,6 +603,9 @@
       await window.PRELUX_API.rebuildCalendar(startDate, rangeEnd);
       const result = await window.PRELUX_API.planOrder({ orderId, startDate, requestedDueDate });
       const plan = result.plan || result;
+      if (result.queueWarnings?.length) {
+        plan.queueWarnings = result.queueWarnings;
+      }
       state.pendingPlan = plan;
       state.pendingOrderId = orderId;
       renderPlan(plan, orderById(orderId));
@@ -481,14 +630,15 @@
 
   function syncCommitButton() {
     const plan = state.pendingPlan;
-    $('commitOrderPlan').disabled = !plan || (!plan.feasible && !$('allowInfeasiblePlan').checked);
+    const requiresConfirmation = Boolean(plan && (!plan.feasible || plan.queueWarnings?.length));
+    $('commitOrderPlan').disabled = !plan || (requiresConfirmation && !$('allowInfeasiblePlan').checked);
   }
 
   async function commitOrderPlan() {
     const plan = state.pendingPlan;
     const orderId = state.pendingOrderId;
     if (!plan || !orderId) return;
-    if (!plan.feasible && !$('allowInfeasiblePlan').checked) return showStatus("orderPlanStatus", "Marque a confirmação do plano incompleto para continuar.", true);
+    if ((!plan.feasible || plan.queueWarnings?.length) && !$('allowInfeasiblePlan').checked) return showStatus("orderPlanStatus", "Marque a confirmação para gravar as programações possíveis da fila.", true);
     const button = $('commitOrderPlan');
     const oldText = button.textContent;
     button.disabled = true;
@@ -498,7 +648,7 @@
         orderId,
         startDate: $('planningOrderStart').value,
         requestedDueDate: $('planningOrderDue').value || null,
-        allowInfeasible: !plan.feasible,
+        allowInfeasible: !plan.feasible || Boolean(plan.queueWarnings?.length),
       });
       closeOrderPlanner();
       await refreshPlanning();
@@ -518,7 +668,7 @@
     $('calendarDayTitle').textContent = `Ajustar ${formatDateBR(date)}`;
     $('dayDate').value = date;
     $('dayWorking').checked = Boolean(day.is_working);
-    $('dayCapacity').value = Number(day.capacity_minutes || 0);
+    $('dayCapacity').value = day.is_working ? 480 : 0;
     $('dayNote').value = manual?.notes || "";
     $('restoreCalendarDay').hidden = !manual;
     $('restoreCalendarDay').dataset.activityId = manual?.id || "";
@@ -535,7 +685,7 @@
       container.innerHTML = '<p class="form-help">Nenhuma atividade cadastrada para este dia.</p>';
       return;
     }
-    container.innerHTML = `<h4>Atividades neste dia</h4>${activities.map((activity) => `<div class="activity-item"><div class="activity-item-main"><strong>${escapeHtml(activity.name)}</strong><span>${escapeHtml(activityKindLabels[activity.kind] || activity.kind)} · ${formatDateBR(activity.start_date)}${activity.end_date !== activity.start_date ? ` até ${formatDateBR(activity.end_date)}` : ""} · ${activity.is_working ? `produção · ${minutesLabel(activity.capacity_minutes)}` : "sem produção"}</span></div><div class="activity-item-actions"><button class="icon-btn" type="button" data-day-action="edit" data-activity-id="${escapeHtml(activity.id)}">Editar</button><button class="icon-btn" type="button" data-day-action="delete" data-activity-id="${escapeHtml(activity.id)}">Excluir</button></div></div>`).join("")}`;
+    container.innerHTML = `<h4>Atividades neste dia</h4>${activities.map((activity) => `<div class="activity-item"><div class="activity-item-main"><strong>${escapeHtml(activity.name)}</strong><span>${escapeHtml(activityKindLabels[activity.kind] || activity.kind)} · ${formatDateBR(activity.start_date)}${activity.end_date !== activity.start_date ? ` até ${formatDateBR(activity.end_date)}` : ""} · ${activity.is_working ? "concretagem liberada · até quatro posições" : "sem concretagem"}</span></div><div class="activity-item-actions"><button class="icon-btn" type="button" data-day-action="edit" data-activity-id="${escapeHtml(activity.id)}">Editar</button><button class="icon-btn" type="button" data-day-action="delete" data-activity-id="${escapeHtml(activity.id)}">Excluir</button></div></div>`).join("")}`;
   }
 
   function closeCalendarDay() {
@@ -551,7 +701,7 @@
     $('activityStart').value = activity?.start_date || presetDate || visibleBounds().start;
     $('activityEnd').value = activity?.end_date || presetDate || visibleBounds().start;
     $('activityWorking').checked = Boolean(activity?.is_working);
-    $('activityCapacity').value = Number(activity?.capacity_minutes || 480);
+    $('activityCapacity').value = activity?.is_working ? 480 : 0;
     $('activityNotes').value = activity?.notes || "";
     $('deleteCalendarActivity').hidden = !activity;
     showStatus("calendarActivityStatus", "");
@@ -573,7 +723,7 @@
       state.settings = result.settings ? { ...result.settings, rules: result.rules || [] } : state.settings;
       const settings = result.settings || {};
       const rules = new Map((result.rules || []).map((rule) => [Number(rule.weekday), rule]));
-      $('defaultCapacityMinutes').value = Number(settings.default_capacity_minutes || 480);
+      $('defaultCapacityMinutes').value = 480;
       document.querySelectorAll("[data-weekday]").forEach((input) => {
         const weekday = Number(input.dataset.weekday);
         const rule = rules.get(weekday);
@@ -592,14 +742,11 @@
 
   async function saveCalendarSettings(event) {
     event.preventDefault();
-    const defaultCapacityMinutes = Number($('defaultCapacityMinutes').value);
-    if (!Number.isInteger(defaultCapacityMinutes) || defaultCapacityMinutes < 0 || defaultCapacityMinutes > 1440) {
-      return showStatus("calendarSettingsStatus", "A capacidade diária deve ficar entre 0 e 1440 minutos.", true);
-    }
+    const defaultCapacityMinutes = 480;
     const rules = [...document.querySelectorAll("[data-weekday]")].map((input) => ({
       weekday: Number(input.dataset.weekday),
       isWorking: input.checked,
-      capacityMinutes: input.checked ? defaultCapacityMinutes : 0,
+      capacityMinutes: input.checked ? 480 : 0,
     }));
     const button = $('saveCalendarSettings');
     const oldText = button.textContent;
@@ -655,7 +802,6 @@
       ]);
       state.days = calendar.days || [];
       state.exceptions = calendar.exceptions || [];
-      state.capacity = calendar.capacity || [];
       const operationOrders = operations?.orders || [];
       const operationOrderById = new Map(operationOrders.map((order) => [order.id, order]));
       const planningOrders = planning.orders || [];
@@ -669,10 +815,16 @@
       ];
       state.works = operations?.works || [];
       state.schedules = planning.schedules || [];
+      state.unitPlanningAvailable = Array.isArray(planning.productionOrders);
+      state.productionOrders = planning.productionOrders || [];
+      state.positions = planning.positions || [];
+      state.capacityByPositions = planning.capacityByPositions || [];
       state.startedOrderIds = planning.startedOrderIds || [];
       state.settings = settings.settings ? { ...settings.settings, rules: settings.rules || [] } : state.settings;
       renderCalendar();
-      connection.innerHTML = '<span class="dot" style="background:var(--green)"></span><span>Backend conectado. Pedidos, capacidade e atividades carregados.</span>';
+      connection.innerHTML = state.unitPlanningAvailable
+        ? '<span class="dot" style="background:var(--green)"></span><span>Backend conectado. Concretagem, cura, acabamento e posições carregados.</span>'
+        : '<span class="dot" style="background:#d58a1e"></span><span>Backend conectado com programação resumida. Posições, cura e acabamento ainda não estão disponíveis na integração.</span>';
     } catch (error) {
       stateContainer.className = "calendar-placeholder";
       stateContainer.innerHTML = `<div><strong>Não foi possível carregar o calendário</strong><p>${escapeHtml(error.message || "Verifique a configuração da API.")}</p></div>`;
@@ -699,7 +851,7 @@
         endDate: date,
         name: $('dayNote').value.trim() || `Ajuste manual de ${formatDateBR(date)}`,
         isWorking: $('dayWorking').checked,
-        capacityMinutes: Number($('dayCapacity').value) || 0,
+        capacityMinutes: $('dayWorking').checked ? 480 : 0,
         notes: $('dayNote').value.trim(),
       });
       closeCalendarDay();
@@ -731,7 +883,7 @@
         startDate,
         endDate,
         isWorking: $('activityWorking').checked,
-        capacityMinutes: Number($('activityCapacity').value) || 0,
+        capacityMinutes: $('activityWorking').checked ? 480 : 0,
         notes: $('activityNotes').value.trim(),
       });
       closeCalendarActivity();
@@ -924,7 +1076,7 @@
   $('calendarActivityForm').addEventListener("submit", saveCalendarActivity);
   $('deleteCalendarActivity').addEventListener("click", () => deleteCalendarActivity(state.editingActivityId));
   $('calendarDayActivities').addEventListener("click", handleCalendarClick);
-  $('activityWorking').addEventListener("change", () => { if (!$('activityWorking').checked && !$('activityCapacity').value) $('activityCapacity').value = 0; });
+  $('activityWorking').addEventListener("change", () => { $('activityCapacity').value = $('activityWorking').checked ? 480 : 0; });
   $('closeCalendarSettings').addEventListener("click", closeCalendarSettings);
   $('cancelCalendarSettings').addEventListener("click", closeCalendarSettings);
   $('calendarSettingsModal').addEventListener("click", (event) => { if (event.target.id === "calendarSettingsModal") closeCalendarSettings(); });
