@@ -515,6 +515,7 @@
     const kind = form.dataset.kind;
     const id = form.dataset.recordId || "";
     const save = $("operationsModalSave");
+    let savedNotice = "Cadastro salvo.";
     save.disabled = true;
     save.textContent = "Salvando…";
     try {
@@ -541,7 +542,7 @@
           observations: row.querySelector("[data-item-observations]").value.trim(),
         }));
         if (items.some((item) => !item.pieceTypeId || !Number.isInteger(item.quantity) || item.quantity < 1)) throw new Error("Confira o tipo e a quantidade de cada item do pedido.");
-        await global.PRELUX_API.saveOrder({
+        const response = await global.PRELUX_API.saveOrder({
           id,
           orderNumber: formValue(form, "orderNumber"),
           workId,
@@ -552,6 +553,13 @@
           observations: formValue(form, "observations"),
           items,
         });
+        if (response?.planning?.warning) {
+          savedNotice = `Pedido salvo. ${response.planning.warning}`;
+        } else if (response?.planning?.removedFromPlan) {
+          savedNotice = "Pedido atualizado e fila de produção recalculada.";
+        } else if (response?.planning?.committed) {
+          savedNotice = "Pedido salvo e incluído automaticamente no planejamento.";
+        }
       } else if (kind === "piece") {
         const moldSelect = $("pieceMolds");
         await global.PRELUX_API.savePieceType({
@@ -611,7 +619,7 @@
         });
       }
       closeModal();
-      toast("Cadastro salvo.");
+      toast(savedNotice);
       if (kind === "work" || kind === "order") {
         global.dispatchEvent(new CustomEvent("prelux:operations:changed", { detail: { kind, id } }));
       }

@@ -1,6 +1,8 @@
 # Banco PRELUX · planejamento e cadastros operacionais
 
-O banco foi desenhado para uma única unidade produtiva PRELUX, com capacidade em minutos.
+O banco atual é de uma unidade produtiva PRELUX. A partir da migração 006, o
+planejamento de concretagem usa quatro posições físicas por dia útil; os minutos
+permanecem somente como dado de registro nas programações legadas.
 
 ## Aplicação no Supabase
 
@@ -11,8 +13,11 @@ Execute os arquivos na ordem abaixo pelo SQL Editor ou pela CLI do Supabase:
 3. `003_persist_replanned_dates.sql`
 4. `004_works_pieces_molds.sql`
 5. `005_optional_mold_cycle.sql`
+6. `006_position_based_planning.sql`
 
-Se as migrações 001–004 já estiverem aplicadas, execute apenas `005_optional_mold_cycle.sql`. Ela permite cadastrar moldes sem informar o ciclo enquanto esse dado não estiver definido.
+Em uma instalação que já aplicou 001–005, execute `006_position_based_planning.sql`.
+Ela cria P01–P04, ordens unitárias, alocações por posição, ajustes manuais de
+prazo e mantém `production_schedules` como resumo compatível com a tela atual.
 
 O script cria a organização inicial com o ID:
 
@@ -24,4 +29,20 @@ As tabelas estão protegidas por RLS sem policies públicas. Portanto, o navegad
 
 Regras da migração 004: a preparação do molde dura sete dias corridos e só pode ser aprovada após limpeza, desmoldante e montagem; uma produção exige preparação aprovada e compatibilidade entre molde e tipo de peça. Reservas de um mesmo molde não podem se sobrepor. Para conflitos em outro recurso, a alocação deve registrar justificativa e responsável.
 
-O cadastro de tipo de peça não utiliza os campos de cura e armadura. O tempo de produção por unidade permanece no catálogo para o planejamento.
+A migração 006 preserva `planned_end_date` como prazo linear e registra
+`forecast_end_date` separadamente. A gravação de um pedido chama o motor de
+planejamento e reprograma, em uma transação, os pedidos ainda não iniciados por
+data de início e ordem de cadastro. Persiste até quatro concretagens por dia
+útil. `planned_minutes` continua guardado para consulta, mas não participa do
+limite de capacidade.
+
+O cadastro de tipo de peça não utiliza os campos de cura e armadura. O tempo de
+produção por unidade permanece registrado e não limita a capacidade. O motor usa
+dois dias corridos de cura como regra fixa desta etapa e programa acabamento no
+primeiro dia útil seguinte. O ciclo antigo de cura salvo no cadastro não altera
+esse cálculo.
+
+PREMISSA ainda pendente: o tempo de setup ao trocar a configuração de uma
+posição não foi informado e, por isso, não entra no prazo calculado. A regra de
+preparação de sete dias do molde continua no cadastro operacional existente; a
+liberação por preparação será conectada ao início da produção na etapa 5.

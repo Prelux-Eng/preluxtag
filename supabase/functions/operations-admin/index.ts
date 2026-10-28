@@ -1,5 +1,7 @@
 import { getServerConfig } from "../_shared/env.js";
 import { ensurePost, handleError, json, readJson } from "../_shared/http.js";
+import { buildPlanningQueue, OrderPlanningError } from "../_shared/order-planning.js";
+import { calculatePieceMetrics } from "../_shared/piece-metrics.js";
 import { createAdminClient } from "../_shared/supabaseClient.js";
 
 const WORK_STATUSES = new Set(["planejamento", "ativa", "concluida", "cancelada"]);
@@ -232,7 +234,88 @@ async function handler(request: Request) {
         p_items: items,
       });
       if (error) throwDbError(error, "Não foi possível salvar o pedido.");
-      return json({ ok: true, order: data });
+
+      // O cadastro e a programação usam transações separadas porque o motor
+      // é calculado em JavaScript. Se houver falha, o pedido permanece salvo
+      // e a resposta informa claramente que a programação precisa ser revista.
+      let planning: Record<string, unknown> = { committed: false };
+      try {
+        const { error: clearPlanError } = await db.from("orders")
+          .update({ planned_start_date: null, planned_end_date: null, forecast_end_date: null })
+          .eq("organization_id", organizationId)
+          .eq("id", data.id);
+        if (clearPlanError) throw clearPlanError;
+
+        const queuePlan = await buildPlanningQueue({
+          db,
+          organizationId,
+          input: {
+            orderId: data.id,
+            allowClosedTarget: ["cancelado", "entregue", "concluido"].includes(data.status),
+          },
+        });
+        const { data: committed, error: commitError } = await db.rpc("commit_planning_queue", {
+          p_org_id: organizationId,
+          p_plans: queuePlan.plans.map((entry) => ({ orderId: entry.orderId, plan: entry.plan })),
+        });
+        if (commitError) throwDbError(commitError, "Não foi possível atualizar o calendário do pedido.");
+        const warningMessages = queuePlan.plans.flatMap(({ orderId, plan: queuedPlan }) =>
+          queuedPlan.feasible
+            ? []
+            : queuedPlan.conflicts.map((conflict: any) =>
+              `Pedido ${queuedPlan.order?.orderNumber || orderId}: ${conflict.message}`
+            )
+        );
+        planning = {
+          committed: true,
+          feasible: queuePlan.targetPlan?.feasible ?? true,
+          queueFeasible: queuePlan.queue.infeasibleOrderIds.length === 0,
+          replanOrderCount: queuePlan.queue.replanOrderCount,
+          removedFromPlan: queuePlan.removedTargetFromPlan,
+          plannedStartDate: queuePlan.targetPlan?.effectiveStartDate ?? null,
+          plannedEndDate: queuePlan.targetPlan?.plannedEndDate ?? null,
+          suggestedDueDate: queuePlan.targetPlan?.suggestedDueDate ?? null,
+          totalPlannedQuantity: queuePlan.targetPlan?.totalPlannedQuantity ?? 0,
+          totalRemainingQuantity: queuePlan.targetPlan?.totalRemainingQuantity ?? 0,
+          commit: committed,
+          warning: warningMessages.length ? warningMessages.slice(0, 5).join(" ") : null,
+        };
+      } catch (planningError) {
+        const message = planningError instanceof OrderPlanningError
+          ? planningError.message
+          : "O pedido foi salvo, mas o calendário não pôde ser atualizado. Atualize o planejamento para tentar novamente.";
+        planning = { committed: false, warning: message };
+      }
+      return json({ ok: true, order: data, planning });
+    }
+
+    if (action === "calculate_piece_metrics") {
+      const metrics = calculatePieceMetrics({
+        x: input.x ?? input.dimensionX ?? input.dimension_x_cm,
+        y: input.y ?? input.dimensionY ?? input.dimension_y_cm,
+        z: input.z ?? input.dimensionZ ?? input.dimension_z_cm,
+      });
+      return json({ ok: true, metrics });
+    }
+
+    if (action === "save_delay_adjustment") {
+      const record = {
+        orderId: textValue(input.orderId, "o pedido", 80, true),
+        reason: textValue(input.reason, "o motivo do ajuste", 500, true),
+        occurredOn: dateValue(input.occurredOn, "data do ajuste")!,
+        adjustedForecastEndDate: dateValue(input.adjustedForecastEndDate, "nova data prevista")!,
+        recordedBy: textValue(input.recordedBy, "o responsável", 180) || null,
+      };
+      const { data, error } = await db.rpc("save_delay_adjustment", {
+        p_org_id: organizationId,
+        p_order_id: record.orderId,
+        p_reason: record.reason,
+        p_occurred_on: record.occurredOn,
+        p_adjusted_forecast_end: record.adjustedForecastEndDate,
+        p_recorded_by: record.recordedBy,
+      });
+      if (error) throwDbError(error, "Não foi possível registrar o ajuste manual do prazo.");
+      return json({ ok: true, adjustment: data });
     }
 
     if (action === "save_piece_type") {

@@ -1,11 +1,14 @@
 /**
- * Regras puras de planejamento da produção.
+ * Planejamento linear PRELUX.
  *
- * Este arquivo não acessa banco nem DOM. Isso permite testar o cálculo no
- * Node e reutilizá-lo em qualquer Edge Function do Supabase.
+ * A capacidade de concretagem é medida em posições ocupadas por dia útil.
+ * O tempo informado no cadastro é mantido apenas como dado de referência.
+ * O módulo é puro para permitir os mesmos cálculos nas Edge Functions e nos
+ * testes Node.js.
  */
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+export const DEFAULT_POSITION_CODES = Object.freeze(["P01", "P02", "P03", "P04"]);
 
 export class PlannerError extends Error {
   constructor(message, status = 422, details = null) {
@@ -34,231 +37,414 @@ export function toISODate(date) {
 }
 
 export function addDays(dateValue, amount) {
+  const days = Number(amount);
+  if (!Number.isInteger(days)) throw new PlannerError("A quantidade de dias deve ser inteira.");
   const date = new Date(`${normalizeDate(dateValue)}T00:00:00.000Z`);
-  date.setUTCDate(date.getUTCDate() + Number(amount || 0));
+  date.setUTCDate(date.getUTCDate() + days);
   return toISODate(date);
 }
 
 export function dateRange(startValue, endValue) {
   const start = normalizeDate(startValue, "data inicial");
   const end = normalizeDate(endValue, "data final");
-  if (end < start) {
-    throw new PlannerError("A data final não pode ser anterior à data inicial.");
-  }
+  if (end < start) throw new PlannerError("A data final não pode ser anterior à data inicial.");
 
   const result = [];
-  let current = start;
-  while (current <= end) {
-    result.push(current);
-    current = addDays(current, 1);
-  }
+  for (let current = start; current <= end; current = addDays(current, 1)) result.push(current);
   return result;
-}
-
-function numberOrZero(value) {
-  const number = Number(value);
-  return Number.isFinite(number) ? number : 0;
-}
-
-function positiveInteger(value) {
-  return Math.max(0, Math.floor(numberOrZero(value)));
 }
 
 function readField(object, camelName, snakeName, fallback = null) {
   return object?.[camelName] ?? object?.[snakeName] ?? fallback;
 }
 
-function normalizedCalendarDay(day) {
-  const date = normalizeDate(readField(day, "date", "date"), "dia do calendário");
-  const isWorking = Boolean(readField(day, "isWorking", "is_working", false));
-  const capacityMinutes = isWorking
-    ? Math.max(0, numberOrZero(readField(day, "capacityMinutes", "capacity_minutes", 0)))
-    : 0;
-
-  return { date, isWorking, capacityMinutes };
+function integerValue(value, label, { minimum = 0, fallback = null } = {}) {
+  if ((value === undefined || value === null || value === "") && fallback !== null) return fallback;
+  const number = Number(value);
+  if (!Number.isInteger(number) || number < minimum) {
+    throw new PlannerError(`${label} deve ser um número inteiro maior ou igual a ${minimum}.`);
+  }
+  return number;
 }
 
-function normalizedExistingSchedule(schedule) {
+function normalizedCalendarDay(day) {
   return {
-    date: normalizeDate(
-      readField(schedule, "workDate", "work_date"),
-      "data da programação",
-    ),
-    plannedMinutes: Math.max(
-      0,
-      numberOrZero(readField(schedule, "plannedMinutes", "planned_minutes", 0)),
-    ),
-    status: String(schedule?.status ?? "planned"),
+    date: normalizeDate(readField(day, "date", "date"), "dia do calendário"),
+    isWorking: Boolean(readField(day, "isWorking", "is_working", false)),
   };
 }
 
+function normalizedPosition(position) {
+  const code = String(readField(position, "code", "code", "")).trim();
+  const status = String(position?.status ?? "disponivel");
+  if (!/^P0[1-4]$/.test(code)) throw new PlannerError(`Posição de molde inválida: ${code || "sem código"}.`);
+  return { code, status };
+}
+
+function normalizedItem(item, index) {
+  const itemId = String(readField(item, "itemId", "item_id", "")).trim();
+  const pieceTypeId = String(readField(item, "pieceTypeId", "piece_type_id", "")).trim();
+  const quantity = integerValue(readField(item, "quantity", "quantity"), "A quantidade", { minimum: 1 });
+  const curingDays = integerValue(
+    readField(item, "curingDays", "curing_days", 2),
+    "O tempo de cura",
+    { minimum: 1, fallback: 2 },
+  );
+  const productionMinutesPerUnit = integerValue(
+    readField(item, "productionMinutesSnapshot", "production_minutes_snapshot", 0),
+    "O tempo de produção registrado",
+    { minimum: 0, fallback: 0 },
+  );
+
+  if (!itemId || !pieceTypeId) {
+    throw new PlannerError(`O item ${index + 1} precisa ter identificador e peça válidos.`);
+  }
+
+  return {
+    itemId,
+    pieceTypeId,
+    code: item.code ?? null,
+    name: item.name ?? null,
+    quantity,
+    curingDays,
+    productionMinutesPerUnit,
+  };
+}
+
+function scheduleDate(schedule) {
+  return normalizeDate(
+    readField(schedule, "castDate", "planned_cast_date") ??
+      readField(schedule, "workDate", "work_date"),
+    "data da concretagem",
+  );
+}
+
+function schedulePositionCodes(schedule) {
+  const value = readField(schedule, "positionCodes", "position_codes", null);
+  if (Array.isArray(value)) return value.map((code) => String(code).trim()).filter(Boolean);
+  const code = readField(schedule, "positionCode", "position_code", null);
+  return code ? [String(code).trim()] : [];
+}
+
+function reservePosition(occupiedByDate, date, code, reservation, conflicts) {
+  const byPosition = occupiedByDate.get(date) || new Map();
+  const current = byPosition.get(code);
+  if (current) {
+    conflicts.push({
+      type: "position",
+      date,
+      positionCode: code,
+      message: `A posição ${code} já está ocupada em ${date}.`,
+      existingOrderId: current.orderId ?? null,
+      conflictingOrderId: reservation.orderId ?? null,
+    });
+    return false;
+  }
+  byPosition.set(code, reservation);
+  occupiedByDate.set(date, byPosition);
+  return true;
+}
+
+function reserveExistingCapacity({
+  existingSchedules,
+  existingAllocations,
+  positions,
+  occupiedByDate,
+  startDate,
+  castHorizonEnd,
+  conflicts,
+}) {
+  for (const allocation of existingAllocations) {
+    const status = String(allocation.status ?? "planned");
+    if (["cancelled", "cancelado"].includes(status)) continue;
+    const date = normalizeDate(
+      readField(allocation, "scheduledDate", "scheduled_date"),
+      "data da alocação existente",
+    );
+    if (date < startDate || date > castHorizonEnd) continue;
+    const code = String(readField(allocation, "positionCode", "position_code", "")).trim();
+    if (!positions.some((position) => position.code === code)) {
+      conflicts.push({ type: "position", date, positionCode: code || null, message: `Alocação existente aponta para posição inválida em ${date}.` });
+      continue;
+    }
+    reservePosition(occupiedByDate, date, code, {
+      orderId: allocation.orderId ?? allocation.order_id ?? null,
+      status,
+      source: "allocation",
+    }, conflicts);
+  }
+
+  for (const schedule of existingSchedules) {
+    const status = String(schedule.status ?? "planned");
+    if (["cancelled", "cancelado"].includes(status)) continue;
+    const date = scheduleDate(schedule);
+    if (date < startDate || date > castHorizonEnd) continue;
+
+    const requestedCodes = schedulePositionCodes(schedule);
+    const quantity = integerValue(
+      readField(schedule, "plannedQuantity", "planned_quantity", requestedCodes.length || 1),
+      "A quantidade já programada",
+      { minimum: 1 },
+    );
+    const codes = requestedCodes.length ? requestedCodes.slice(0, quantity) : [];
+    let reserved = 0;
+
+    for (const code of codes) {
+      if (reservePosition(occupiedByDate, date, code, {
+        orderId: schedule.orderId ?? schedule.order_id ?? null,
+        status,
+        source: "legacy_schedule",
+      }, conflicts)) reserved += 1;
+    }
+
+    while (reserved < quantity) {
+      const used = occupiedByDate.get(date) || new Map();
+      const free = positions.find((position) => !used.has(position.code));
+      if (!free) {
+        conflicts.push({
+          type: "capacity",
+          date,
+          requestedQuantity: quantity,
+          message: `Há mais de quatro concretagens já programadas em ${date}.`,
+        });
+        break;
+      }
+      if (reservePosition(occupiedByDate, date, free.code, {
+        orderId: schedule.orderId ?? schedule.order_id ?? null,
+        status,
+        source: "legacy_schedule",
+      }, conflicts)) reserved += 1;
+    }
+  }
+}
+
+function nextWorkingDateAfter(date, calendarByDate, latestDate) {
+  for (let candidate = addDays(date, 1); candidate <= latestDate; candidate = addDays(candidate, 1)) {
+    if (calendarByDate.get(candidate)?.isWorking) return candidate;
+  }
+  return null;
+}
+
 /**
- * Calcula um plano diário usando as datas e a capacidade do calendário.
+ * Programa cada unidade em uma das posições P01–P04.
  *
- * A ordem dos itens recebidos é preservada. Assim, o comercial pode definir a
- * sequência dos tipos de peça no pedido e o restante da capacidade do dia é
- * compartilhado entre todos os itens.
+ * A data inicial não útil avança até o próximo dia útil. A cura conta dias
+ * corridos a partir do dia seguinte à concretagem. O acabamento ocorre no
+ * próximo dia útil após o fim da cura. Posição é ocupada somente na data de
+ * concretagem.
  */
 export function planOrder({
   calendarDays = [],
   items = [],
   existingSchedules = [],
+  existingAllocations = [],
+  positions = DEFAULT_POSITION_CODES.map((code) => ({ code, status: "disponivel" })),
   startDate,
   dueDate = null,
+  planningHorizonDays = 730,
 }) {
-  const start = normalizeDate(startDate, "data de início");
+  const requestedStartDate = normalizeDate(startDate, "data de início");
   const due = dueDate ? normalizeDate(dueDate, "prazo de entrega") : null;
-
-  if (due && due < start) {
-    throw new PlannerError("O prazo de entrega não pode ser anterior ao início.");
+  if (due && due < requestedStartDate) {
+    throw new PlannerError("O prazo de entrega não pode ser anterior à data de início.");
   }
 
-  const days = calendarDays
-    .map(normalizedCalendarDay)
-    .filter((day) => day.date >= start && (!due || day.date <= due));
+  const horizon = integerValue(planningHorizonDays, "O horizonte de planejamento", { minimum: 1 });
+  if (horizon > 730) throw new PlannerError("O horizonte máximo de planejamento é de 730 dias.");
 
-  const capacityByDate = new Map(
-    days.map((day) => [day.date, day.isWorking ? day.capacityMinutes : 0]),
-  );
-  const reservedByDate = new Map();
-
-  for (const rawSchedule of existingSchedules) {
-    const schedule = normalizedExistingSchedule(rawSchedule);
-    if (schedule.status === "cancelled" || schedule.status === "cancelado") continue;
-    if (!capacityByDate.has(schedule.date)) continue;
-    reservedByDate.set(
-      schedule.date,
-      (reservedByDate.get(schedule.date) || 0) + schedule.plannedMinutes,
-    );
+  const days = calendarDays.map(normalizedCalendarDay).sort((a, b) => a.date.localeCompare(b.date));
+  const calendarByDate = new Map(days.map((day) => [day.date, day]));
+  const latestCalendarDate = days.at(-1)?.date ?? null;
+  if (!latestCalendarDate || !calendarByDate.has(requestedStartDate)) {
+    throw new PlannerError("O calendário não contém a data inicial solicitada.", 409);
   }
 
-  const workingDays = days.filter((day) => day.isWorking && day.capacityMinutes > 0);
-  const schedules = [];
-  const itemPlans = [];
-  let totalRequestedQuantity = 0;
-  let totalToProduce = 0;
-  let totalPlannedQuantity = 0;
-  let totalPlannedMinutes = 0;
-
-  for (const rawItem of items) {
-    const itemId = String(readField(rawItem, "itemId", "item_id", ""));
-    const pieceTypeId = String(readField(rawItem, "pieceTypeId", "piece_type_id", ""));
-    const requestedQuantity = positiveInteger(readField(rawItem, "quantity", "quantity", 0));
-    const quantityToProduce = requestedQuantity;
-    const productionMinutesPerUnit = Math.max(
-      1,
-      positiveInteger(
-        readField(
-          rawItem,
-          "productionMinutesSnapshot",
-          "production_minutes_snapshot",
-          0,
-        ),
-      ),
-    );
-
-    if (!itemId || !pieceTypeId || requestedQuantity < 1) {
-      throw new PlannerError("Cada item do pedido precisa de peça, identificador e quantidade válida.");
-    }
-
-    const itemPlan = {
-      itemId,
-      pieceTypeId,
-      code: rawItem.code ?? null,
-      name: rawItem.name ?? null,
-      requestedQuantity,
-      quantityToProduce,
-      productionMinutesPerUnit,
-      plannedQuantity: 0,
-      remainingQuantity: quantityToProduce,
-      plannedMinutes: 0,
-      missingMinutes: 0,
-      schedules: [],
-    };
-
-    totalRequestedQuantity += requestedQuantity;
-    totalToProduce += quantityToProduce;
-
-    if (quantityToProduce > 0) {
-      for (const day of workingDays) {
-        if (itemPlan.remainingQuantity <= 0) break;
-
-        const alreadyReserved = reservedByDate.get(day.date) || 0;
-        const availableMinutes = Math.max(0, day.capacityMinutes - alreadyReserved);
-        const possibleQuantity = Math.floor(availableMinutes / productionMinutesPerUnit);
-        const quantityForDay = Math.min(itemPlan.remainingQuantity, possibleQuantity);
-        if (quantityForDay <= 0) continue;
-
-        const plannedMinutes = quantityForDay * productionMinutesPerUnit;
-        const schedule = {
-          itemId,
-          pieceTypeId,
-          workDate: day.date,
-          plannedQuantity: quantityForDay,
-          plannedMinutes,
-        };
-
-        itemPlan.schedules.push(schedule);
-        schedules.push(schedule);
-        itemPlan.plannedQuantity += quantityForDay;
-        itemPlan.remainingQuantity -= quantityForDay;
-        itemPlan.plannedMinutes += plannedMinutes;
-        totalPlannedQuantity += quantityForDay;
-        totalPlannedMinutes += plannedMinutes;
-        reservedByDate.set(day.date, alreadyReserved + plannedMinutes);
-      }
-    }
-
-    itemPlan.missingMinutes = itemPlan.remainingQuantity * productionMinutesPerUnit;
-    itemPlans.push(itemPlan);
+  const positionList = positions
+    .map(normalizedPosition)
+    .filter((position) => position.status !== "em_manutencao")
+    .sort((a, b) => a.code.localeCompare(b.code));
+  if (!positionList.length) throw new PlannerError("Não há posição de molde disponível para programação.", 409);
+  if (new Set(positionList.map((position) => position.code)).size !== positionList.length) {
+    throw new PlannerError("O catálogo contém posições de molde duplicadas.");
   }
 
-  const overloadedDays = days
-    .map((day) => ({
-      date: day.date,
-      capacityMinutes: day.capacityMinutes,
-      reservedMinutes: reservedByDate.get(day.date) || 0,
-      availableMinutes: Math.max(
-        0,
-        day.capacityMinutes - (reservedByDate.get(day.date) || 0),
-      ),
-    }))
-    .filter((day) => day.reservedMinutes > day.capacityMinutes);
+  let effectiveStartDate = requestedStartDate;
+  while (effectiveStartDate <= latestCalendarDate && !calendarByDate.get(effectiveStartDate)?.isWorking) {
+    effectiveStartDate = addDays(effectiveStartDate, 1);
+  }
+  if (effectiveStartDate > latestCalendarDate) {
+    throw new PlannerError("Não há dia útil disponível após a data inicial informada.", 409);
+  }
 
-  const remainingQuantity = itemPlans.reduce(
-    (total, item) => total + item.remainingQuantity,
-    0,
-  );
-  const plannedDates = schedules.map((schedule) => schedule.workDate).sort();
-  const plannedEndDate = plannedDates.length ? plannedDates[plannedDates.length - 1] : null;
-  const conflicts = [...overloadedDays.map((day) => ({
-    type: "capacity",
-    ...day,
-  }))];
-
-  if (remainingQuantity > 0) {
-    conflicts.push({
-      type: "deadline",
-      dueDate: due,
-      remainingQuantity,
-      message: due
-        ? "A capacidade disponível até o prazo não atende toda a quantidade a produzir."
-        : "O horizonte de planejamento não atende toda a quantidade a produzir.",
+  const castHorizonEnd = addDays(effectiveStartDate, horizon - 1);
+  if (castHorizonEnd > latestCalendarDate) {
+    throw new PlannerError("O calendário não cobre o horizonte de planejamento completo.", 409, {
+      requiredThrough: addDays(castHorizonEnd, 10),
+      availableThrough: latestCalendarDate,
     });
   }
 
+  const normalizedItems = items.map(normalizedItem);
+  if (!normalizedItems.length) throw new PlannerError("O pedido precisa ter ao menos um item.");
+
+  const conflicts = [];
+  const occupiedByDate = new Map();
+  reserveExistingCapacity({
+    existingSchedules,
+    existingAllocations,
+    positions: positionList,
+    occupiedByDate,
+    startDate: effectiveStartDate,
+    castHorizonEnd,
+    conflicts,
+  });
+
+  const workingDates = days
+    .filter((day) => day.isWorking && day.date >= effectiveStartDate && day.date <= castHorizonEnd)
+    .map((day) => day.date);
+  const units = [];
+  const itemPlans = [];
+
+  for (const item of normalizedItems) {
+    const itemUnits = [];
+    let unitSequence = 0;
+
+    for (const castDate of workingDates) {
+      if (itemUnits.length >= item.quantity) break;
+      const occupied = occupiedByDate.get(castDate) || new Map();
+      const freePositions = positionList.filter((position) => !occupied.has(position.code));
+
+      for (const position of freePositions) {
+        if (itemUnits.length >= item.quantity) break;
+        const cureStartDate = addDays(castDate, 1);
+        const cureEndDate = addDays(castDate, item.curingDays);
+        const finishDate = nextWorkingDateAfter(cureEndDate, calendarByDate, latestCalendarDate);
+        if (!finishDate) continue;
+
+        unitSequence += 1;
+        const unit = {
+          itemId: item.itemId,
+          pieceTypeId: item.pieceTypeId,
+          unitSequence,
+          positionCode: position.code,
+          castDate,
+          workDate: castDate,
+          curingDays: item.curingDays,
+          cureStartDate,
+          cureEndDate,
+          finishDate,
+          plannedEndDate: finishDate,
+          productionMinutesSnapshot: item.productionMinutesPerUnit,
+        };
+        itemUnits.push(unit);
+        units.push(unit);
+        reservePosition(occupiedByDate, castDate, position.code, {
+          orderId: null,
+          status: "planned",
+          source: "current_order",
+        }, conflicts);
+      }
+    }
+
+    const itemEndDates = itemUnits.map((unit) => unit.plannedEndDate).sort();
+    itemPlans.push({
+      itemId: item.itemId,
+      pieceTypeId: item.pieceTypeId,
+      code: item.code,
+      name: item.name,
+      requestedQuantity: item.quantity,
+      quantityToProduce: item.quantity,
+      curingDays: item.curingDays,
+      productionMinutesPerUnit: item.productionMinutesPerUnit,
+      plannedQuantity: itemUnits.length,
+      remainingQuantity: item.quantity - itemUnits.length,
+      plannedMinutes: itemUnits.length * item.productionMinutesPerUnit,
+      plannedEndDate: itemEndDates.at(-1) ?? null,
+      units: itemUnits,
+    });
+  }
+
+  const schedulesByKey = new Map();
+  for (const unit of units) {
+    const key = `${unit.itemId}|${unit.castDate}`;
+    const schedule = schedulesByKey.get(key) || {
+      itemId: unit.itemId,
+      pieceTypeId: unit.pieceTypeId,
+      workDate: unit.castDate,
+      castDate: unit.castDate,
+      plannedQuantity: 0,
+      plannedMinutes: 0,
+      positionCodes: [],
+      curingDays: unit.curingDays,
+      cureStartDate: unit.cureStartDate,
+      cureEndDate: unit.cureEndDate,
+      finishDate: unit.finishDate,
+      plannedEndDate: unit.plannedEndDate,
+    };
+    schedule.plannedQuantity += 1;
+    schedule.plannedMinutes += unit.productionMinutesSnapshot;
+    schedule.positionCodes.push(unit.positionCode);
+    schedulesByKey.set(key, schedule);
+  }
+
+  const schedules = [...schedulesByKey.values()].sort((a, b) =>
+    a.workDate.localeCompare(b.workDate) || a.itemId.localeCompare(b.itemId)
+  );
+  const totalRequestedQuantity = normalizedItems.reduce((sum, item) => sum + item.quantity, 0);
+  const totalPlannedQuantity = units.length;
+  const totalRemainingQuantity = totalRequestedQuantity - totalPlannedQuantity;
+  const plannedCastDates = units.map((unit) => unit.castDate).sort();
+  const plannedEndDates = units.map((unit) => unit.plannedEndDate).sort();
+  const plannedCastEndDate = plannedCastDates.at(-1) ?? null;
+  const partialEndDate = plannedEndDates.at(-1) ?? null;
+  const plannedEndDate = totalRemainingQuantity === 0 ? partialEndDate : null;
+  const dueMet = !due || (plannedEndDate !== null && plannedEndDate <= due);
+
+  if (!dueMet && totalRemainingQuantity === 0) {
+    conflicts.push({
+      type: "deadline",
+      dueDate: due,
+      suggestedDueDate: plannedEndDate,
+      remainingQuantity: 0,
+      message: `O prazo solicitado é inviável. A data viável mais próxima é ${plannedEndDate}.`,
+    });
+  }
+  if (totalRemainingQuantity > 0) {
+    conflicts.push({
+      type: "horizon",
+      dueDate: due,
+      suggestedDueDate: null,
+      remainingQuantity: totalRemainingQuantity,
+      message: `O horizonte não comporta ${totalRemainingQuantity} unidade(s); amplie o horizonte ou revise as posições disponíveis.`,
+    });
+  }
+
+  const totalPlannedMinutes = units.reduce((sum, unit) => sum + unit.productionMinutesSnapshot, 0);
+  const feasible = totalRemainingQuantity === 0 && dueMet && !conflicts.some((item) =>
+    item.type === "capacity" || item.type === "position"
+  );
+
   return {
-    feasible: remainingQuantity === 0,
-    startDate: start,
+    feasible,
+    requestedStartDate,
+    startDate: requestedStartDate,
+    effectiveStartDate,
     dueDate: due,
+    plannedCastEndDate,
     plannedEndDate,
-    workingDays: workingDays.length,
+    partialEndDate,
+    baselineEndDate: plannedEndDate,
+    forecastEndDate: plannedEndDate,
+    suggestedDueDate: dueMet ? null : plannedEndDate,
+    workingDays: workingDates.length,
+    capacityPerWorkingDay: positionList.length,
     totalRequestedQuantity,
-    totalToProduce,
+    totalToProduce: totalRequestedQuantity,
     totalPlannedQuantity,
     totalPlannedMinutes,
-    totalRemainingQuantity: remainingQuantity,
+    totalRemainingQuantity,
     items: itemPlans,
+    units,
     schedules,
     conflicts,
   };
