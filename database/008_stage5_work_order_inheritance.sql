@@ -92,7 +92,9 @@ create trigger trg_works_sync_order_fields
   after update of client_id, start_date on public.works
   for each row execute function public.sync_work_fields_to_orders();
 
-create or replace view public.piece_mold_combinations as
+create or replace view public.piece_mold_combinations
+with (security_invoker = true)
+as
 select
   'braco'::text as piece_kind,
   'braco'::text as configuration_kind,
