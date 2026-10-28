@@ -1,0 +1,3 @@
+# Nome local do projeto para uso da Supabase CLI.
+# Associe este checkout ao projeto desejado com `supabase link --project-ref <ref>`.
+project_id = "prelux-emissor-etiquetas"

@@ -4,9 +4,14 @@ O backend usa Supabase/PostgreSQL e Edge Functions em Deno. O PWA consome o cale
 
 ## Publicação
 
-1. Crie um projeto no Supabase.
-2. Em uma instalação nova, execute as migrações `database/001_initial_schema.sql` até `database/008_stage5_work_order_inheritance.sql`, nessa ordem. No Site existente, que já aplicou 001–007, aplique somente a migração 008 antes de publicar a Edge Function `operations-admin` atualizada.
-3. Instale a CLI do Supabase e faça login.
+1. Use o projeto Supabase existente ou crie um projeto novo.
+2. Em uma instalação nova, execute as migrações `database/001_initial_schema.sql` até `database/008_stage5_work_order_inheritance.sql`, nessa ordem. O Supabase do Site atual já está na etapa 8; não reaplique as migrações nele. Em uma base que esteja na etapa 7, aplique somente a 008 antes de atualizar `operations-admin`.
+3. Instale a CLI do Supabase, faça login e vincule este checkout ao projeto:
+
+```bash
+supabase link --project-ref <ref-do-projeto>
+```
+
 4. Configure somente o identificador da organização no projeto:
 
 ```bash

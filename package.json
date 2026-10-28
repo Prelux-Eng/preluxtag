@@ -1,5 +1,6 @@
 {
   "name": "prelux-emissor-etiquetas",
+  "description": "PWA PRELUX para emissão de etiquetas e planejamento operacional",
   "private": true,
   "type": "module",
   "scripts": {

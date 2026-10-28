@@ -1,6 +1,26 @@
+# Segredos e configurações locais
 .env
 .env.*
 !.env.example
+!.env.*.example
+.openai/
+supabase/.temp/
+supabase/.branches/
+
+# Dependências, caches e arquivos do sistema
 node_modules/
-.DS_Store
 dist/.supabase/
+.DS_Store
+Thumbs.db
+*.log
+
+# Pacotes gerados ou de backup
+*.tar
+*.tar.gz
+*.zip
+
+# Chaves e certificados
+*.pem
+*.key
+*.p12
+*.pfx
