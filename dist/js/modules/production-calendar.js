@@ -173,14 +173,18 @@
     return state.productionOrders.filter((unit) => unit.planned_cast_date === date);
   }
 
+  function useLegacyScheduleView() {
+    return !state.unitPlanningAvailable || (!state.productionOrders.length && state.schedules.length > 0);
+  }
+
   function positionStats(date) {
     const day = getDay(date) || { is_working: false };
     const positionCount = activePositionCount();
     const capacity = state.capacityByPositions.find((item) => item.date === date);
-    const plannedUnits = state.unitPlanningAvailable
+    const plannedUnits = !useLegacyScheduleView()
       ? productionUnitsForDate(date).length
       : schedulesForDate(date).reduce((sum, schedule) => sum + Math.max(0, Number(schedule.planned_quantity) || 0), 0);
-    const assignedPositions = state.unitPlanningAvailable
+    const assignedPositions = !useLegacyScheduleView()
       ? new Set(productionUnitsForDate(date).map((unit) => unit.position_code).filter(Boolean)).size
       : schedulesForDate(date).reduce((sum, schedule) => sum + Math.max(0, Number(schedule.planned_quantity) || 0), 0);
     const occupied = Math.max(Number(capacity?.occupied_positions) || 0, assignedPositions, plannedUnits);
@@ -203,7 +207,7 @@
   }
 
   function phaseEventsForDate(date) {
-    if (!state.unitPlanningAvailable) {
+    if (useLegacyScheduleView()) {
       return schedulesForDate(date).map((schedule) => ({ kind: "casting", value: schedule, quantity: Number(schedule.planned_quantity) || 0 }));
     }
     const units = state.productionOrders;
@@ -286,7 +290,7 @@
       const canDrag = isCasting && value.status === "planned" && orderId && !state.startedOrderIds.includes(orderId);
       const className = event.kind === "casting" ? "casting-event" : event.kind === "curing" ? "curing-event" : "finish-event";
       const title = `${phaseEventLabel(event)} · ${formatDateBR(date)}${event.kind === "curing" ? " · cura não ocupa posição" : ""}`;
-      const label = state.unitPlanningAvailable ? phaseEventLabel(event) : `${formatOrder(order)} · ${value.piece_code || "produção"} · ${Number(value.planned_quantity)} un.`;
+      const label = !useLegacyScheduleView() ? phaseEventLabel(event) : `${formatOrder(order)} · ${value.piece_code || "produção"} · ${Number(value.planned_quantity)} un.`;
       return `<button class="calendar-event ${className} ${statusClass}" type="button" data-order-event="${escapeHtml(orderId)}" data-work-date="${date}" title="${escapeHtml(title)}"${canDrag ? ' draggable="true"' : ""}>${escapeHtml(label)}</button>`;
     }).join("");
     const remainingEvents = events.length - eventLimit;
@@ -364,7 +368,7 @@
       const position = positionMeta.get(code);
       const unavailable = position?.status === "em_manutencao";
       appendRow(`${code}${unavailable ? " · manutenção" : ""}`, (date) => {
-        if (state.unitPlanningAvailable) {
+        if (!useLegacyScheduleView()) {
           return ganttUnitsFor(date, "casting", code).map((unit) => {
             const orderId = unit.order_id;
             const order = orderById(orderId);
@@ -376,7 +380,7 @@
         return "";
       }, unavailable ? "position-unavailable" : "position-label");
     }
-    if (state.unitPlanningAvailable) {
+    if (!useLegacyScheduleView()) {
       const unallocatedUnits = unitsInRange.filter((unit) => unit.planned_cast_date >= start && unit.planned_cast_date <= end && !unit.position_code);
       if (unallocatedUnits.length) {
         appendRow("Sem posição alocada", (date) => unallocatedUnits.filter((unit) => unit.planned_cast_date === date).map((unit) => {
@@ -408,7 +412,7 @@
       appendRow(`Obra · ${work.work_number || work.name}`, (date) => spanContains(work, date) ? '<span class="gantt-work-window" aria-hidden="true"></span>' : "", "work-label");
     }
     const hasRows = ordersWithDates.length > 0 || worksWithDates.length > 0;
-    const hasPhaseEvents = state.unitPlanningAvailable ? unitsInRange.length > 0 : state.schedules.length > 0;
+    const hasPhaseEvents = !useLegacyScheduleView() ? unitsInRange.length > 0 : state.schedules.length > 0;
     const empty = hasRows || hasPhaseEvents ? "" : '<div class="gantt-empty">Nenhuma concretagem, etapa, pedido ou obra neste mês.</div>';
     $('planningCalendarState').className = "calendar-state calendar-gantt-view";
     $('planningCalendarState').innerHTML = `<div class="gantt-wrap"><div class="gantt-group"><div class="gantt-resource">Etapas e posições de produção<span>${count} dias · quatro posições físicas · a cura não ocupa posição</span></div><div class="gantt-timeline gantt-head" style="${template}"><div class="gantt-label">Etapa / recurso</div>${headings}</div><div class="gantt-timeline" style="${template}">${rows}${empty}</div></div></div>`;
@@ -426,7 +430,7 @@
     const todayStats = today ? positionStats(today.date) : null;
     const bounds = visibleBounds();
     const exceptionCount = state.exceptions.length;
-    const eventCount = state.unitPlanningAvailable
+    const eventCount = !useLegacyScheduleView()
       ? state.productionOrders.filter((unit) => unit.planned_cast_date >= bounds.start && unit.planned_cast_date <= bounds.end).length
       : state.schedules.reduce((sum, schedule) => sum + (Number(schedule.planned_quantity) || 0), 0);
     const datedOrders = activeCalendarOrders().filter((order) => spanOverlaps(order, bounds.start, bounds.end)).length;
@@ -469,7 +473,7 @@
   }
 
   function scheduledCountInVisibleRange(orderId) {
-    if (state.unitPlanningAvailable) {
+    if (!useLegacyScheduleView()) {
       return state.productionOrders.filter((unit) => unit.order_id === orderId).length;
     }
     return state.schedules
@@ -822,7 +826,7 @@
       state.startedOrderIds = planning.startedOrderIds || [];
       state.settings = settings.settings ? { ...settings.settings, rules: settings.rules || [] } : state.settings;
       renderCalendar();
-      connection.innerHTML = state.unitPlanningAvailable
+      connection.innerHTML = !useLegacyScheduleView()
         ? '<span class="dot" style="background:var(--green)"></span><span>Backend conectado. Concretagem, cura, acabamento e posições carregados.</span>'
         : '<span class="dot" style="background:#d58a1e"></span><span>Backend conectado com programação resumida. Posições, cura e acabamento ainda não estão disponíveis na integração.</span>';
     } catch (error) {
