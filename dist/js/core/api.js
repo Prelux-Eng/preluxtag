@@ -93,6 +93,7 @@
     saveOrder: (input) => invoke("operations-admin", { action: "save_order", ...input }),
     savePieceType: (input) => invoke("operations-admin", { action: "save_piece_type", ...input }),
     saveMold: (input) => invoke("operations-admin", { action: "save_mold", ...input }),
+    saveMoldPosition: (input) => invoke("operations-admin", { action: "save_position", ...input }),
     saveMoldPreparation: (input) => invoke("operations-admin", { action: "save_preparation", ...input }),
     saveResourceAllocation: (input) => invoke("operations-admin", { action: "save_allocation", ...input }),
     archiveOperationRecord: (kind, id) => invoke("operations-admin", { action: "archive", kind, id }),

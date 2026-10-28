@@ -7,6 +7,7 @@ import { createAdminClient } from "../_shared/supabaseClient.js";
 const WORK_STATUSES = new Set(["planejamento", "ativa", "concluida", "cancelada"]);
 const ORDER_STATUSES = new Set(["orcamento", "aprovado", "em_producao", "concluido", "entregue", "atrasado", "cancelado"]);
 const MOLD_STATUSES = new Set(["ativo", "manutencao", "bloqueado", "retirado"]);
+const POSITION_STATUSES = new Set(["disponivel", "em_preparacao", "em_producao", "em_manutencao"]);
 const PREPARATION_STATUSES = new Set(["planejada", "em_andamento", "aguardando_aprovacao", "aprovada", "reprovada", "cancelada"]);
 const ALLOCATION_STATUSES = new Set(["planned", "in_progress", "done", "cancelled"]);
 
@@ -93,16 +94,16 @@ async function resolveClientId(db: any, organizationId: string, input: Record<st
 }
 
 async function readOperationsData(db: any, organizationId: string) {
-  const [clientsResult, worksResult, ordersResult, piecesResult, moldsResult, compatResult, preparationsResult, allocationsResult] = await Promise.all([
+  const [clientsResult, worksResult, ordersResult, piecesResult, moldsResult, compatResult, preparationsResult, allocationsResult, catalogResult, pieceMoldsResult, positionsResult] = await Promise.all([
     db.from("clients").select("id, name, document, contact_name, phone, email, address, is_active")
       .eq("organization_id", organizationId).eq("is_active", true).order("name").limit(1000),
     db.from("works").select("id, work_number, name, client_id, address, responsible_name, start_date, requested_due_date, status, observations, is_active, created_at, updated_at")
       .eq("organization_id", organizationId).eq("is_active", true).order("name").limit(1000),
     db.from("orders").select("id, order_number, work_id, client_id, start_date, requested_due_date, planned_end_date, status, observations, is_active, created_at, updated_at")
       .eq("organization_id", organizationId).eq("is_active", true).order("start_date", { ascending: false }).limit(1000),
-    db.from("piece_types").select("id, category_id, code, name, dimensions, weight_kg, volume_m3, production_minutes_per_unit, initial_stock_quantity, stock_minimum_quantity, observations, is_active")
+    db.from("piece_types").select("id, category_id, code, name, piece_kind, dimension_x_cm, dimension_y_cm, dimension_z_cm, dimensions, volume_cm3, weight_kg, volume_m3, production_minutes_per_unit, initial_stock_quantity, stock_minimum_quantity, observations, is_active")
       .eq("organization_id", organizationId).order("code").limit(1000),
-    db.from("molds").select("id, code, name, mold_type, dimensions, cycle_minutes_per_unit, preparation_days, status, observations, created_at, updated_at")
+    db.from("molds").select("id, code, name, mold_type, dimensions, catalog_code, cycle_minutes_per_unit, preparation_days, status, observations, created_at, updated_at")
       .eq("organization_id", organizationId).order("code").limit(1000),
     db.from("mold_piece_types").select("mold_id, piece_type_id")
       .eq("organization_id", organizationId).limit(5000),
@@ -110,9 +111,14 @@ async function readOperationsData(db: any, organizationId: string) {
       .eq("organization_id", organizationId).order("start_date", { ascending: false }).limit(1000),
     db.from("resource_allocations").select("id, resource_kind, mold_id, resource_name, order_item_id, start_date, end_date, status, conflict_reason, conflict_responsible, observations, created_at, updated_at")
       .eq("organization_id", organizationId).order("start_date", { ascending: false }).limit(2000),
+    db.from("mold_catalog").select("code, mold_type, measure_label, sort_order").order("sort_order"),
+    db.from("piece_type_molds").select("piece_type_id, role, catalog_code")
+      .eq("organization_id", organizationId).limit(5000),
+    db.from("mold_positions").select("id, code, status, notes, configuration_kind, braco_catalog_code, leito_catalog_code, lateral_catalog_code")
+      .eq("organization_id", organizationId).order("code").limit(4),
   ]);
-  const results = [clientsResult, worksResult, ordersResult, piecesResult, moldsResult, compatResult, preparationsResult, allocationsResult];
-  const labels = ["clientes", "obras", "pedidos", "tipos de peça", "moldes", "compatibilidades", "preparações", "alocações"];
+  const results = [clientsResult, worksResult, ordersResult, piecesResult, moldsResult, compatResult, preparationsResult, allocationsResult, catalogResult, pieceMoldsResult, positionsResult];
+  const labels = ["clientes", "obras", "pedidos", "tipos de peça", "moldes", "compatibilidades", "preparações", "alocações", "catálogo fixo de moldes", "moldes das peças", "posições de molde"];
   results.forEach((result, index) => { if (result.error) throwDbError(result.error, `Não foi possível carregar ${labels[index]}.`); });
 
   const orderIds = (ordersResult.data || []).map((order: any) => order.id);
@@ -144,7 +150,15 @@ async function readOperationsData(db: any, organizationId: string) {
     moldIdsByPiece.set(pair.piece_type_id, [...(moldIdsByPiece.get(pair.piece_type_id) || []), pair.mold_id]);
     pieceIdsByMold.set(pair.mold_id, [...(pieceIdsByMold.get(pair.mold_id) || []), pair.piece_type_id]);
   }
+  const catalogByCode = new Map((catalogResult.data || []).map((row: any) => [row.code, row]));
+  const moldCatalogsByPiece = new Map<string, Record<string, string>>();
+  for (const requirement of pieceMoldsResult.data || []) {
+    const moldsForPiece = moldCatalogsByPiece.get(requirement.piece_type_id) || {};
+    moldsForPiece[requirement.role] = requirement.catalog_code;
+    moldCatalogsByPiece.set(requirement.piece_type_id, moldsForPiece);
+  }
   return {
+    schemaVersion: 4,
     clients,
     works: works.map((work: any) => ({ ...work, client_name: clientById.get(work.client_id) || "" })),
     orders: (ordersResult.data || []).map((order: any) => ({
@@ -154,11 +168,42 @@ async function readOperationsData(db: any, organizationId: string) {
       items: itemsByOrder.get(order.id) || [],
       hasResourceAllocation: (itemsByOrder.get(order.id) || []).some((item) => allocatedItemIds.has(item.id)),
     })),
-    pieceTypes: activePieces.map((piece: any) => ({ ...piece, mold_ids: moldIdsByPiece.get(piece.id) || [] })),
-    molds: molds.map((mold: any) => ({ ...mold, piece_type_ids: pieceIdsByMold.get(mold.id) || [] })),
+    pieceTypes: activePieces.map((piece: any) => ({
+      ...piece,
+      mold_ids: moldIdsByPiece.get(piece.id) || [],
+      mold_catalogs: moldCatalogsByPiece.get(piece.id) || {},
+    })),
+    molds: molds.map((mold: any) => ({
+      ...mold,
+      catalog_label: catalogByCode.has(mold.catalog_code)
+        ? `${catalogByCode.get(mold.catalog_code).mold_type} ${catalogByCode.get(mold.catalog_code).measure_label} cm`
+        : null,
+      piece_type_ids: pieceIdsByMold.get(mold.id) || [],
+    })),
+    moldCatalog: catalogResult.data || [],
+    positions: positionsResult.data || [],
     preparations: preparationsResult.data || [],
     allocations: allocationsResult.data || [],
   };
+}
+
+async function replanOpenQueue(db: any, organizationId: string) {
+  const { data: openOrders, error: orderError } = await db.from("orders")
+    .select("id, status")
+    .eq("organization_id", organizationId).eq("is_active", true)
+    .order("start_date", { ascending: true }).order("created_at", { ascending: true }).limit(1000);
+  if (orderError) throwDbError(orderError, "Não foi possível localizar pedidos para replanejar.");
+  const targetOrder = (openOrders || []).find((order: any) => !["cancelado", "entregue", "concluido"].includes(order.status));
+  if (!targetOrder) return { committed: true, warning: null };
+
+  const queuePlan = await buildPlanningQueue({ db, organizationId, input: { orderId: targetOrder.id } });
+  const { error: commitError } = await db.rpc("commit_planning_queue", {
+    p_org_id: organizationId,
+    p_plans: queuePlan.plans.map((entry) => ({ orderId: entry.orderId, plan: entry.plan })),
+  });
+  if (commitError) throwDbError(commitError, "Não foi possível recalcular o calendário após a alteração do cadastro.");
+  const warnings = queuePlan.plans.flatMap(({ orderId, plan: queuedPlan }) => queuedPlan.feasible ? [] : queuedPlan.conflicts.map((conflict: any) => `Pedido ${queuedPlan.order?.orderNumber || orderId}: ${conflict.message}`));
+  return { committed: true, warning: warnings.length ? warnings.slice(0, 5).join(" ") : null };
 }
 
 async function handler(request: Request) {
@@ -319,39 +364,98 @@ async function handler(request: Request) {
     }
 
     if (action === "save_piece_type") {
+      const pieceKind = enumValue(input.pieceKind, new Set(["braco", "pilar", "viga"]), "", "Tipo de peça");
+      const dimensionXcm = decimalValue(input.dimensionXcm, "A dimensão X");
+      const dimensionYcm = decimalValue(input.dimensionYcm, "A dimensão Y");
+      const dimensionZcm = decimalValue(input.dimensionZcm, "A dimensão Z");
+      if (dimensionXcm === null || dimensionYcm === null || dimensionZcm === null || dimensionXcm <= 0 || dimensionYcm <= 0 || dimensionZcm <= 0) {
+        throw badRequest("Informe dimensões X, Y e Z maiores que zero, em centímetros.");
+      }
+      calculatePieceMetrics({ x: dimensionXcm, y: dimensionYcm, z: dimensionZcm });
       const record = {
         id: textValue(input.id, "o identificador", 80) || null,
         code: textValue(input.code, "o código da peça", 60, true),
         name: textValue(input.name, "o nome da peça", 180, true),
-        dimensions: textValue(input.dimensions, "as dimensões", 180),
-        weightKg: decimalValue(input.weightKg, "O peso", true),
-        volumeM3: decimalValue(input.volumeM3, "O volume", true),
+        pieceKind,
+        dimensionXcm,
+        dimensionYcm,
+        dimensionZcm,
         productionMinutesPerUnit: integerValue(input.productionMinutesPerUnit, "O tempo de produção", 1),
-        initialStockQuantity: integerValue(input.initialStockQuantity ?? 0, "O estoque inicial", 0),
-        stockMinimumQuantity: integerValue(input.stockMinimumQuantity ?? 0, "O estoque mínimo", 0),
         observations: textValue(input.observations, "as observações", 1000),
       };
-      const moldIds = Array.isArray(input.moldIds) ? input.moldIds.map((id: unknown) => textValue(id, "o molde", 80, true)) : [];
-      const { data, error } = await db.rpc("save_piece_type", { p_org_id: organizationId, p_record: record, p_mold_ids: moldIds });
+      const moldCatalogs = input.moldCatalogs && typeof input.moldCatalogs === "object" ? input.moldCatalogs as Record<string, unknown> : {};
+      const requiredRoles = pieceKind === "braco" ? ["braco"] : ["leito", "lateral"];
+      const selectedMolds: Record<string, string> = {};
+      for (const role of requiredRoles) selectedMolds[role] = textValue(moldCatalogs[role], `o molde ${role.toUpperCase()}`, 40, true);
+      if (pieceKind === "braco" && (moldCatalogs.leito || moldCatalogs.lateral)) throw badRequest("Braço usa somente um molde BRAÇO.");
+      if (pieceKind !== "braco" && moldCatalogs.braco) throw badRequest("Pilar e Viga usam um molde LEITO e um LATERAL.");
+      const { data, error } = await db.rpc("save_piece_type", { p_org_id: organizationId, p_record: record, p_mold_catalogs: selectedMolds });
       if (error) throwDbError(error, "Não foi possível salvar o tipo de peça.");
-      return json({ ok: true, pieceType: data });
+      let planning: Record<string, unknown>;
+      try {
+        planning = await replanOpenQueue(db, organizationId);
+      } catch (planningError) {
+        planning = {
+          committed: false,
+          warning: planningError instanceof OrderPlanningError
+            ? planningError.message
+            : "A peça foi salva, mas o calendário não pôde ser recalculado. Atualize o planejamento.",
+        };
+      }
+      return json({ ok: true, pieceType: data, planning });
     }
 
     if (action === "save_mold") {
       const record = {
         id: textValue(input.id, "o identificador", 80) || null,
-        code: textValue(input.code, "o código do molde", 60, true),
-        name: textValue(input.name, "o nome do molde", 180, true),
-        moldType: textValue(input.moldType, "o tipo do molde", 120, true),
-        dimensions: textValue(input.dimensions, "as dimensões", 180),
+        catalogCode: textValue(input.catalogCode, "a medida do molde", 40, true),
         cycleMinutesPerUnit: integerValue(input.cycleMinutesPerUnit, "O ciclo do molde", 1, true),
         status: enumValue(input.status, MOLD_STATUSES, "ativo", "Status do molde"),
         observations: textValue(input.observations, "as observações", 1000),
       };
-      const pieceTypeIds = Array.isArray(input.pieceTypeIds) ? input.pieceTypeIds.map((id: unknown) => textValue(id, "a peça compatível", 80, true)) : [];
-      const { data, error } = await db.rpc("save_mold", { p_org_id: organizationId, p_record: record, p_piece_type_ids: pieceTypeIds });
+      const { data, error } = await db.rpc("save_mold", { p_org_id: organizationId, p_record: record, p_piece_type_ids: [] });
       if (error) throwDbError(error, "Não foi possível salvar o molde.");
       return json({ ok: true, mold: data });
+    }
+
+    if (action === "save_position") {
+      const code = textValue(input.code, "a posição", 3, true);
+      const status = enumValue(input.status, POSITION_STATUSES, "disponivel", "Status da posição");
+      const configurationKind = enumValue(input.configurationKind, new Set(["braco", "pilar_viga"]), "", "Configuração da posição");
+      const bracoCatalogCode = textValue(input.bracoCatalogCode, "o molde BRAÇO", 40);
+      const leitoCatalogCode = textValue(input.leitoCatalogCode, "o molde LEITO", 40);
+      const lateralCatalogCode = textValue(input.lateralCatalogCode, "o molde LATERAL", 40);
+      const notes = textValue(input.notes, "as observações", 1000);
+      if (configurationKind === "braco" && (!bracoCatalogCode || leitoCatalogCode || lateralCatalogCode)) {
+        throw badRequest("Configure a posição com uma medida BRAÇO.");
+      }
+      if (configurationKind === "pilar_viga" && (bracoCatalogCode || !leitoCatalogCode || !lateralCatalogCode)) {
+        throw badRequest("Configure a posição com uma medida LEITO e uma LATERAL.");
+      }
+      const { data, error } = await db.rpc("save_mold_position", {
+        p_org_id: organizationId,
+        p_code: code,
+        p_status: status,
+        p_configuration_kind: configurationKind,
+        p_braco_catalog_code: bracoCatalogCode || null,
+        p_leito_catalog_code: leitoCatalogCode || null,
+        p_lateral_catalog_code: lateralCatalogCode || null,
+        p_notes: notes || null,
+      });
+      if (error) throwDbError(error, "Não foi possível salvar a configuração da posição.");
+
+      let planning: Record<string, unknown>;
+      try {
+        planning = await replanOpenQueue(db, organizationId);
+      } catch (planningError) {
+        planning = {
+          committed: false,
+          warning: planningError instanceof OrderPlanningError
+            ? planningError.message
+            : "A posição foi salva, mas o calendário não pôde ser recalculado. Atualize o planejamento.",
+        };
+      }
+      return json({ ok: true, position: data, planning });
     }
 
     if (action === "save_preparation") {
