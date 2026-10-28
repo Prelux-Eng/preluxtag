@@ -1,11 +1,11 @@
-const CACHE_NAME = 'prelux-emissor-etiquetas-v11';
+const CACHE_NAME = 'prelux-emissor-etiquetas-v12';
 const APP_SHELL = [
   './',
   './index.html',
   './css/operations.css?v=3',
   './js/core/api.js?v=16',
   './js/modules/production-calendar.js?v=7',
-  './js/modules/operations-admin.js?v=4',
+  './js/modules/operations-admin.js?v=5',
   './manifest.webmanifest',
   './assets/PRE_RASTRE.png',
   './icons/icon-192.png',

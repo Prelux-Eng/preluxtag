@@ -244,9 +244,9 @@
     $('clearBtn').addEventListener('click',resetForm); $('sampleBtn').addEventListener('click',()=>{fields.id.value='PILAR';fields.quantity.value=3;fields.client.value='Obra Exemplo - PRELUX';fields.notes.value='Conferir armadura e acabamento antes do carregamento.';previewIndex=1;updateNotesCounter();updatePreview();});$('search').addEventListener('input',renderRecords);
     $('recordsBody').addEventListener('click',e=>{const b=e.target.closest('button[data-action]');if(!b)return;const k=decodeURIComponent(b.dataset.key);const r=findRecord(k);if(b.dataset.action==='load')loadRecord(k);if(b.dataset.action==='png'&&r){loadRecord(k);setTimeout(()=>exportPng(labelId(1),1),80)}if(b.dataset.action==='delete'){if(confirm(`Excluir o lote ${recordRange(r)}?`)){setRecords(getRecords().filter(x=>recordKey(x)!==k));renderRecords();showToast('Registro excluído.')}}});
     updateNotesCounter();renderRecords();
-    if('serviceWorker' in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js?v=11').catch(()=>{}));
+    if('serviceWorker' in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js?v=12').catch(()=>{}));
   </script>
   <script src="js/modules/production-calendar.js?v=7"></script>
-  <script src="js/modules/operations-admin.js?v=4"></script>
+  <script src="js/modules/operations-admin.js?v=5"></script>
 </body>
 </html>
