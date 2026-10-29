@@ -1,5 +1,11 @@
+/*
+ * Módulo de cadastros de produção.
+ * Apresenta obras, pedidos, peças, moldes e posições. Controla estado da tela e
+ * formulários; acesso remoto passa pelo repositório e regras puras ficam no domínio.
+ */
 (function attachOperationsAdmin(global) {
   const $ = (id) => document.getElementById(id);
+  // Estado temporário da tela; os registros definitivos permanecem no Supabase.
   const state = { data: null, tab: "works", loading: false, query: "", supportsStage4: false };
   const tabs = [
     ["works", "Obras"],
@@ -42,6 +48,7 @@
     return `${day}/${month}/${year}`;
   }
 
+  // Traduz os códigos persistidos pelo banco em rótulos legíveis na interface.
   function statusLabel(value) {
     const labels = {
       planejamento: "Planejamento", ativa: "Ativa", concluida: "Concluída", cancelada: "Cancelada",
@@ -203,6 +210,7 @@
     return "Configuração pendente";
   }
 
+  // Tabelas e indicadores: convertem o pacote do repositório em listas filtráveis.
   function renderTable(query = state.query) {
     state.query = query;
     if (!state.data) return;
@@ -306,6 +314,7 @@
     $("operationsSearch").addEventListener("input", (event) => { state.query = event.target.value; renderTable(state.query); });
   }
 
+  // Formulários: constroem os campos e guardam qual registro está sendo editado.
   function openModal(title, subtitle, body, kind, record = null) {
     $("operationsModalTitle").textContent = title;
     $("operationsModalSubtitle").textContent = subtitle;
@@ -355,6 +364,7 @@
     return `<div class="field${full ? " full" : ""}"><label for="${id}">${label} <span>opcional</span></label><textarea class="textarea" id="${id}" name="${id}" maxlength="1000">${escapeHtml(value)}</textarea></div>`;
   }
 
+  // Cada formulário prepara um caso de uso e entrega a persistência ao repositório.
   function openNew() {
     if (["pieces", "molds", "positions"].includes(state.tab) && !ensureStage4()) return;
     if (state.tab === "works") return openWorkForm();
@@ -446,7 +456,7 @@
     const molds = piece?.mold_catalogs || {};
     const typeOptions = [["braco", "Braço"], ["pilar", "Pilar"], ["viga", "Viga"]];
     const armOptions = catalogChoices("BRACO");
-    const combinations = moldCombinationsFor("pilar");
+    const combinations = moldCombinationsFor(piece?.piece_kind || "pilar");
     const selectedPair = molds.leito && molds.lateral ? `${molds.leito}|${molds.lateral}` : "";
     const body = `<div class="ops-form-grid">
       ${inputField("code", "Código da peça", piece?.code || "", "text", { required: true })}
@@ -507,23 +517,18 @@
     updatePositionConfigFields();
   }
 
+  // Regras de moldes: catálogo fixo, combinações e campos de posição compatíveis.
   function catalogChoices(moldType) {
     return (state.data?.moldCatalog || []).filter((item) => item.mold_type === moldType)
       .map((item) => [item.code, `${moldType === "BRACO" ? "BRAÇO" : moldType} ${item.measure_label} cm`]);
   }
 
   function moldCombinationsFor(pieceKind) {
-    const combinations = state.data?.moldCombinations;
-    if (Array.isArray(combinations)) {
-      return combinations.filter((item) => item.piece_kind === pieceKind && item.configuration_kind === "pilar_viga")
-        .map((item) => [item.option_key || item.key, item.label]);
-    }
-    const beds = catalogChoices("LEITO");
-    const sides = catalogChoices("LATERAL");
-    return beds.flatMap(([bedCode, bedLabel]) => sides.map(([sideCode, sideLabel]) => [
-      `${bedCode}|${sideCode}`,
-      `${bedLabel} × ${sideLabel}`,
-    ]));
+    // Strategy do domínio seleciona braço fixo ou combinação variável adequada.
+    return global.PRELUX_DOMAIN.moldCompatibility.listPieceMoldOptions(pieceKind, {
+      catalog: state.data?.moldCatalog,
+      combinations: state.data?.moldCombinations,
+    });
   }
 
   function syncPieceMoldPair() {
@@ -546,6 +551,11 @@
       pair.required = false;
       return;
     }
+    const selectedOption = pair.value;
+    const options = moldCombinationsFor(kind);
+    pair.innerHTML = `<option value="">Selecione uma combinação</option>${options.map(([value, label]) =>
+      `<option value="${escapeHtml(value)}">${escapeHtml(label)}</option>`).join("")}`;
+    pair.value = options.some(([value]) => value === selectedOption) ? selectedOption : "";
     const isArm = kind === "braco";
     armField.hidden = !isArm;
     pairField.hidden = isArm;
@@ -588,6 +598,7 @@
     $("pieceWeightKg").textContent = valid ? formatNumber(weightKg, 3) : "—";
   }
 
+  // Preparação e alocação de recursos ligados a moldes e pedidos.
   function openPreparationForm(mold, preparation = null) {
     const moldOptions = state.data.molds.filter((item) => item.status !== "retirado").map((item) => [item.id, `${item.code} · ${item.name}`]);
     const checklist = preparation?.checklist || {};
@@ -657,6 +668,7 @@
     conflictField.hidden = isMold;
   }
 
+  // Eventos da tabela e do modal: encaminham cada ação para seu método de domínio.
   async function handleTableClick(event) {
     const button = event.target.closest("[data-ops-action]");
     if (!button) return;
@@ -684,7 +696,7 @@
       const allocation = data.allocations.find((item) => item.id === id);
       if (!allocation || !confirm("Cancelar esta alocação de recurso?")) return;
       try {
-        await global.PRELUX_API.saveResourceAllocation({
+        await global.PRELUX_REPOSITORIES.operations.saveResourceAllocation({
           id: allocation.id,
           resourceKind: allocation.resource_kind,
           moldId: allocation.mold_id,
@@ -707,7 +719,7 @@
       if (!confirm(`Arquivar este ${labels[state.tab] || "cadastro"}?`)) return;
       const kind = state.tab === "works" ? "work" : state.tab === "pieces" ? "piece_type" : "mold";
       try {
-        await global.PRELUX_API.archiveOperationRecord(kind, id);
+        await global.PRELUX_REPOSITORIES.operations.archiveOperationRecord(kind, id);
         toast("Cadastro arquivado.");
         await refreshData(true);
       } catch (error) { showStatus(error.message || "Não foi possível arquivar o cadastro.", true); }
@@ -737,7 +749,7 @@
     save.textContent = "Salvando…";
     try {
       if (kind === "work") {
-        const response = await global.PRELUX_API.saveWork({
+        const response = await global.PRELUX_REPOSITORIES.operations.saveWork({
           id,
           workNumber: formValue(form, "workNumber"),
           name: formValue(form, "name"),
@@ -764,7 +776,7 @@
           observations: row.querySelector("[data-item-observations]").value.trim(),
         }));
         if (items.some((item) => !item.pieceTypeId || !Number.isInteger(item.quantity) || item.quantity < 1)) throw new Error("Confira o tipo e a quantidade de cada item do pedido.");
-        const response = await global.PRELUX_API.saveOrder({
+        const response = await global.PRELUX_REPOSITORIES.operations.saveOrder({
           id,
           orderNumber: formValue(form, "orderNumber"),
           workId,
@@ -783,7 +795,7 @@
           savedNotice = "Pedido salvo e incluído automaticamente no planejamento.";
         }
       } else if (kind === "piece") {
-        const response = await global.PRELUX_API.savePieceType({
+        const response = await global.PRELUX_REPOSITORIES.operations.savePieceType({
           id,
           code: formValue(form, "code"),
           name: formValue(form, "name"),
@@ -800,7 +812,7 @@
         if (response?.planning?.warning) savedNotice = `Peça salva. ${response.planning.warning}`;
         else if (response?.planning?.committed) savedNotice = "Peça salva e planejamento recalculado.";
       } else if (kind === "mold") {
-        await global.PRELUX_API.saveMold({
+        await global.PRELUX_REPOSITORIES.operations.saveMold({
           id,
           catalogCode: formValue(form, "catalogCode"),
           cycleMinutesPerUnit: formValue(form, "cycleMinutesPerUnit"),
@@ -808,7 +820,7 @@
           observations: formValue(form, "observations"),
         });
       } else if (kind === "position") {
-        const response = await global.PRELUX_API.saveMoldPosition({
+        const response = await global.PRELUX_REPOSITORIES.operations.saveMoldPosition({
           code: formValue(form, "positionCode"),
           status: formValue(form, "status"),
           configurationKind: formValue(form, "positionConfigurationKind"),
@@ -820,7 +832,7 @@
         if (response?.planning?.warning) savedNotice = `Posição salva. ${response.planning.warning}`;
         else if (response?.planning?.committed) savedNotice = "Posição salva e planejamento recalculado.";
       } else if (kind === "preparation") {
-        await global.PRELUX_API.saveMoldPreparation({
+        await global.PRELUX_REPOSITORIES.operations.saveMoldPreparation({
           id,
           moldId: formValue(form, "preparationMoldId"),
           startDate: formValue(form, "preparationStartDate"),
@@ -835,7 +847,7 @@
         });
       } else if (kind === "allocation") {
         const resourceKind = formValue(form, "allocationResourceKind");
-        await global.PRELUX_API.saveResourceAllocation({
+        await global.PRELUX_REPOSITORIES.operations.saveResourceAllocation({
           id,
           resourceKind,
           moldId: resourceKind === "mold" ? formValue(form, "allocationMoldId") : "",
@@ -862,12 +874,13 @@
     }
   }
 
+  // Inicialização e atualização: busca o conjunto de dados pelo repositório.
   async function refreshData(silent = false) {
     if (state.loading) return;
     state.loading = true;
     if (!silent) showStatus("Atualizando cadastros…");
     try {
-      const response = await global.PRELUX_API.getOperationsData();
+      const response = await global.PRELUX_REPOSITORIES.operations.getOperationsData();
       state.data = response;
       state.supportsStage4 = Number(response?.schemaVersion || 0) >= 4 &&
         Array.isArray(response?.moldCatalog) && Array.isArray(response?.positions);

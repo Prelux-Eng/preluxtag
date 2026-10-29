@@ -1,3 +1,8 @@
+/*
+ * Endpoint das telas de Cadastros.
+ * Valida formulários, calcula métricas das peças e delega persistência ao
+ * PostgreSQL/Supabase. Regras de planejamento reutilizadas ficam em _shared.
+ */
 import { getServerConfig } from "../_shared/env.js";
 import { ensurePost, handleError, json, readJson } from "../_shared/http.js";
 import { buildPlanningQueue, OrderPlanningError } from "../_shared/order-planning.js";

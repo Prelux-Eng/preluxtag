@@ -1,3 +1,4 @@
+/* Endpoint simples para confirmar que a API PRELUX está respondendo. */
 import { ensurePost, handleError, json } from "../_shared/http.js";
 
 async function handler(request: Request) {

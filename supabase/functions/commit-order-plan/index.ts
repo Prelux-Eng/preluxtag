@@ -1,3 +1,7 @@
+/*
+ * Confirma no banco uma simulação aprovada pela tela de Planejamento.
+ * A função valida novamente os dados no servidor antes de persistir a fila.
+ */
 import { getServerConfig } from "../_shared/env.js";
 import { ensurePost, handleError, json, readJson } from "../_shared/http.js";
 import { buildPlanningQueue, OrderPlanningError } from "../_shared/order-planning.js";

@@ -1,5 +1,11 @@
+/*
+ * Módulo de planejamento da produção.
+ * Renderiza as visões do calendário e coordena o planejador de pedidos.
+ * Acesso remoto passa pelo repositório; navegação, pelo módulo central.
+ */
 (function productionCalendarModule() {
   const $ = (id) => document.getElementById(id);
+  // Estado da área: dados carregados, visão selecionada e modais atualmente abertos.
   const state = {
     mode: "month",
     days: [],
@@ -32,6 +38,7 @@
     personalizada: "Personalizada",
   };
 
+  // Formatação de datas, períodos e textos compartilhada pelas três visões.
   function escapeHtml(value) {
     return String(value ?? "").replace(/[&<>"']/g, (character) => ({
       "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
@@ -250,6 +257,7 @@
     element.classList.toggle("error", Boolean(isError));
   }
 
+  // Renderização: transforma os dados do calendário em blocos HTML acessíveis.
   function renderDay(date, options = {}) {
     const day = getDay(date) || { is_working: false, capacity_minutes: 0 };
     const stats = positionStats(date);
@@ -419,6 +427,7 @@
     $('planningCalendarHeading').textContent = `Gantt · ${new Date(`${start}T00:00:00.000Z`).toLocaleDateString("pt-BR", { month: "long", year: "numeric", timeZone: "UTC" })}`;
   }
 
+  // Indicadores de capacidade e conflitos do intervalo atualmente visível.
   function renderSummary() {
     const workingDays = state.days.filter((day) => day.is_working);
     const capacityPositions = workingDays.reduce((sum) => sum + activePositionCount(), 0);
@@ -463,6 +472,7 @@
     renderSummary();
   }
 
+  // Pedidos ainda não programados que compõem a fila apresentada acima do calendário.
   function pendingOrders() {
     return state.orders.filter((order) =>
       activeStatuses.has(order.status)
@@ -514,6 +524,7 @@
       : "";
   }
 
+  // Prévia do pedido: seleciona um pedido, calcula a fila e só depois permite confirmar.
   function populateOrderSelect(selectedId = "") {
     const eligible = state.orders.filter((order) => !terminalStatuses.has(order.status) && !state.startedOrderIds.includes(order.id));
     $('planningOrderSelect').innerHTML = eligible.length
@@ -604,8 +615,8 @@
     showStatus("orderPlanStatus", "Atualizando as datas do calendário e calculando capacidade e prazo.");
     try {
       const rangeEnd = requestedDueDate || addDays(startDate, 365);
-      await window.PRELUX_API.rebuildCalendar(startDate, rangeEnd);
-      const result = await window.PRELUX_API.planOrder({ orderId, startDate, requestedDueDate });
+      await window.PRELUX_REPOSITORIES.planning.rebuildCalendar(startDate, rangeEnd);
+      const result = await window.PRELUX_REPOSITORIES.planning.planOrder({ orderId, startDate, requestedDueDate });
       const plan = result.plan || result;
       if (result.queueWarnings?.length) {
         plan.queueWarnings = result.queueWarnings;
@@ -648,7 +659,7 @@
     button.disabled = true;
     button.textContent = "Gravando…";
     try {
-      await window.PRELUX_API.commitOrderPlan({
+      await window.PRELUX_REPOSITORIES.planning.commitOrderPlan({
         orderId,
         startDate: $('planningOrderStart').value,
         requestedDueDate: $('planningOrderDue').value || null,
@@ -665,6 +676,7 @@
     }
   }
 
+  // Edição de calendário: dia útil, exceções, atividades e configurações semanais.
   function openCalendarDay(date) {
     state.selectedDate = date;
     const day = getDay(date) || { is_working: false, capacity_minutes: 0 };
@@ -723,7 +735,7 @@
     $('calendarSettingsModal').hidden = false;
     showStatus("calendarSettingsStatus", "Carregando regra semanal…");
     try {
-      const result = await window.PRELUX_API.getCalendarSettings();
+      const result = await window.PRELUX_REPOSITORIES.planning.getCalendarSettings();
       state.settings = result.settings ? { ...result.settings, rules: result.rules || [] } : state.settings;
       const settings = result.settings || {};
       const rules = new Map((result.rules || []).map((rule) => [Number(rule.weekday), rule]));
@@ -757,7 +769,7 @@
     button.disabled = true;
     button.textContent = "Salvando…";
     try {
-      await window.PRELUX_API.saveCalendarSettings({ defaultCapacityMinutes, rules });
+      await window.PRELUX_REPOSITORIES.planning.saveCalendarSettings({ defaultCapacityMinutes, rules });
       closeCalendarSettings();
       await refreshPlanning();
       showToast("Semana padrão atualizada.");
@@ -797,12 +809,12 @@
     stateContainer.className = "calendar-placeholder";
     stateContainer.innerHTML = '<div><strong>Carregando calendário…</strong><p>Buscando capacidade, exceções e programações.</p></div>';
     try {
-      await window.PRELUX_API.rebuildCalendar(range.start, range.end);
+      await window.PRELUX_REPOSITORIES.planning.rebuildCalendar(range.start, range.end);
       const [calendar, planning, settings, operations] = await Promise.all([
-        window.PRELUX_API.getCalendar(range.start, range.end),
-        window.PRELUX_API.getPlanningData(range.start, range.end),
-        window.PRELUX_API.getCalendarSettings(),
-        window.PRELUX_API.getOperationsData().catch(() => null),
+        window.PRELUX_REPOSITORIES.planning.getCalendar(range.start, range.end),
+        window.PRELUX_REPOSITORIES.planning.getPlanningData(range.start, range.end),
+        window.PRELUX_REPOSITORIES.planning.getCalendarSettings(),
+        window.PRELUX_REPOSITORIES.planning.getOperationsData().catch(() => null),
       ]);
       state.days = calendar.days || [];
       state.exceptions = calendar.exceptions || [];
@@ -849,7 +861,7 @@
     button.disabled = true;
     button.textContent = "Salvando…";
     try {
-      await window.PRELUX_API.saveCalendarDay({
+      await window.PRELUX_REPOSITORIES.planning.saveCalendarDay({
         id: $('restoreCalendarDay').dataset.activityId || undefined,
         startDate: date,
         endDate: date,
@@ -880,7 +892,7 @@
     button.disabled = true;
     button.textContent = "Salvando…";
     try {
-      await window.PRELUX_API.saveCalendarActivity({
+      await window.PRELUX_REPOSITORIES.planning.saveCalendarActivity({
         id: state.editingActivityId || undefined,
         name: $('activityName').value.trim(),
         kind: $('activityKind').value,
@@ -905,7 +917,7 @@
     if (!id || !confirm("Excluir esta atividade do calendário?")) return;
     try {
       const bounds = visibleBounds();
-      await window.PRELUX_API.deleteCalendarActivity(id, bounds.start, bounds.end);
+      await window.PRELUX_REPOSITORIES.planning.deleteCalendarActivity(id, bounds.start, bounds.end);
       if (closeDay) closeCalendarDay();
       else closeCalendarActivity();
       await refreshPlanning();
@@ -915,6 +927,7 @@
     }
   }
 
+  // Controles de navegação e eventos DOM conectados uma única vez na inicialização.
   function changePeriod(direction) {
     const date = new Date(`${anchorDate()}T00:00:00.000Z`);
     if (state.mode === "week") date.setUTCDate(date.getUTCDate() + direction * 7);
@@ -929,27 +942,6 @@
       button.setAttribute("aria-pressed", String(button.dataset.calendarMode === mode));
     });
     refreshPlanning();
-  }
-
-  function setAppView(view) {
-    const planning = view === "planejamento";
-    const operations = view === "cadastros";
-    $('emissorView').hidden = planning || operations;
-    $('planningView').hidden = !planning;
-    if ($('operationsView')) $('operationsView').hidden = !operations;
-    document.querySelectorAll("[data-view]").forEach((button) => button.classList.toggle("active", button.dataset.view === view));
-    if (planning) {
-      window.scrollTo({ top: 0, behavior: "smooth" });
-      refreshPlanning();
-      return;
-    }
-    if (operations) {
-      window.dispatchEvent(new CustomEvent("prelux:operations:open"));
-      window.scrollTo({ top: 0, behavior: "smooth" });
-      return;
-    }
-    if (view === "historico") $('historyCard').scrollIntoView({ behavior: "smooth", block: "start" });
-    else window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   function handleCalendarClick(event) {
@@ -1020,14 +1012,13 @@
     });
   }
 
-  document.querySelectorAll("[data-view]").forEach((button) => button.addEventListener("click", () => setAppView(button.dataset.view)));
   document.querySelectorAll("[data-calendar-mode]").forEach((button) => button.addEventListener("click", () => setCalendarMode(button.dataset.calendarMode)));
   $('planningAnchor').value = localToday();
   $('planningRefreshBtn').addEventListener("click", refreshPlanning);
   $('planningAnchor').addEventListener("change", refreshPlanning);
   $('planningPrevious').addEventListener("click", () => changePeriod(-1));
   $('planningNextPeriod').addEventListener("click", () => changePeriod(1));
-  $('planningNextBtn').addEventListener("click", () => setAppView("emissor"));
+  $('planningNextBtn').addEventListener("click", () => window.PRELUX_NAV.open("etiquetas"));
   $('planningActivityBtn').addEventListener("click", () => openCalendarActivity());
   $('planningSettingsBtn').addEventListener("click", openCalendarSettings);
   $('planningOrderBtn').addEventListener("click", async () => {
@@ -1069,6 +1060,8 @@
   window.addEventListener("prelux:operations:changed", () => {
     if (!$('planningView').hidden) refreshPlanning();
   });
+  // A navegação sinaliza a abertura da aba; atualizamos o calendário nesse momento.
+  window.addEventListener("prelux:planning:open", refreshPlanning);
   $('closeCalendarDay').addEventListener("click", closeCalendarDay);
   $('cancelCalendarDay').addEventListener("click", closeCalendarDay);
   $('calendarDayModal').addEventListener("click", (event) => { if (event.target.id === "calendarDayModal") closeCalendarDay(); });

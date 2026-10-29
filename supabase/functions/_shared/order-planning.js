@@ -1,3 +1,8 @@
+/*
+ * Regras de prazo e etapas por pedido compartilhadas entre as funções de
+ * planejamento e operações. Mantém a simulação e o salvamento usando a mesma
+ * fila de produção e as mesmas durações.
+ */
 import { buildCalendarDays } from "./calendar.js";
 import {
   addDays,

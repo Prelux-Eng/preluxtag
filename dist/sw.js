@@ -1,11 +1,18 @@
-const CACHE_NAME = 'prelux-emissor-etiquetas-v12';
+// A versão muda junto dos arquivos do app para que celulares baixem a estrutura nova.
+const CACHE_NAME = 'prelux-emissor-etiquetas-v13';
 const APP_SHELL = [
   './',
   './index.html',
+  './css/app.css?v=1',
   './css/operations.css?v=3',
-  './js/core/api.js?v=16',
-  './js/modules/production-calendar.js?v=7',
-  './js/modules/operations-admin.js?v=5',
+  './js/core/api.js?v=17',
+  './js/core/navigation.js?v=1',
+  './js/domain/mold-compatibility.js?v=1',
+  './js/repositories/planning-repository.js?v=1',
+  './js/repositories/operations-repository.js?v=1',
+  './js/modules/label-emitter.js?v=1',
+  './js/modules/production-calendar.js?v=8',
+  './js/modules/operations-admin.js?v=6',
   './manifest.webmanifest',
   './assets/PRE_RASTRE.png',
   './icons/icon-192.png',
@@ -25,7 +32,16 @@ self.addEventListener('fetch', event => {
 
   const request = event.request;
   const isNavigation = request.mode === 'navigate' || request.destination === 'document';
-  const isVersionSensitive = request.url.includes('/js/core/api.js') || request.url.includes('/js/modules/production-calendar.js') || request.url.includes('/js/modules/operations-admin.js') || request.url.includes('/css/operations.css') || request.url.includes('/sw.js');
+  const isVersionSensitive = [
+    '/js/core/api.js',
+    '/js/core/navigation.js',
+    '/js/domain/mold-compatibility.js',
+    '/js/repositories/',
+    '/js/modules/',
+    '/css/app.css',
+    '/css/operations.css',
+    '/sw.js',
+  ].some(path => request.url.includes(path));
 
   if (isNavigation || isVersionSensitive) {
     event.respondWith(fetch(request).then(response => {

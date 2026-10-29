@@ -1,7 +1,7 @@
 {
-  "name": "PRELUX — Emissor de Etiquetas",
-  "short_name": "PRELUX Etiquetas",
-  "description": "Cadastro, rastreabilidade e emissão de etiquetas PNG para peças pré-moldadas.",
+  "name": "PRELUX — Produção e Etiquetas",
+  "short_name": "PRELUX Produção",
+  "description": "Etiquetas, planejamento e cadastros de produção de peças pré-moldadas.",
   "lang": "pt-BR",
   "start_url": "./",
   "scope": "./",

@@ -1,3 +1,7 @@
+/*
+ * Simula datas e etapas de um pedido sem confirmar sua programação.
+ * A mesma fila compartilhada é usada depois pela função de confirmação.
+ */
 import { getServerConfig } from "../_shared/env.js";
 import { ensurePost, handleError, json, readJson } from "../_shared/http.js";
 import { buildPlanningQueue, OrderPlanningError } from "../_shared/order-planning.js";

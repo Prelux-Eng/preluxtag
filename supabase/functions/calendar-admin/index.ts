@@ -1,3 +1,8 @@
+/*
+ * Endpoint de leitura e manutenção do calendário e das suas configurações.
+ * Recebe ações da tela de Planejamento e devolve períodos já preparados para
+ * renderização no navegador.
+ */
 import { buildCalendarDays } from "../_shared/calendar.js";
 import { getServerConfig } from "../_shared/env.js";
 import { ensurePost, handleError, json, readJson } from "../_shared/http.js";
