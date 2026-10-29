@@ -1,3 +1,7 @@
+/*
+ * Recria os dias do calendário dentro do intervalo solicitado, preservando
+ * ajustes e eventos existentes conforme as regras armazenadas no banco.
+ */
 import { buildCalendarDays } from "../_shared/calendar.js";
 import { getServerConfig } from "../_shared/env.js";
 import { ensurePost, handleError, json, readJson } from "../_shared/http.js";

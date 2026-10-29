@@ -12,6 +12,9 @@ Site publicado: [prelux-emissor-etiquetas.openbat65.chatgpt.site](https://prelux
 - `backend/` — configuração e documentação operacional do Supabase.
 - `tests/` — testes existentes do planejador puro.
 - `package.json` — comandos Node.js do projeto.
+- `docs/ARCHITECTURE.md` — mapa dos módulos, padrões aplicados e fluxo dos dados.
+
+Para entender a organização do front-end e o caminho entre navegador, Edge Functions e banco, comece por [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 
 Este repositório contém código e scripts de schema; não contém exportação de registros de produção. Os arquivos de ambiente reais, chaves e credenciais não devem ser versionados.
 

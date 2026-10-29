@@ -1,3 +1,8 @@
+/*
+ * Cálculos reutilizados pelo cadastro e pelas Edge Functions de peças.
+ * Dimensões de entrada estão em centímetros; os valores derivados são
+ * preservados com precisão e formatados apenas quando enviados à interface.
+ */
 import { PlannerError } from "./planner.js";
 
 const DENSITY_G_CM3 = 2.5;

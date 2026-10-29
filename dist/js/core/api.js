@@ -1,5 +1,5 @@
 /*
- * Cliente HTTP mínimo para as Edge Functions da PRELUX.
+ * Camada de transporte HTTP do Prelux.
  *
  * Defina window.PRELUX_CONFIG antes deste arquivo ser carregado:
  * {
@@ -7,6 +7,10 @@
  *   supabaseAnonKey: "SUA_CHAVE_ANON",
  *   organizationId: "11111111-1111-4111-8111-111111111111"
  * }
+ *
+ * Este módulo só sabe enviar uma requisição a uma Edge Function e converter
+ * respostas HTTP em dados ou erros. Os repositórios conhecem os endpoints de
+ * cada área; as telas não montam URLs nem cabeçalhos.
  *
  * A chave service_role nunca deve aparecer aqui.
  */
@@ -64,39 +68,6 @@
     return body;
   }
 
-  global.PRELUX_API = {
-    invoke,
-    health: () => invoke("health"),
-    rebuildCalendar: (startDate, endDate) =>
-      invoke("rebuild-calendar", { startDate, endDate }),
-    getCalendar: (startDate, endDate) =>
-      invoke("calendar-admin", { action: "get", startDate, endDate }),
-    getPlanningData: (startDate, endDate) =>
-      invoke("calendar-admin", { action: "planning_data", startDate, endDate }),
-    getCalendarSettings: () => invoke("calendar-admin", { action: "get_settings" }),
-    saveCalendarSettings: (input) =>
-      invoke("calendar-admin", { action: "save_settings", ...input }),
-    saveCalendarActivity: (input) =>
-      invoke("calendar-admin", { action: "save_activity", ...input }),
-    saveCalendarDay: (input) =>
-      invoke("calendar-admin", { action: "save_day", ...input }),
-    deleteCalendarActivity: (id, startDate, endDate) =>
-      invoke("calendar-admin", { action: "delete_activity", id, startDate, endDate }),
-    planOrder: (input) => invoke("plan-order", input),
-    commitOrderPlan: (input) => invoke("commit-order-plan", input),
-    calculatePieceMetrics: (input) =>
-      invoke("operations-admin", { action: "calculate_piece_metrics", ...input }),
-    saveDelayAdjustment: (input) =>
-      invoke("operations-admin", { action: "save_delay_adjustment", ...input }),
-    getOperationsData: () => invoke("operations-admin", { action: "bootstrap" }),
-    saveWork: (input) => invoke("operations-admin", { action: "save_work", ...input }),
-    saveOrder: (input) => invoke("operations-admin", { action: "save_order", ...input }),
-    savePieceType: (input) => invoke("operations-admin", { action: "save_piece_type", ...input }),
-    saveMold: (input) => invoke("operations-admin", { action: "save_mold", ...input }),
-    saveMoldPosition: (input) => invoke("operations-admin", { action: "save_position", ...input }),
-    saveMoldPreparation: (input) => invoke("operations-admin", { action: "save_preparation", ...input }),
-    saveResourceAllocation: (input) => invoke("operations-admin", { action: "save_allocation", ...input }),
-    archiveOperationRecord: (kind, id) => invoke("operations-admin", { action: "archive", kind, id }),
-    PreluxApiError,
-  };
+  // API global mantida pequena de propósito: é o cliente de transporte comum.
+  global.PRELUX_API = { invoke, PreluxApiError };
 })(window);
