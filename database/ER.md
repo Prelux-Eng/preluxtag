@@ -1,22 +1,96 @@
-Y™Áäx≥¨uÁ%j∑ù¬+arâÏ∂ÎïÎ_¢∫ﬁjÀ"ÇvõïÎ⁄Æ&õïÎ»[Ÿ[»ëSV»∞ËXö[»RBÇì»XY‹ò[XHX[ù0Í[H‹»õ€Y\»\»Xô[\»›\Xò\ŸH]XZ\»
-[€ òõ»ò[ò€Œ»8†'õ‹õXx†'HòH[ù\ôòXŸJKà\»Xô[\»Hõ⁄ô]À€€ú›[ù\»H]\\»Ë€»õ‹‹›\»HZY‹ò][€àWŸòXö[ÃóŸõ›[ô][€ãú‹[Z[ôH∞Ë€»\XÿYH[»õ⁄ô]»›\Xò\ŸH]]õÀÇÇòY\õXZYô\ëXY‹ò[Bà‘ë–SíVêUS”î»K[ﬁ»”QSï»à›€ú¬à‘ë–SíVêUS”î»K[ﬁ»”‘í‘»à›€ú¬à‘ë–SíVêUS”î»K[ﬁ»‘ëTî»à›€ú¬à‘ë–SíVêUS”î»K[ﬁ»QP—W’TT»à›€ú¬à‘ë–SíVêUS”î»K[ﬁ»S”»à›€ú¬à‘ë–SíVêUS”î»K[ﬁ»S”‘‘“US”î»à›€ú¬à‘ë–SíVêUS”î»K[ﬁ»’–“◊”S’ëSQSï»à›€ú¬à‘ë–SíVêUS”î»K[ﬁ»’–“◊‘ëT—TïêUS”î»à›€ú¬à‘ë–SíVêUS”î»K[ﬁ»ëT”’Tê—W–S––US”î»à›€ú¬à‘ë–SíVêUS”î»K[ﬁ»ì—P’S”ó‘–“QST»à›€ú¬à‘ë–SíVêUS”î»K[ﬁ»–S’SUS”ó–””î’Sï»à€€ôöY›\ô\¬à‘ë–SíVêUS”î»K[ﬁ»Së“SëQTíSë◊‘ì“ëP’»à›€ú¬à‘ë–SíVêUS”î»K[ﬁ»ì—P’S”ó”‘ëTó‘’T»à›€ú¬Çà”QSï»K[ﬁ»”‘í‘»à€Y[ùà”QSï»K[ﬁ»‘ëTî»à€Y[ùà”‘í‘»ﬂK[ﬁ»‘ëTî»à€›\òŸW€Ÿóÿ€Y[ùÿ[ô‹›\ùà‘ëTî»K[ﬁ»‘ëTó“UST»à€€ùZ[ú¬àQP—W’TT»K[ﬁ»‘ëTó“UST»àô\]Y\›Y›\Bà‘ëTî»K[ﬁ»’–“◊‘ëT—TïêUS”î»àô\Ÿ\ùô\¬à‘ëTó“UST»ﬂK[ﬁ»’–“◊‘ëT—TïêUS”î»àô\Ÿ\ùôY⁄][BàQP—W’TT»K[ﬁ»’–“◊‘ëT—TïêUS”î»àô\Ÿ\ùôY›\BàQP—W’TT»K[ﬁ»’–“◊”S’ëSQSï»à›ÿ⁄◊›\Bà‘ëTî»K[ﬁ»ì—P’S”ó‘–“QST»àYÿXﬁW‹›[[X\ûBà‘ëTó“UST»K[ﬁ»ì—P’S”ó‘–“QST»àYÿXﬁW⁄][BÇà‘ëTî»K[ﬂSë“SëQTíSë◊‘ì“ëP’»à\◊€€ôW‹õ⁄ôX›àSë“SëQTíSë◊‘ì“ëP’»K[ﬁ»ì“ëP’‘—P’S”î»à‹õ›\¬àì“ëP’‘—P’S”î»K[ﬁ»ì“ëP’‘—P’S”ó“UST»à€€ùZ[ú¬à‘ëTó“UST»K[ﬁ»ì“ëP’‘—P’S”ó“UST»à\›öXù]\◊‹]X[ù]BÇàQP—W’TT»K[ﬁ»QP—W’TW”S”»àŸ[X›¬àS”––US—»K[ﬁ»QP—W’TW”S”»àÿ][Ÿ◊€YX\›\ôBàS”»K[ﬁ»S”‘QP—W’TT»à€€\]XõWÿ\‹Ÿ]àQP—W’TT»K[ﬁ»S”‘QP—W’TT»à€€\]XõW›\BàS”––US—»ﬂK[ﬁ»S”»àÿ][Ÿ◊Ÿ[ùûBàS”»K[ﬁ»S”‘ëTTêUS”î»àô\\ôYàS”»ﬂK[ﬁ»ëT”’Tê—W–S––US”î»àô\€›\òŸBà‘ëTó“UST»ﬂK[ﬁ»ëT”’Tê—W–S––US”î»àô\€›\òŸW⁄][BÇàS”––US—»ﬂK[ﬁ»S”‘‘“US”î»à\õWÿ€ŸBàS”––US—»ﬂK[ﬁ»S”‘‘“US”î»àôYÿ€ŸBàS”––US—»ﬂK[ﬁ»S”‘‘“US”î»à⁄YWÿ€ŸBàS”‘‘“US”î»K[ﬁ»S”‘‘“US”ó–””ëíQ’TêUS”ó“T’‘ñHà\›‹ûBà‘ëTî»K[ﬁ»ì—P’S”ó”‘ëTî»àõŸX›[€Çà‘ëTó“UST»K[ﬁ»ì—P’S”ó”‘ëTî»àõŸXŸ\◊›[ö]¬àì—P’S”ó”‘ëTî»K[ﬁ»ì—P’S”ó”‘ëTó‘’T»à›YŸ\¬àì—P’S”ó”‘ëTî»K[ﬁ»S––US”î»àÿ⁄Y[Y›[ö]àS”‘‘“US”î»K[ﬁ»S––US”î»à\‹⁄Y€ôY‹‹⁄][€ÇòÇà»»ÿ\ô[ò[YY\»H[ùY‹öYYBÇãH[XHÿúòHŸH\à∞Ë\ö[‹»YY‹Œ»[HYY»ŸH∞Ë€»\àÿúòH›HŸHö[ò›[\àH[XKà]X[ô»0ËHÿúòKöYŸŸ\à^\›[ùH\ôH€Y[ùHH]HH[∞ÎX⁄[ÀàŸ[HÿúòK\‹Ÿ\»ÿ[\‹»€€ù[ùX[HX[ùXZ\ÀÇãH[HYY»€€ù0Í[H][ú»Hÿ]0Ë[Ÿ€»
-‹ô\ó⁄][\»8°§àYXŸW›\\ÿ
-Kà»õ⁄ô]»H[ôŸ[ö\öXH0ÍH‹⁄[€ò[]0ÍHH[∞Ë[\ŸHK]X[ô»‹öXYÀ0ËHõ»pË^[[»[H‹àYYÀàŸpÈÌY\»\›öXùY[H\»]X[ùYY\»‹»][ú»Ÿ[H^ŸY\à»YYÀÇãHYXŸW›\\ÀúYXŸW⁄⁄[ôô\Ÿ\ùòHúòX€ÿ[\òHöYÿX»HZY‹ò][€àHYX⁄[€òHXÿXàúòpÈ€»\ÿHõ‹õXHö^N»[\ã›öYÿH\ÿ[H\ô\»RU»0Â»UTêS»XÿH\ÿH‹⁄pÈË€»[òHŸ[Hõ‹õXKÇãH[€ÿÿ][Ÿÿ€€ù[ùXHŸ[ô»»ÿ]0Ë[Ÿ€»€ÿò[HYYY\»RUÀUTêSHîêp·”ÀàŸ]H€ŸXH[€›\XË€»⁄]ô\»\›0Ë]ôZ\Œ»∞Ï›[»HYYYHH‹ô[HH^XöpÈË€»Ÿ[HŸ\àY]Y‹À€€Hõ‹]YZ[»\ò[ùH\€»]]õ»HôY⁄\›õ»[H]Y]€Ÿ‹ÿÇãHYXŸW›\W€[€ÿ\ú⁄\›HHŸ[pÈË€»€€\]0Î]ô[\òH[H\»HpÈÿKàYXŸW€[€ÿ€€Xö[ò][€úÿ0ÍH[XHöY]»Ÿ[H\ú⁄\›0Íõò⁄XNà\›H‹»úòpÈ€‹»ö^‹»H»õŸ]»ÿ\ù\⁄X[õ»HRU»0Â»UTêS\òH[\àHöYÿKÇãH[XH‹⁄pÈË€»[H[XH€€ôöY›\òpÈË€»‹àô^ãàH€€ôöY›\òpÈË€»XÿX∞Ë€»[HÏŸY€»Hÿ]0Ë[Ÿ€»Hõ‹õXKà[\òpÈÌY\»H€€ôöY›\òpÈË€»öXÿ[H[H[€‹‹⁄][€óÿ€€ôöY›\ò][€ó⁄\›‹ûX[ò€Z[ô»∞Ï›[‹»HYYYH›X\ôY‹»\òH»\›0Ï‹öX€ÀÇãHõŸX›[€ó€‹ô\úÿô\ô\Ÿ[ùH[XH[öYYHH[H][KàŸ]\»‹∞Ë\ö[‹»^]‹»öXÿ[H[HõŸX›[€ó€‹ô\ó‹›\ÿ»[ÿÿ][€úÿYÿHH[öYYH0Ë‹⁄pÈË€»Hõ›YŸHH€€\]Xö[YYHHH€ÿúô\‹⁄pÈË€»Hÿ›\pÈË€ÀàHõ›òH[ÿÿpÈË€»ô\Ÿ\ùòHH‹⁄pÈË€»\ŸHH€€ò‹ô]YŸ[H]0ÍH»ö[HH›\òHHLà‹ò\Àà[ö\»[ùYÿ\»Ÿ[H‹∞Ë\ö[‹»ô\ô\Ÿ[ù[H»XHŸ»õ»ù\€»H[öYYKÇãHõŸX›[€ó‹ÿ⁄Y[\ÿŸY›YH€€[»ô\›[[»YÿYÀàHöY]»ó€‹ô\ó‹õŸ‹ô\‹ÿ\ö]òH]\»H[ôZò[Y[ù»HõŸX›[€ó€‹ô\úÿŸ[H‹ò]ò\àõ⁄ôpÈÌY\»[H‹ô\úÿÇÇà»»ÿ[\‹»YX⁄[€òY‹»òHõ‹‹›HBÇòõŸX›[€ó€‹ô\ó‹›\ÿàY
- K‹ôÿ[ö^ò][€ó⁄Y
-í KõŸX›[€ó€‹ô\ó⁄Y
-í»€€\‹›JK›\⁄⁄[ôŸ\]Y[òŸX\ò][€ó€Z[ù]\ÿ[∞ÎX⁄[ÀŸö[H[ôZòY‹»HôXZ\À›]\ÀÿúŸ\ùòpÈË€»H[Y\›[\Àà€€ò‹ô]YŸ[HH›\òH0ÍõH[\‹»\õ›òY‹»HLåZ[ù]‹»HLà‹ò\Àà\òpÈÌY\»HXÿXò[Y[ùÀ[ú‹pÈË€»HXô\òpÈË€»Z[ôHôX⁄\ÿ[HŸ\àõ‹õôX⁄Y\»[H[ôŸ[ö\öXH\òHÿ[›[\àHXô\òpÈË€»ö[ò[ÇÇòÿ[›[][€óÿ€€ú›[ùÿàY
- K‹ôÿ[ö^ò][€ó⁄Y
-í K€€ú›[ù⁄Ÿ^Xù[Y\öX◊›ò[YX[ö]‹ôX]Yÿ]\]Yÿ]»⁄]ôH0ÓõöXÿH‹à‹ôÿ[ö^òpÈË€»H\›0Ï‹öX€»H[\òpÈÌY\»[H]Y]€Ÿ‹ÿàò[‹ô\»Ÿ[YXY‹Œà[ú⁄YYH»€€ò‹ô]»ãH€p¨À[∞ÎX⁄[»H€€ò‹ô]YŸ[H0Ë»åõ»ù\€»H[öYYK€€ò‹ô]YŸ[HLåZ[àH›\òHLàà»‹∞Ë\ö[»[öX⁄X[Hå0ÍH[HY∞Ë€»Y]0Ë]ô[‹ú]YH»\õõ»H∞ËXúöXÿH∞Ë€»õ⁄H[ôõ‹õXYÀà‹»⁄[ò€»X\»0ÓùZ\»Hô\\òpÈË€»\ÿ[H»ÿ[\»^\›[ùH[€Àúô\\ò][€óŸ^\ÿÇÇò[ô⁄[ôY\ö[ô◊‹õ⁄ôX›ÿàY
- K‹ôÿ[ö^ò][€ó⁄Y
-í K‹ô\ó⁄Y
-í»€€\‹›K0ÓõöX€»‹à‹ôÿ[ö^òpÈË€ K[Y\›[\Ààõ⁄ôX›‹ŸX›[€úÿàY‹ôÿ[ö^ò][€ó⁄Yõ⁄ôX›⁄Y
-í»€€\‹›JKõ€YHH‹ô[Kàõ⁄ôX›‹ŸX›[€ó⁄][\ÿàY‹ôÿ[ö^ò][€ó⁄YŸX›[€ó⁄YH‹ô\ó⁄][W⁄Y
-í‹»€€\‹›\ K]X[ùYYHH[Y\›[\ÀàHî»ÿ]ôWŸ[ô⁄[ôY\ö[ô◊‹õ⁄ôX›‹›ùX›\ôXôXŸXôHH]ö\Ë€»€€\]HH‹ò]òHõ⁄ô]ÀŸpÈÌY\»H][ú»[H[XH0ÓõöXÿHò[úÿpÈË€ÀÇÇà»»»€€ùò]»»[ôZòY‹à\òHH[ùY‹òpÈË€»H]\H¬ÇêÿYH[öYYH[ùöXYHH€€[Z]€‹ô\ó‹[ò€€ù0Í[H›\÷◊X€€H›\⁄[ôŸ\]Y[òŸX\ò][€ìZ[ù]\ÿ[õôY›\ù]H[õôY[ô]à€€ò‹ô]YŸ[XH›\òXË€»ÿúöYÿ]0Ï‹öX\»H]ô[Hô\‹Z]\à\»€€ú›[ù\»
-LåHÃåZ[ù]‹»õ»ò[‹à[öX⁄X[
-KàXÿXò[Y[ùÀ[ú‹pÈË€»HXô\òpÈË€»XŸZ][H[\»ù[»]0ÍHH[ôŸ[ö\öXHYö[ö\à\»\òpÈÌY\Àà»‹∞Ë\ö[»[öX⁄X[ô[HHÿ\›[ô◊‹›\ù⁄›\ò
-Y∞Ë€»Y]0Ë]ô[å
-HH»ù\€»H‹ôÿ[ö^òpÈË€ÀàH[öYYH[X∞Í[H[ùöXHÿÿ›\YYúõ€P]Hÿÿ›\YY[ù[]»»[ù\ùò[»€ÿúôH€€ò‹ô]YŸ[HH›\òKÇÇì»ÿY\›õ»HXÿH\ÿHHõ›òHî»ÿ]ôW‹]W›\J€‹ô◊⁄Y‹ôX€‹ô
-X€€H€ŸXò[YX[Y[ú⁄[€ñ€X[Y[ú⁄[€ñX€X[Y[ú⁄[€ñò€XõŸX›[€ìZ[ù]\‘\ï[ö]HÿúŸ\ùò][€úÿàH€€ôöY›\òpÈË€»H‹⁄pÈË€»\ÿHHî»^\›[ùHÿ]ôW€[€‹‹⁄][€ò»\òHXÿK€€ôöY›\ò][€ó⁄⁄[ôI‹XÿIÿH‹»∞Íú»ÏŸY€‹»Hÿ]0Ë[Ÿ€»öXÿ[Hù[‹ÀÇÇà»»^€\ÌY\À›]\»HË[›[‹¬ÇãH\»ô[pÈÌY\»\ù[òŸ[ù\»[»YYÀ‹õ⁄ô]»\ÿ[Hÿ\ÿÿ]H\òH]YH][ú»\[ô[ù\»∞Ë€»€ÿúô]ö]ò[H[»YYŒ»∞Î[ò›[»H€Y[ùH[HÿúòK‹YY»€€ù[ùXHõ›Y⁄Y»‹àëT’íP’»‹ô\úÀù€‹ö◊⁄Y€€ù[ùXH—UïSÇãH»[ù[HYÿY»€€ù[ùXH€€ù[ô»€€ò€ZYÿX\»»õ^»Hõ›õ‹»ò[‹ô\»\ÿ[H\[ò\»‹∞Èÿ[Y[ùÀ\õ›òYÀ[HõŸpÈË€À[ùôY›YK]ò\ÿY»Hÿ[òŸ[YÀà»“P“»ì’êSQô\Ÿ\ùòHYY‹»\›0Ï‹öX€‹»€€ò€pÎY‹Œ»[HYY»YÿY»ôX⁄\ÿHôXŸXô\à[H›]\»öYŸ[ùH\òHŸ\àY]YÀà\òHõ‹]YZ[‹»Hÿ]0Ë[Ÿ€À\‹Ÿ\»YY‹»\›0Ï‹öX€‹»Ë€»ò]Y‹»€€[»[òŸ\úòY‹ÀÇãHHô\\òpÈË€»Hõ‹õXH0ÍHÿ[›[YH€€H⁄[ò€»]\»0ÓùZ\»[ò€\⁄]ò\»H\ù\àHÿ[[ô\óŸ^\ÿà0‚HôXŸ\‹Ë\ö[»Ÿ\ò\à»ÿ[[ô0Ë\ö[»[ù\»HõŸ‹ò[X\àHô\\òpÈË€ÀÇãH\òHúòpÈ€À[\àHöYÿKHZY‹ò][€à∞Ë€»[\òH\»ù[∞ÈÌY\»]XZ\»Hõ€[YHH\€Œàõ€[YHŸY›YH0Â÷pÂ÷àH[ú⁄YYHö^HHãH€p¨ÀàH€€ú›[ùHH[ú⁄YYHöXÿHôY⁄\›òYKX\»Y]\à\‹ŸHôY⁄\›õ»∞Ë€»]YH»Ë[›[»YÿYÀàHXÿH\ÿH0Â÷H€€[»0Ë\ôXKà€€[»\‹\‹›\òHHHY\€XH[ú⁄YYHö^HHãH€p¨»\òHÿ[›[\à»\€ÀÇãH€€ò‹ô]YŸ[HH›\òH0ÍõH\òpÈË€»Yö[öYN»XÿXò[Y[ùÀ[ú‹pÈË€»HXô\òpÈË€»Ÿ[H\õX[ôXŸ\àŸ[H\òpÈË€»[ú]X[ù»H[ôŸ[ö\öXH∞Ë€»õ‹õôXŸ\à‹»[\‹ÀàŸ[H\‹Ÿ\»ò[‹ô\À»⁄\›[XH∞Ë€»€€úŸY›YH\ô\Ÿ[ù\à[XHô]ö\Ë€»ö[ò[HXô\òpÈË€ÀÇãH€€[»\›[X]]òHH[ôŸ[ö\öXKHŸpÈË€»ô][ô›[\àö^HHúòpÈ€»ô\ô\Ÿ[ùHåNÕHŸÀ€H
-çpÂÃÕH€JKÃçHŸÀ€H
-çpÂÕLà€JHHLŸÀ€H
-Ã0ÂÕå€JKàË€»€€ù\»Ÿ[€pÍ]öXÿ\»\ÿ[ô»ãH€p¨Œ»€€ôö\õYHH\0Ï›\ŸHHŸpÈË€»XX⁄pÈÿH€€HH[ôŸ[ö\öXKÇÇà»»ì¬Çê\»Xô[\»‹\òX⁄[€òZ\»H\»õ›ò\»Xô[\»X[ù0ÍõHì»YÿY»Ÿ[H€X⁄Y\»0ÓòõXÿ\Œ»€€Y[ùHŸ\ùöXŸW‹õ€X[HXŸ\‹€»\ô]»öXHYŸHù[ò›[€úÀà€€[»»⁄]HŸY›YHŸ[HŸ⁄[ã\‹€»∞Ë€»\€€H\›pË\ö[‹»›H‹ôÿ[ö^òpÈÌY\»õ»[ô⁄[ù0ÓòõX€Àà»òX⁄Ÿ[ôôX⁄\ÿHX[ù\àH‹ôÿ[ö^òpÈË€»ö^HHëSVHò[Y\àÿYH‹ôÿ[ö^ò][€ó⁄Y»\€€[Y[ù»][K[‹ôÿ[ö^òpÈË€»‹à\›pË\ö[»\[ôHH]][ùXÿpÈË€»ù]\òKÇÇèà»\‹]Y[XHX⁄[XH\ÿ‹ô]ôHHZY‹ò][€àH[Hô]ö\Ë€Àà∞Ë€»õ⁄H\XÿY»[»›\Xò\ŸH]]õÀÇ
+# Modelo PRELUX / F√°bio II
+
+O diagrama mant√©m os nomes das tabelas Supabase atuais (`mold_*` no banco; ‚Äúforma‚Äù na interface). As tabelas de projeto, constantes e etapas s√£o propostas da migration `009_fabio2_foundation.sql`, ainda n√£o aplicada ao projeto Supabase ativo.
+
+```mermaid
+erDiagram
+  ORGANIZATIONS ||--o{ CLIENTS : owns
+  ORGANIZATIONS ||--o{ WORKS : owns
+  ORGANIZATIONS ||--o{ ORDERS : owns
+  ORGANIZATIONS ||--o{ PIECE_TYPES : owns
+  ORGANIZATIONS ||--o{ MOLDS : owns
+  ORGANIZATIONS ||--o{ MOLD_POSITIONS : owns
+  ORGANIZATIONS ||--o{ STOCK_MOVEMENTS : owns
+  ORGANIZATIONS ||--o{ STOCK_RESERVATIONS : owns
+  ORGANIZATIONS ||--o{ RESOURCE_ALLOCATIONS : owns
+  ORGANIZATIONS ||--o{ PRODUCTION_SCHEDULES : owns
+  ORGANIZATIONS ||--o{ CALCULATION_CONSTANTS : configures
+  ORGANIZATIONS ||--o{ ENGINEERING_PROJECTS : owns
+  ORGANIZATIONS ||--o{ PRODUCTION_ORDER_STEPS : owns
+
+  CLIENTS ||--o{ WORKS : client
+  CLIENTS ||--o{ ORDERS : client
+  WORKS o|--o{ ORDERS : source_of_client_and_start
+  ORDERS ||--o{ ORDER_ITEMS : contains
+  PIECE_TYPES ||--o{ ORDER_ITEMS : requested_type
+  ORDERS ||--o{ STOCK_RESERVATIONS : reserves
+  ORDER_ITEMS o|--o{ STOCK_RESERVATIONS : reserved_item
+  PIECE_TYPES ||--o{ STOCK_RESERVATIONS : reserved_type
+  PIECE_TYPES ||--o{ STOCK_MOVEMENTS : stock_type
+  ORDERS ||--o{ PRODUCTION_SCHEDULES : legacy_summary
+  ORDER_ITEMS ||--o{ PRODUCTION_SCHEDULES : legacy_item
+
+  ORDERS ||--o| ENGINEERING_PROJECTS : has_one_project
+  ENGINEERING_PROJECTS ||--o{ PROJECT_SECTIONS : groups
+  PROJECT_SECTIONS ||--o{ PROJECT_SECTION_ITEMS : contains
+  ORDER_ITEMS ||--o{ PROJECT_SECTION_ITEMS : distributes_quantity
+
+  PIECE_TYPES ||--o{ PIECE_TYPE_MOLDS : selects
+  MOLD_CATALOG ||--o{ PIECE_TYPE_MOLDS : catalog_measure
+  MOLDS ||--o{ MOLD_PIECE_TYPES : compatible_asset
+  PIECE_TYPES ||--o{ MOLD_PIECE_TYPES : compatible_type
+  MOLD_CATALOG o|--o{ MOLDS : catalog_entry
+  MOLDS ||--o{ MOLD_PREPARATIONS : prepared
+  MOLDS o|--o{ RESOURCE_ALLOCATIONS : resource
+  ORDER_ITEMS o|--o{ RESOURCE_ALLOCATIONS : resource_item
+
+  MOLD_CATALOG o|--o{ MOLD_POSITIONS : arm_code
+  MOLD_CATALOG o|--o{ MOLD_POSITIONS : bed_code
+  MOLD_CATALOG o|--o{ MOLD_POSITIONS : side_code
+  MOLD_POSITIONS ||--o{ MOLD_POSITION_CONFIGURATION_HISTORY : history
+  ORDERS ||--o{ PRODUCTION_ORDERS : production
+  ORDER_ITEMS ||--o{ PRODUCTION_ORDERS : produces_units
+  PRODUCTION_ORDERS ||--o{ PRODUCTION_ORDER_STEPS : stages
+  PRODUCTION_ORDERS ||--o{ ALLOCATIONS : scheduled_unit
+  MOLD_POSITIONS ||--o{ ALLOCATIONS : assigned_position
+```
+
+## Cardinalidades e integridade
+
+- Uma obra pode ter v√°rios pedidos; um pedido pode n√£o ter obra ou se vincular a uma. Quando h√° obra, trigger existente herda cliente e data de in√≠cio. Sem obra, esses campos continuam manuais.
+- Um pedido cont√©m itens de cat√°logo (`order_items ‚Üí piece_types`). O projeto de engenharia √© opcional at√© a an√°lise e, quando criado, h√° no m√°ximo um por pedido. Se√ß√µes distribuem as quantidades dos itens sem exceder o pedido.
+- `piece_types.piece_kind` preserva `braco`, `pilar` e `viga`; a migration 009 adiciona `placa`. Bra√ßo usa forma fixa; pilar/viga usam pares LEITO √ó LATERAL; placa usa posi√ß√£o plana sem forma.
+- `mold_catalog` continua sendo o cat√°logo global de medidas LEITO, LATERAL e BRA√áO. Seu `code` e `mold_type` s√£o chaves est√°veis; r√≥tulo de medida e ordem de exibi√ß√£o podem ser editados, com bloqueio durante uso ativo e registro em `audit_logs`.
+- `piece_type_molds` persiste a sele√ß√£o compat√≠vel para um tipo de pe√ßa. `piece_mold_combinations` √© uma view sem persist√™ncia: lista os bra√ßos fixos e o produto cartesiano de LEITO √ó LATERAL para pilar e viga.
+- Uma posi√ß√£o tem uma configura√ß√£o por vez. A configura√ß√£o `placa` n√£o tem c√≥digo de cat√°logo de forma. Altera√ß√µes de configura√ß√£o ficam em `mold_position_configuration_history`, incluindo r√≥tulos de medida guardados para o hist√≥rico.
+- `production_orders` representa uma unidade de um item. Seus hor√°rios exatos ficam em `production_order_steps`; `allocations` liga a unidade √† posi√ß√£o e protege a compatibilidade e a sobreposi√ß√£o de ocupa√ß√£o. A nova aloca√ß√£o reserva a posi√ß√£o desde a concretagem at√© o fim da cura de 12 horas. Linhas antigas sem hor√°rios representam o dia todo no fuso da unidade.
+- `production_schedules` segue como resumo legado. A view `v_order_progress` deriva datas de planejamento de `production_orders`, sem gravar proje√ß√µes em `orders`.
+
+## Campos adicionados na proposta 009
+
+`production_order_steps`: `id` (PK), `organization_id` (FK), `production_order_id` (FK composta), `step_kind`, `sequence`, `duration_minutes`, in√≠cio/fim planejados e reais, status, observa√ß√£o e timestamps. Concretagem e cura t√™m tempos aprovados de 120 minutos e 12 horas. Dura√ß√µes de acabamento, inspe√ß√£o e libera√ß√£o ainda precisam ser fornecidas pela engenharia para calcular a libera√ß√£o final.
+
+`calculation_constants`: `id` (PK), `organization_id` (FK), `constant_key`, `numeric_value`, `unit`, `created_at`, `updated_at`; chave √∫nica por organiza√ß√£o e hist√≥rico de altera√ß√µes em `audit_logs`. Valores semeados: densidade do concreto 2,5 t/m¬≥, in√≠cio da concretagem √†s 08:00 no fuso da unidade, concretagem 120 min e cura 12 h. O hor√°rio inicial de 08:00 √© um padr√£o edit√°vel porque o turno da f√°brica n√£o foi informado. Os cinco dias √∫teis de prepara√ß√£o usam o campo existente `molds.preparation_days`.
+
+`engineering_projects`: `id` (PK), `organization_id` (FK), `order_id` (FK composta, √∫nico por organiza√ß√£o), timestamps. `project_sections`: `id`, `organization_id`, `project_id` (FK composta), nome e ordem. `project_section_items`: `id`, `organization_id`, `section_id` e `order_item_id` (FKs compostas), quantidade e timestamps. A RPC `save_engineering_project_structure` recebe a divis√£o completa e grava projeto, se√ß√µes e itens em uma √∫nica transa√ß√£o.
+
+### Contrato do planejador para a integra√ß√£o da Etapa 3
+
+Cada unidade enviada a `commit_order_plan` cont√©m `steps[]` com `stepKind`, `sequence`, `durationMinutes`, `plannedStartAt` e `plannedEndAt`. `concretagem` e `cura` s√£o obrigat√≥rias e devem respeitar as constantes (120 e 720 minutos no valor inicial). Acabamento, inspe√ß√£o e libera√ß√£o aceitam tempo nulo at√© a engenharia definir as dura√ß√µes. O hor√°rio inicial vem de `casting_start_hour` (padr√£o edit√°vel 08:00) e do fuso da organiza√ß√£o. A unidade tamb√©m envia `occupiedFromAt` e `occupiedUntilAt`; o intervalo cobre concretagem e cura.
+
+O cadastro de placa usa a nova RPC `save_plate_type(p_org_id, p_record)` com `code`, `name`, `dimensionXcm`, `dimensionYcm`, `dimensionZcm`, `productionMinutesPerUnit` e `observations`. A configura√ß√£o de posi√ß√£o usa a RPC existente `save_mold_position`; para placa, `configuration_kind='placa'` e os tr√™s c√≥digos de cat√°logo ficam nulos.
+
+## Exclus√µes, status e c√°lculos
+
+- As rela√ß√µes pertencentes ao pedido/projeto usam cascata para que itens dependentes n√£o sobrevivam ao pedido; v√≠nculo de cliente em obra/pedido continua protegido por `RESTRICT`; `orders.work_id` continua `SET NULL`.
+- O enum legado continua contendo `concluido`, mas o fluxo e novos valores usam apenas or√ßamento, aprovado, em produ√ß√£o, entregue, atrasado e cancelado. O `CHECK NOT VALID` preserva pedidos hist√≥ricos conclu√≠dos; um pedido legado precisa receber um status vigente para ser editado. Para bloqueios de cat√°logo, esses pedidos hist√≥ricos s√£o tratados como encerrados.
+- A prepara√ß√£o de forma √© calculada com cinco datas √∫teis inclusivas a partir de `calendar_days`. √â necess√°rio gerar o calend√°rio antes de programar a prepara√ß√£o.
+- Para bra√ßo, pilar e viga, a migration n√£o altera as fun√ß√µes atuais de volume e peso: volume segue X√óY√óZ e densidade fixa de 2,5 t/m¬≥. A constante de densidade fica registrada, mas editar esse registro n√£o muda o c√°lculo legado. A placa usa X√óY como √°rea, Z como espessura e a mesma densidade fixa de 2,5 t/m¬≥ para calcular o peso.
+- Concretagem e cura t√™m dura√ß√£o definida; acabamento, inspe√ß√£o e libera√ß√£o podem permanecer sem dura√ß√£o enquanto a engenharia n√£o fornecer os tempos. Sem esses valores, o sistema n√£o consegue apresentar uma previs√£o final de libera√ß√£o.
+- Como estimativa de engenharia, a se√ß√£o retangular fixa de bra√ßo representa 218,75 kg/m (25√ó35 cm), 325 kg/m (25√ó52 cm) e 450 kg/m (30√ó60 cm). S√£o contas geom√©tricas usando 2,5 t/m¬≥; confirme a hip√≥tese de se√ß√£o maci√ßa com a engenharia.
+
+## RLS
+
+As tabelas operacionais e as novas tabelas mant√™m RLS ligado sem policies p√∫blicas; somente `service_role` tem acesso direto via Edge Functions. Como o site segue sem login, isso n√£o isola usu√°rios ou organiza√ß√µes no endpoint p√∫blico. O backend precisa manter a organiza√ß√£o fixa da PRELUX e validar cada `organization_id`; isolamento multi-organiza√ß√£o por usu√°rio depende de autentica√ß√£o futura.
+
+> O esquema acima descreve a migration 009 em revis√£o. N√£o foi aplicado ao Supabase ativo.

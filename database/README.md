@@ -1,5 +1,122 @@
-YªçŠx³¬uç%j·Â+ar‰ì¶ë•ë_¢ºŞjË"‚v›•ëÚ®&›•ëÈ˜[˜ÛÈ‘SV0­È[™Z˜[Y[ÈHØY\İ›ÜÈÜ\˜XÚ[Û˜Z\ÃBƒB“È˜[˜ÛÈ]X[0êHH[XH[šYYH›Ù]]˜H‘SVˆH\\ˆHZYÜ˜péğèÛÈ‹ÃBœ[™Z˜[Y[ÈHÛÛ˜Ü™]YÙ[H\ØH]X]›ÈÜÚpéğíY\È°ë\ÚXØ\ÈÜˆXH0î[ÈÜÈZ[]ÜÃBœ\›X[™XÙ[HÛÛY[HÛÛ[ÈYÈH™YÚ\İ›È˜\È›ÙÜ˜[XpéğíY\ÈYØY\ËƒBƒBˆÈÈ\XØpéğèÛÈ›Èİ\X˜\ÙCBƒB‘[H[XH[œİ[péğèÛÈ›İ˜K^Xİ]HÜÈ\œ]Z]›ÜÈ˜HÜ™[HX˜Z^È[ÈÔSY]ÜˆÃB”İ\X˜\ÙKˆÜÈØÜš\ÈšXØ[H[H]X˜\ÙKØH°èÛÈğèÛÈ\ØÛØ™\ÜÈ]]ÛX]XØ[Y[CBœÜˆİ\X˜\ÙHˆ\ÚƒBƒBŒKˆWÚ[š]X[ÜØÚ[XKœÜ[BŒ‹ˆ—ÜİYÙL—Ù[˜İ[ÛœËœÜ[BŒËˆ×Ü\œÚ\İÜ™\[›™YÙ]\ËœÜ[BˆİÛÜšÜ×ÜYXÙ\×Û[ÛËœÜ[BKˆWÛÜ[Û˜[Û[ÛØŞXÛKœÜ[B‹ˆ—ÜÜÚ][Û—Ø˜\ÙYÜ[›š[™ËœÜ[BËˆ×ÜİYÙMÜYXÙWØØ][Ù×ÜÜÚ][ÛœËœÜ[BˆÜİYÙMWİÛÜš×ÛÜ™\—Ú[š\š][˜ÙKœÜ[BKˆWÙ˜Xš[Ì—Ù›İ[™][Û‹œÜ[
-˜\Øİ[šÈH]\HKZ[™H°èÛÈ\XØYÊCBƒB‘[H[XH[œİ[péğèÛÈ]YH°èH\XÛİHx $ÌK^Xİ]H—ÜÜÚ][Û—Ø˜\ÙYÜ[›š[™ËœÜ[ƒB‘[HÜšXHx $ÔÜ™[œÈ[š]0è\šX\Ë[ØØpéğíY\ÈÜˆÜÚpéğèÛËZ\İ\ÈX[XZ\ÈCBœ˜^›ÈHX[0ê[H›ÙXİ[Û—ÜØÚY[\ØÛÛ[È™\İ[[ÈÛÛ\]0ë]™[ÛÛHH[H]X[ƒB‘[HÙYİZYK\\]YH×ÜİYÙMÜYXÙWØØ][Ù×ÜÜÚ][ÛœËœÜ[\˜H[˜ÛZ\ˆÜÃB˜Ø]0è[ÙÛÜÈš^ÜË[Y[œğíY\ÈÖKÖ‹™\]Z\Ú]ÜÈH[ÛHÜˆpéØHHÛÛ™šYİ\˜péğèÛÃB™\È]X]›ÈÜÚpéğíY\Ëˆ\0ìÜÈHZYÜ˜péğèÛËX›\]YHHYÙH[˜İ[ÛƒB˜Ü\˜][ÛœËXYZ[˜]X[^˜YH\˜HXš[]\ˆÜÈ›İ›ÜÈ›Ü›][0è\š[ÜÈHÈ°ë[˜İ[ÃB™HÛÛ\]Xš[YYHÛÛHÈ[™Z˜YÜ‹ƒBƒB“ÈØÜš\ÜšXHHÜ™Ø[š^˜péğèÛÈ[šXÚX[ÛÛHÈQƒBƒB˜LLLLLLLKLLLLKMLLKNLLKLLLLLLLLLLLLXBƒB‘\ÜÙH˜[Üˆ]™HÙ\ˆÛÛ™šYİ\˜YÈÛÛ[È‘SVÓÔ‘ĞS’VUSÓ—ÒQ˜\ÈYÙH[˜İ[ÛœËˆÈÕTPTÑWÔÑT•’PÑWÔ“ÓWÒÑVX]™HšXØ\ˆ\[˜\È›È[XšY[HÈİ\X˜\ÙNÈ[˜ØH]™HÙ\ˆÛÛØØYÈ›ÈS›ÈĞHİH›È\XØ]]›È[Øš[KƒBƒB\ÈX™[\È\İ0èÛÈ›İYÚY\ÈÜˆ“ÈÙ[HÛXÚY\È0î˜›XØ\ËˆÜ[ËÈ˜]™YØYÜˆ°èÛÈ˜[H\™][Y[HÛÛHÈ˜[˜ÛÎˆ[HÚ[XH\ÈYÙH[˜İ[ÛœË]YH˜[Y[HÈ^[ØYH\Ø[HHÚ]™HYZ[š\İ˜]]˜HÛÛY[H›ÈÙ\šYÜ‹ƒBƒB”™YÜ˜\ÈYØY\ÈHZYÜ˜péğèÛÈˆH™\\˜péğèÛÈÈ[ÛH\˜HHÙ]HX\ÈÛÜœšYÜÈHğìÈÙXHÙ\ˆ\›İ˜YH\0ìÜÈ[\^˜K\Û[Û[HH[ÛYÙ[KˆHZYÜ˜][ÛˆH›Ü0íYHÚ[˜ÛÈX\È0îZ\ÈÙYİ[™ÈØ[[™\—Ù^\ØHZ\İHÈ˜[Üˆ™\\˜][Û—Ù^\Ø\È›Ü›X\È°èHØY\İ˜Y\ÈHÈ\˜HKˆ[H[X°ê[H™Y[˜ÚH°ìİ[ÜÈHYYY\È˜\È[š\È^\İ[\ÈÈ\İ0ìÜšXÛÈHÜÚpéğíY\Ëˆ°èÛÈ\\]YHH[\ÈHX›XØ\ˆ[ÈÈ›^ÈH[HHÙ\špéÛÈ]X[^˜YËƒBƒBHZYÜ˜péğèÛÈˆÜšYÚ[˜[Y[H\œÚ\İXH]\ÈH[™Z˜[Y[È[X°ê[H[HÜ™\œØƒBHZYÜ˜][ÛˆH›Ü0íYH]YHÈ[™Z˜[Y[ÈÜ˜]™HİX\È]\È[H›ÙXİ[Û—ÛÜ™\œØB™H[ØØ][ÛœØX[[™ÈÜÈØ[\ÜÈÈYYÈÛÛ[ÈYÜÈH[˜YKˆÈ™\İ[[ÃB˜—ÛÜ™\—Ü›ÙÜ™\ÜØ\ÜØHH\š]˜\ˆ\È]\È\ÈÜ™[œÈ[š]0è\šX\ËƒBƒB“ÈØY\İ›ÈH\ÈHpéØHX[0ê[HÖKÖˆHÜÈğè[İ[ÜÈ^\İ[\ÈH›Û[YHCBœ\ÛÈ\˜Hœ˜péÛË[\ˆHšYØKˆHZYÜ˜][ÛˆHYXÚ[Û˜H]\\ÈÛÛHÜ°è\š[ÜÃB™^]ÜÈH›ÙXİ[Û—ÛÜ™\—Üİ\ØÈÜÈ[\ÜÈ\›İ˜YÜÈğèÛÈLŒZ[]ÜÈ\˜CB˜ÛÛ˜Ü™]YÙ[HHLˆÜ˜\È\˜Hİ\˜KˆXØX˜[Y[Ë[œÜpéğèÛÈHX™\˜péğèÛÈZ[™H™XÚ\Ø[CB™H\˜péğíY\ÈYš[šY\È[H[™Ù[š\šXH\˜HÈ[™Z˜YÜˆØ[İ[\ˆHX™\˜péğèÛÃB™š[˜[ƒBƒB“ÈØ]0è[ÙÛÈš^ÈH]\HÛÛ0ê[HRUÈŒKÌÍKLŒÛNÃB“UTSKÌLŒÛNÈH”páÓÈ^ÍK^L‹ÌŒÛKˆpéØ\Èœ˜péÛÃBœÙ[XÚ[Û˜[H[H[ÛH”páÓËˆpéØ\È[\ˆHšYØHÙ[XÚ[Û˜[H[HRUÈH[HUTSƒBØYHÜÚpéğèÛÈ™XÙX™H[XHÛÛ™šYİ\˜péğèÛÈHœ˜péÛÈİH[H\ˆZ]ËÛ]\˜[ˆHÜÚpéğèÛÃB˜XØX0êH[XH˜[˜ØYH[˜HÙ[H›Ü›XHš[˜İ[YKˆÈ[™Z˜YÜˆğìÈ[ØØHpéØH[CB˜ÛÛ™šYİ\˜péğèÛÈÛÛ\]0ë]™[È[XHÛÛ™šYİ\˜péğèÛÈ°èÛÈÙH]Y\ˆ[œ]X[Èİ]™\ƒBœ›ÙpéğèÛÈ[™Z˜YHİH[H[™[Y[Èš[˜İ[YH0èÜÚpéğèÛËƒBƒB“ÈÙ]\\˜H›ØØ\ˆHÛÛ™šYİ\˜péğèÛÈH[XHÜÚpéğèÛÈ°èÛÈ›ÚH[™›Ü›XYÈH°èÛÈ[˜CB››È˜^›ÈØ[İ[YËˆH™\\˜péğèÛÈHÚ[˜ÛÈX\È0îZ\È\ØHÈØ[[™0è\š[È^\İ[KƒBƒBˆÈÈ]\HH0­È[™péğèÛÈ°èXš[ÈRH
-ZYÜ˜][ÛˆH[H™]š\ğèÛÊCBƒBH]\H™X\›İ™Z]HÛÜšÜØÜ™\œØÜ™\—Ú][\ØYXÙWİ\\Ø[ÛØØ][ÙØB˜YXÙWİ\WÛ[ÛØ[ÛÜÜÚ][ÛœØ›ÙXİ[Û—ÛÜ™\œØH[ØØ][ÛœØˆ°èÛÃBœ™XÜšXH™[H™[›ÛYZXH\ÜØ\ÈX™[\ÎÈHZYÜ˜][ÛˆHğìÈ[\˜HÜÈÛÜÈ\ØÜš]ÜÃB˜XÚ[XHHYXÚ[Û˜HX™[\È\˜H›Ú™]ËÛÛœİ[\ÈH]\\ËˆÈXYÜ˜[XHH\ÃB˜Ú]™\È™[]˜[\È\İ0èÛÈ[HØT‹›YJT‹›Y
-KƒBƒB\ÈZYÜ˜][ÛœÈ[\š[Ü™\È°èH\™[HÛY[HH]HH[°ëXÚ[ÈHØœ˜H›ÈYYËƒB”YYÈÙ[HØœ˜HÛÛ[XHXÙZ][™ÈÛY[HH]H[™›Ü›XYÜÈX[X[Y[KƒBƒB\ÈİYÙ\İ0íY\È°ê›HÈØ]0è[ÙÛÈ^\İ[Nˆ\ÈÜ0éğíY\Èš^\ÈH”páÓÈHÙ\È\ÃB˜ÛÛXš[˜péğíY\ÈRUÈ0åÈUTS\˜H[\ˆHšYØKˆHZYÜ˜][ÛˆHX[0ê[HÈ°ë[˜İ[ÃB™[HYXÙWİ\WÛ[ÛØYXÚ[Û˜HXØXÛÛ[È\ÈHpéØHHÜÚpéğèÛÈH˜[˜ØYKB˜ÜšXHÜÈ™YÚ\İ›ÜÈH›Ú™]ËÜÙpéğíY\ÈYØYÜÈHYYÜËÚ][œË™YÚ\İ˜H]\\ÈCBœ›ÙpéğèÛÈÛÛHÜ°è\š[ÜÈHİX\™HÛÛœİ[\ÈÜˆÜ™Ø[š^˜péğèÛËˆ°èÛÈÜšXHØ]0è[ÙÛÃBœ\˜[[ÈH›Ü›X\È™[H[\˜H\È[°éğíY\È]XZ\ÈH›Û[YHH\ÛËˆÈ\ÛÈCBœXØH\ØH0åÖHÛÛ[È0è\™XKˆÛÛ[È\Ü\Üİ\˜HHHY\ÛXH[œÚYYHš^HH‹HÛp¬ÃB™Èğè[İ[È]X[H›Û[YHH\ÛÈ\ÈpéØ\È^\İ[\ËƒBƒB“ÜÈ˜^›ÜÈH™\\˜péğèÛÈ\›X[™XÙ[H›ÈØ[\È^\İ[H[ÛËœ™\\˜][Û—Ù^\ØÃB˜H›ÜÜİHš^H\ÜÙH˜[Üˆ[HÚ[˜ÛÈX\È0îZ\ÈH\ØHØ[[™\—Ù^\Ø\˜HXÚ\ˆCB™]HHÛÛ˜Û\ğèÛËƒBƒBÛÛ[È™[Z\ÜØHH[™Ù[š\šXK[XHÙpéğèÛÈXXÚpéØH™][™İ[\ˆHœ˜péÛÈ™\İ[H[CBŒŒNÍHÙËÛH\˜HpåÌÍHÛKÌHÙËÛH\˜HpåÍLˆÛHHLÙËÛH\˜HÌ0åÍŒÛKB\Ø[™È‹HÛp¬ËˆÈ\ÛÈY™]]›ÈHpéØHÛÛ[XH\[™[™ÈÈÛÛ\š[Y[ÈƒB˜ØY\İ˜YÈHH°ìÜ›][H^\İ[KƒBƒB“È[™Z˜YÜˆÜ˜]˜HÛÛ˜Ü™]YÙ[HHİ\˜H[H›ÙXİ[Û—ÛÜ™\—Üİ\ØÛÛHÜ°è\š[ÜÃB™^]ÜË\ØHLŒZ[]ÜÈ\˜HÛÛ˜Ü™]YÙ[HHLˆÜ˜\È\˜Hİ\˜KHX[0ê[HHÜÚpéğèÛÃBœ™\Ù\˜YH]0êHÈš[HHİ\˜KˆÈÜ°è\š[ÈY°èÛÈ0êHŒ›È\ÛÈHÜ™Ø[š^˜péğèÛÃBŠØ[İ[][Û—ØÛÛœİ[Ë˜Ø\İ[™×Üİ\Úİ\˜
-NÈZ\İK[È\˜HÈ[°ëXÚ[È™X[ÃB\››È[\ÈH\XØ\ˆHZYÜ˜][ÛˆÙHH°èXœšXØHÛÛYpéØ\ˆ[Hİ]›ÈÜ°è\š[ËƒBXØX˜[Y[Ë[œÜpéğèÛÈHX™\˜péğèÛÈ\\™XÙ[HÛÛ[È]\\È[™[\È[œ]X[ÈİX\ÃB™\˜péğíY\È°èÛÈ›Ü™[HYš[šY\ËƒBƒB“ÈØY\İ›ÈH›Ú™]ÈÚ[XHØ]™WÙ[™Ú[™Y\š[™×Ü›Ú™XİÜİXİ\™X\˜HÜ˜]˜\ˆÃBœ›Ú™]Ë\ÈÙpéğíY\ÈHH\İšXZpéğèÛÈÜÈ][œÈ[H[XH˜[œØpéğèÛËˆH”ÈÛÛ™™\™CBœ]YHØYH][H\[˜ÙH[ÈYYÈ\ØÛÛYÈH]YHHÛÛXH°èÛÈ[˜\\ÜØHCBœ]X[YYHYYKˆÛÛY[HÙ\šXÙWÜ›ÛXÙH^Xİ]0èK[KƒBƒB\ÈX™[\È›İ˜\ÈÛÛ[X[HÛÛH“ÈYØYËÙ[HÛXÚY\È\˜HXÙ\ÜÛÈ[°íš[[ÎÃBœÛÛY[H\ÈYÙH[˜İ[ÛœÈÛÛHÙ\šXÙWÜ›ÛXXÙ\ÜØ[HÜÈYÜËˆÙ[HÙÚ[‹CB˜\XØpéğèÛÈZ[™H\[™HHÜ™Ø[š^˜péğèÛÈš^HÛÛ™šYİ\˜YH›ÈÙ\šYÜˆH°èÛÈ[CBš\ÛÛ[Y[È][K[Ü™Ø[š^˜péğèÛÈÜˆ\İpè\š[Ëˆ\ÈYÙH[˜İ[ÛœÈ0î˜›XØ\ÈÛÛ[X[CBœÙ[™ÈHœ›ÛZ\˜HHXÙ\ÜÛÈH™XÚ\Ø[H˜[Y\ˆÜ™Ø[š^˜péğèÛÈH^[ØYƒBƒBŠŠHZYÜ˜][ÛˆHHH[YÜ˜péğèÛÈH]\HH\İ0èÛÈ›È™\ÜÚ]0ìÜš[ËØœ˜[˜ÚCBœ™]š\ğèÛËˆ°èÛÈ^Xİ]HHZYÜ˜][Ûˆ™[HX›\]YH\ÈYÙH[˜İ[ÛœÈ›È›Ú™]ÃB”İ\X˜\ÙH]]›È™\İH]\KŠŠˆCB™™\œ˜[Y[Hİ\X˜\ÙHÓH°èÛÈ\İ0èH[œİ[YH™\İH[XšY[KÜˆ\ÜÛÈÈ\œ]Z]›ÃBœÙYİYHHÛÛ™[°éğèÛÈ]X˜\ÙKÌx $Ì^\İ[NÈ[H°èÛÈšXØH[CB˜İ\X˜\ÙKÛZYÜ˜][ÛœËØH°èÛÈ0êH^Xİ]YÈ]]ÛX]XØ[Y[HÜˆˆ\ÚƒBƒBH™YÜ˜H\˜H™Z™Z]\ˆÈİ]\ÈYØYÈÛÛ˜ÛZYØ°èÛÈ0êH˜[YYHÛÛ˜H[š\ÃBš\İ0ìÜšXØ\ÎˆYYÜÈ°èHÛÛ˜ÛpëYÜÈÛÛ[X[H™\Ù\˜YÜÈ˜H˜\ÙHH™XÚ\Ø[CBœ™XÙX™\ˆ[Hİ]\ÈšYÙ[H[\ÈHÙ\™[HY]YÜËƒB
+# Banco PRELUX Â· planejamento e cadastros operacionais
+
+O banco atual Ã© de uma unidade produtiva PRELUX. A partir da migraÃ§Ã£o 006, o
+planejamento de concretagem usa quatro posiÃ§Ãµes fÃ­sicas por dia Ãºtil; os minutos
+permanecem somente como dado de registro nas programaÃ§Ãµes legadas.
+
+## AplicaÃ§Ã£o no Supabase
+
+Em uma instalaÃ§Ã£o nova, execute os arquivos na ordem abaixo pelo SQL Editor do
+Supabase. Os scripts ficam em `database/` e nÃ£o sÃ£o descobertos automaticamente
+por `supabase db push`.
+
+1. `001_initial_schema.sql`
+2. `002_stage2_functions.sql`
+3. `003_persist_replanned_dates.sql`
+4. `004_works_pieces_molds.sql`
+5. `005_optional_mold_cycle.sql`
+6. `006_position_based_planning.sql`
+7. `007_stage4_piece_catalog_positions.sql`
+8. `008_stage5_work_order_inheritance.sql`
+9. `009_fabio2_foundation.sql` (rascunho da Etapa 5, ainda nÃ£o aplicado)
+
+Em uma instalaÃ§Ã£o que jÃ¡ aplicou 001â€“005, execute `006_position_based_planning.sql`.
+Ela cria P01â€“P04, ordens unitÃ¡rias, alocaÃ§Ãµes por posiÃ§Ã£o, ajustes manuais de
+prazo e mantÃ©m `production_schedules` como resumo compatÃ­vel com a tela atual.
+Em seguida, aplique `007_stage4_piece_catalog_positions.sql` para incluir os
+catÃ¡logos fixos, dimensÃµes X/Y/Z, requisitos de molde por peÃ§a e configuraÃ§Ã£o
+das quatro posiÃ§Ãµes. ApÃ³s a migraÃ§Ã£o, publique a Edge Function
+`operations-admin` atualizada para habilitar os novos formulÃ¡rios e o vÃ­nculo
+de compatibilidade com o planejador.
+
+O script cria a organizaÃ§Ã£o inicial com o ID:
+
+`11111111-1111-4111-8111-111111111111`
+
+Esse valor deve ser configurado como `PRELUX_ORGANIZATION_ID` nas Edge Functions. O `SUPABASE_SERVICE_ROLE_KEY` deve ficar apenas no ambiente do Supabase; nunca deve ser colocado no HTML, no PWA ou no aplicativo mobile.
+
+As tabelas estÃ£o protegidas por RLS sem policies pÃºblicas. Portanto, o navegador nÃ£o fala diretamente com o banco: ele chama as Edge Functions, que validam o payload e usam a chave administrativa somente no servidor.
+
+Regras legadas da migraÃ§Ã£o 004: a preparaÃ§Ã£o do molde era de sete dias corridos e sÃ³ podia ser aprovada apÃ³s limpeza, desmoldante e montagem. A migration 009 propÃµe cinco dias Ãºteis segundo `calendar_days` e ajusta o valor `preparation_days` das formas jÃ¡ cadastradas de 7 para 5. Ela tambÃ©m preenche rÃ³tulos de medidas nas linhas existentes do histÃ³rico de posiÃ§Ãµes. NÃ£o aplique 009 antes de publicar junto o fluxo de tela e serviÃ§o atualizado.
+
+A migraÃ§Ã£o 006 originalmente persistia datas de planejamento tambÃ©m em `orders`.
+A migration 009 propÃµe que o planejamento grave suas datas em `production_orders`
+e `allocations`, mantendo os campos do pedido como dados da entrada. O resumo
+`v_order_progress` passa a derivar as datas das ordens unitÃ¡rias.
+
+O cadastro de tipo de peÃ§a mantÃ©m X/Y/Z e os cÃ¡lculos existentes de volume e
+peso para braÃ§o, pilar e viga. A migration 009 adiciona etapas com horÃ¡rios
+exatos a `production_order_steps`; os tempos aprovados sÃ£o 120 minutos para
+concretagem e 12 horas para cura. Acabamento, inspeÃ§Ã£o e liberaÃ§Ã£o ainda precisam
+de duraÃ§Ãµes definidas pela engenharia para o planejador calcular a liberaÃ§Ã£o
+final.
+
+O catÃ¡logo fixo da Etapa 4 contÃ©m LEITO 20, 25, 30, 35, 40, 50, 60 cm;
+LATERAL 25, 30, 40, 50, 60 cm; e BRAÃ‡O 25x35, 25x52, 30x60 cm. PeÃ§as BraÃ§o
+selecionam um molde BRAÃ‡O. PeÃ§as Pilar e Viga selecionam um LEITO e um LATERAL.
+Cada posiÃ§Ã£o recebe uma configuraÃ§Ã£o de braÃ§o ou um par leito/lateral. A posiÃ§Ã£o
+`placa` Ã© uma bancada plana sem forma vinculada. O planejador sÃ³ aloca peÃ§a em
+configuraÃ§Ã£o compatÃ­vel; uma configuraÃ§Ã£o nÃ£o pode mudar enquanto houver
+produÃ§Ã£o planejada ou em andamento vinculada Ã  posiÃ§Ã£o.
+
+O setup para trocar a configuraÃ§Ã£o de uma posiÃ§Ã£o nÃ£o foi informado e nÃ£o entra
+no prazo calculado. A preparaÃ§Ã£o de cinco dias Ãºteis usa o calendÃ¡rio existente.
+
+## Etapa 5 Â· fundaÃ§Ã£o FÃ¡bio II (migration 009 em revisÃ£o)
+
+A etapa reaproveita `works`, `orders`, `order_items`, `piece_types`, `mold_catalog`,
+`piece_type_molds`, `mold_positions`, `production_orders` e `allocations`. NÃ£o
+recria nem renomeia essas tabelas; a migration 009 sÃ³ altera os pontos descritos
+acima e adiciona tabelas para projeto, constantes e etapas. O diagrama e as
+chaves relevantes estÃ£o em [`ER.md`](ER.md).
+
+As migrations anteriores jÃ¡ herdam cliente e data de inÃ­cio da obra no pedido.
+Pedido sem obra continua aceitando cliente e data informados manualmente.
+
+As sugestÃµes vÃªm do catÃ¡logo existente: as opÃ§Ãµes fixas de BRAÃ‡O e todas as
+combinaÃ§Ãµes LEITO Ã— LATERAL para pilar e viga. A migration 009 mantÃ©m o vÃ­nculo
+em `piece_type_molds`, adiciona `placa` como tipo de peÃ§a e posiÃ§Ã£o de bancada,
+cria os registros de projeto/seÃ§Ãµes ligados a pedidos/itens, registra etapas de
+produÃ§Ã£o com horÃ¡rios e guarda constantes por organizaÃ§Ã£o. NÃ£o cria catÃ¡logo
+paralelo de formas nem altera as funÃ§Ãµes atuais de volume e peso. O peso da
+placa usa XÃ—Y como Ã¡rea, Z como espessura e a mesma densidade fixa de 2,5 t/mÂ³
+do cÃ¡lculo atual de volume e peso das peÃ§as existentes.
+
+Os prazos de preparaÃ§Ã£o permanecem no campo existente `molds.preparation_days`;
+a proposta fixa esse valor em cinco dias Ãºteis e usa `calendar_days` para achar a
+data de conclusÃ£o.
+
+Como premissa de engenharia, uma seÃ§Ã£o maciÃ§a retangular de braÃ§o resulta em
+218,75 kg/m para 25Ã—35 cm, 325 kg/m para 25Ã—52 cm e 450 kg/m para 30Ã—60 cm,
+usando 2,5 t/mÂ³. O peso efetivo da peÃ§a continua dependendo do comprimento Z
+cadastrado e da fÃ³rmula existente.
+
+O planejador grava concretagem e cura em `production_order_steps` com horÃ¡rios
+exatos, usa 120 minutos para concretagem e 12 horas para cura, e mantÃ©m a posiÃ§Ã£o
+reservada atÃ© o fim da cura. O horÃ¡rio padrÃ£o Ã© 08:00 no fuso da organizaÃ§Ã£o
+(`calculation_constants.casting_start_hour`); ajuste-o para o inÃ­cio real do
+turno antes de aplicar a migration se a fÃ¡brica comeÃ§ar em outro horÃ¡rio.
+Acabamento, inspeÃ§Ã£o e liberaÃ§Ã£o aparecem como etapas pendentes enquanto suas
+duraÃ§Ãµes nÃ£o forem definidas.
+
+O cadastro de projeto chama `save_engineering_project_structure` para gravar o
+projeto, as seÃ§Ãµes e a distribuiÃ§Ã£o dos itens em uma transaÃ§Ã£o. A RPC confere
+que cada item pertence ao pedido escolhido e que a soma nÃ£o ultrapassa a
+quantidade pedida. Somente `service_role` pode executÃ¡-la.
+
+As tabelas novas continuam com RLS ligado, sem policies para acesso anÃ´nimo;
+somente as Edge Functions com `service_role` acessam os dados. Sem login, a
+aplicaÃ§Ã£o ainda depende da organizaÃ§Ã£o fixa configurada no servidor e nÃ£o tem
+isolamento multi-organizaÃ§Ã£o por usuÃ¡rio. As Edge Functions pÃºblicas continuam
+sendo a fronteira de acesso e precisam validar organizaÃ§Ã£o e payload.
+
+**A migration 009 e a integraÃ§Ã£o da Etapa 5 estÃ£o no repositÃ³rio/branch de
+revisÃ£o. NÃ£o execute a migration nem publique as Edge Functions no projeto
+Supabase ativo nesta etapa.** A
+ferramenta Supabase CLI nÃ£o estÃ¡ instalada neste ambiente, por isso o arquivo
+segue a convenÃ§Ã£o `database/001â€“008` existente; ele nÃ£o fica em
+`supabase/migrations/` e nÃ£o Ã© executado automaticamente por `db push`.
+
+A regra para rejeitar o status legado `concluido` nÃ£o Ã© validada contra linhas
+histÃ³ricas: pedidos jÃ¡ concluÃ­dos continuam preservados na base e precisam
+receber um status vigente antes de serem editados.

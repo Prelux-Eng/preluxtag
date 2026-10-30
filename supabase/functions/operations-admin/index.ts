@@ -1,539 +1,750 @@
-YªçŠx³¬uç%j·Â+ar‰ì¶ë•ë_¢ºŞjË"‚v›•ëÚ®&›•ëÊƒBˆ
-ˆ[™Ú[\È[\ÈHØY\İ›ÜËƒBˆ
-ˆ˜[YH›Ü›][0è\š[ÜËØ[İ[Hpê]šXØ\È\ÈpéØ\ÈH[YØH\œÚ\İ0ê›˜ÚXH[ÃBˆ
-ˆÜİÜ™TÔSÔİ\X˜\ÙKˆ™YÜ˜\ÈH[™Z˜[Y[È™]][^˜Y\ÈšXØ[H[HÜÚ\™YƒBˆ
-‹ÃBš[\ÜÈÙ]Ù\™\ÛÛ™šYÈHœ›ÛH‹‹‹×ÜÚ\™YÙ[‹šœÈÃBš[\ÜÈ[œİ\™TÜİ[™Q\œ›Ü‹œÛÛ‹™XYœÛÛˆHœ›ÛH‹‹‹×ÜÚ\™YÚšœÈÃBš[\ÜÈZ[[›š[™Ô]Y]YKš[™ÛÜšÚ[™Ñ^PÛÛ\][Û‘]KÜ™\”[›š[™Ñ\œ›ÜˆHœ›ÛH‹‹‹×ÜÚ\™YÛÜ™\‹\[›š[™ËšœÈÃBš[\ÜÈØ[İ[]TYXÙSY]šXÜÈHœ›ÛH‹‹‹×ÜÚ\™YÜYXÙK[Y]šXÜËšœÈÃBš[\ÜÈØ[İ[]T]SY]šXÜÈHœ›ÛH‹‹‹×ÜÚ\™YÜ]K[Y]šXÜËšœÈÃBš[\ÜÈÜ™X]PYZ[ÛY[Hœ›ÛH‹‹‹×ÜÚ\™YÜİ\X˜\ÙPÛY[šœÈÃBƒB˜ÛÛœİÓÔ’×ÔÕUTÑTÈH™]ÈÙ]
-Èœ[™Z˜[Y[È‹˜]]˜H‹˜ÛÛ˜ÛZYH‹˜Ø[˜Ù[YH—JNÃB˜ÛÛœİÔ‘T—ÔÕUTÑTÈH™]ÈÙ]
-È›Ü˜Ø[Y[È‹˜\›İ˜YÈ‹™[WÜ›ÙXØ[È‹™[™YİYH‹˜]˜\ØYÈ‹˜Ø[˜Ù[YÈ—JNÃB˜ÛÛœİSÓÔÕUTÑTÈH™]ÈÙ]
-È˜]]›È‹›X[][˜Ø[È‹˜›Ü]YXYÈ‹œ™]\˜YÈ—JNÃB˜ÛÛœİÔÒUSÓ—ÔÕUTÑTÈH™]ÈÙ]
-È™\ÜÛš]™[‹™[WÜ™\\˜XØ[È‹™[WÜ›ÙXØ[È‹™[WÛX[][˜Ø[È—JNÃB˜ÛÛœİ‘TTUSÓ—ÔÕUTÑTÈH™]ÈÙ]
-Èœ[™Z˜YH‹™[WØ[™[Y[È‹˜YİX\™[™×Ø\›İ˜XØ[È‹˜\›İ˜YH‹œ™\›İ˜YH‹˜Ø[˜Ù[YH—JNÃB˜ÛÛœİSĞĞUSÓ—ÔÕUTÑTÈH™]ÈÙ]
-Èœ[›™Y‹š[—Ü›ÙÜ™\ÜÈ‹™Û™H‹˜Ø[˜Ù[Y—JNÃBƒB™[˜İ[Ûˆ˜Y™\]Y\İ
-Y\ÜØYÙNˆİš[™Ëİ]\ÈH
-HÃBˆ™]\›ˆØš™Xİ˜\ÜÚYÛŠ™]È\œ›ÜŠY\ÜØYÙJKÈİ]\ÈJNÃBŸCBƒB™[˜İ[Ûˆ^˜[YJ˜[YNˆ[šÛ›İÛ‹X™[ˆİš[™ËX^[™İHL™\]Z\™YH˜[ÙJHÃBˆÛÛœİ™\İ[Hİš[™Ê˜[YHÏÈˆŠKš[J
-NÃBˆYˆ
-™\]Z\™Y	‰ˆ\™\İ[
-H›İÈ˜Y™\]Y\İ
-[™›Ü›YH	ÛX™[K˜
-NÃBˆYˆ
-™\İ[›[™İˆX^[™İ
-H›İÈ˜Y™\]Y\İ
-	ÛX™[H]™H\ˆ›Èpè^[[È	ÛX^[™İHØ\˜Xİ\™\Ë˜
-NÃBˆ™]\›ˆ™\İ[ÃBŸCBƒB™[˜İ[Ûˆ]U˜[YJ˜[YNˆ[šÛ›İÛ‹X™[ˆİš[™ËÜ[Û˜[H˜[ÙJNˆİš[™È[ÃBˆÛÛœİ™\İ[Hİš[™Ê˜[YHÏÈˆŠKš[J
-NÃBˆYˆ
-\™\İ[	‰ˆÜ[Û˜[
-H™]\›ˆ[ÃBˆYˆ
-K×—ÍKWÌŸKWÌŸIË\İ
-™\İ[
-JH›İÈ˜Y™\]Y\İ
-[™›Ü›YH[XH	ÛX™[H°è[YK˜
-NÃBˆÛÛœİ\œÙYH™]È]J	Ü™\İ[UŒŒŒ˜
-NÃBˆYˆ
-[X™\‹š\Ó˜SŠ\œÙY™Ù][YJ
-JH\œÙYÒTÓÔİš[™Ê
-KœÛXÙJL
-HOOH™\İ[
-HÃBˆ›İÈ˜Y™\]Y\İ
-[™›Ü›YH[XH	ÛX™[H°è[YK˜
-NÃBˆCBˆ™]\›ˆ™\İ[ÃBŸCBƒB™[˜İ[Ûˆ[YÙ\•˜[YJ˜[YNˆ[šÛ›İÛ‹X™[ˆİš[™ËZ[š[][Nˆ[X™\‹Ü[Û˜[H˜[ÙJHÃBˆÛÛœİ˜]ÈHİš[™Ê˜[YHÏÈˆŠKš[J
-NÃBˆYˆ
-\˜]È	‰ˆÜ[Û˜[
-H™]\›ˆ[ÃBˆÛÛœİ[X™\ˆH[X™\Š˜]ÊNÃBˆYˆ
-S[X™\‹š\Ò[YÙ\Š[X™\ŠH[X™\ˆZ[š[][JHÃBˆ›İÈ˜Y™\]Y\İ
-	ÛX™[H]™HÙ\ˆ[H°î›Y\›È[Z\›ÈXZ[ÜˆİHYİX[H	ÛZ[š[][_K˜
-NÃBˆCBˆ™]\›ˆ[X™\ÃBŸCBƒB™[˜İ[ÛˆXÚ[X[˜[YJ˜[YNˆ[šÛ›İÛ‹X™[ˆİš[™ËÜ[Û˜[H˜[ÙJHÃBˆÛÛœİ˜]ÈHİš[™Ê˜[YHÏÈˆŠKš[J
-NÃBˆYˆ
-\˜]È	‰ˆÜ[Û˜[
-H™]\›ˆ[ÃBˆÛÛœİ[X™\ˆH[X™\Š˜]ÊNÃBˆYˆ
-S[X™\‹š\Ñš[š]J[X™\ŠH[X™\ˆ
-H›İÈ˜Y™\]Y\İ
-	ÛX™[H]™HÙ\ˆ[H°î›Y\›ÈXZ[ÜˆİHYİX[H™\›Ë˜
-NÃBˆ™]\›ˆ[X™\ÃBŸCBƒB™[˜İ[ÛˆY^\Ê˜[YNˆİš[™Ë^\Îˆ[X™\ŠHÃBˆÛÛœİ]HH™]È]J	İ˜[Y_UŒŒŒ˜
-NÃBˆ]KœÙ]UÑ]J]K™Ù]UÑ]J
-H
-È^\ÊNÃBˆ™]\›ˆ]KÒTÓÔİš[™Ê
-KœÛXÙJL
-NÃBŸCBƒB™[˜İ[Ûˆ[[U˜[YJ˜[YNˆ[šÛ›İÛ‹˜[Y\ÎˆÙ]İš[™Ï‹˜[˜XÚÎˆİš[™ËX™[ˆİš[™ÊHÃBˆÛÛœİ™\İ[Hİš[™Ê˜[YH˜[˜XÚÊNÃBˆYˆ
-]˜[Y\Ëš\Ê™\İ[
-JH›İÈ˜Y™\]Y\İ
-	ÛX™[H[°è[YË˜
-NÃBˆ™]\›ˆ™\İ[ÃBŸCBƒB™[˜İ[Ûˆ›İÑ‘\œ›ÜŠ\œ›Üˆ[KX™[ˆİš[™ÊNˆ™]™\ˆÃBˆYˆ
-Y\œ›ÜŠH›İÈ™]È\œ›ÜŠX™[
-NÃBˆÛÛœİY\ÜØYÙHHİš[™Ê\œ›Ü‹›Y\ÜØYÙHX™[
-NÃBˆÛÛœİÛÙHHİš[™Ê\œ›Ü‹˜ÛÙHˆŠNÃBˆÛÛœİ\ĞÛÛ™›XİHÛÙHOOHŒŒÍLHˆÛØİ\YßÛØœ™\ÜÚVØğé×VØpè×[ßÛÛ™›]ß°èH^\İ_İ]˜H™\\˜VØğé×VØpè×[ËÚK\İ
-Y\ÜØYÙJNÃBˆÛÛœİİ]\ÈH\ĞÛÛ™›XİÈHˆÛÙHOOH”HˆÛÙKœİ\ÕÚ]
-ŒŒÈŠHÛÙKœİ\ÕÚ]
-ŒŒˆŠHÈŒˆˆLÃBˆÛÛœİØY™SY\ÜØYÙHHİ]\ÈOOHLBˆÈX™[BˆˆÛÙHOOHŒŒÍLHƒBˆÈ’°èH^\İH[HØY\İ›ÈÛÛHÈY\Û[ÈğìÙYÛÈİH°î›Y\›È™\İH[šYYKˆƒBˆˆY\ÜØYÙNÃBˆ›İÈØš™Xİ˜\ÜÚYÛŠ™]È\œ›ÜŠØY™SY\ÜØYÙJKÈİ]\ÈJNÃBŸCBƒB˜\Ş[˜È[˜İ[Ûˆ™\ÛÛ™PÛY[Y
-ˆ[KÜ™Ø[š^˜][Û’Yˆİš[™Ë[œ]ˆ™XÛÜ™İš[™Ë[šÛ›İÛŠHÃBˆÛÛœİÛY[YHİš[™Ê[œ]˜ÛY[YˆŠKš[J
-NÃBˆYˆ
-ÛY[Y
-H™]\›ˆÛY[YÃBˆÛÛœİ˜[YHH^˜[YJ[œ]˜ÛY[˜[YK›ÈÛY[H‹NYJNÃBˆÛÛœİÈ]Nˆİ\œ™[\œ›Üˆ™XY\œ›ÜˆHH]ØZ]‹™œ›ÛJ˜ÛY[ÈŠCBˆœÙ[Xİ
-šYŠK™\J›Ü™Ø[š^˜][Û—ÚY‹Ü™Ø[š^˜][Û’Y
-K™\J›˜[YH‹˜[YJK™\Jš\×ØXİ]™H‹YJCBˆ›[Z]
-JK›X^X™TÚ[™ÛJ
-NÃBˆYˆ
-™XY\œ›ÜŠH›İÑ‘\œ›ÜŠ™XY\œ›Ü‹“°èÛÈ›ÚHÜÜğë]™[ÛÛœİ[\ˆÈÛY[KˆŠNÃBˆYˆ
-İ\œ™[ËšY
-H™]\›ˆİ\œ™[šYÃBˆÛÛœİÈ]K\œ›ÜˆHH]ØZ]‹™œ›ÛJ˜ÛY[ÈŠCBˆš[œÙ\
-ÈÜ™Ø[š^˜][Û—ÚYˆÜ™Ø[š^˜][Û’Y˜[YHJCBˆœÙ[Xİ
-šYŠKœÚ[™ÛJ
-NÃBˆYˆ
-\œ›ÜŠH›İÑ‘\œ›ÜŠ\œ›Ü‹“°èÛÈ›ÚHÜÜğë]™[ØY\İ˜\ˆÈÛY[KˆŠNÃBˆ™]\›ˆ]KšYÃBŸCBƒB™[˜İ[ÛˆZ[[ÛÛÛXš[˜][ÛœÊØ][ÙÎˆ[V×JHÃBˆÛÛœİ\›\ÈHØ][ÙË™š[\Š
-][JHOˆ][K›[Ûİ\HOOH”PÓÈŠNÃBˆÛÛœİ™YÈHØ][ÙË™š[\Š
-][JHOˆ][K›[Ûİ\HOOH“RUÈŠNÃBˆÛÛœİÚY\ÈHØ][ÙË™š[\Š
-][JHOˆ][K›[Ûİ\HOOH“UTSŠNÃBˆ™]\›ˆÃBˆ‹‹˜\›\Ë›X\
+/*
+ * Endpoint das telas de Cadastros.
+ * Valida formulÃ¡rios, calcula mÃ©tricas das peÃ§as e delega persistÃªncia ao
+ * PostgreSQL/Supabase. Regras de planejamento reutilizadas ficam em _shared.
+ */
+import { getServerConfig } from "../_shared/env.js";
+import { ensurePost, handleError, json, readJson } from "../_shared/http.js";
+import { buildPlanningQueue, findWorkingDayCompletionDate, OrderPlanningError } from "../_shared/order-planning.js";
+import { calculatePieceMetrics } from "../_shared/piece-metrics.js";
+import { calculatePlateMetrics } from "../_shared/plate-metrics.js";
+import { createAdminClient } from "../_shared/supabaseClient.js";
 
-\›JHOˆ
-ÃBˆÙ^Nˆ\›K˜ÛÙKBˆYXÙWÚÚ[™ˆ˜œ˜XÛÈ‹BˆÛÛ™šYİ\˜][Û—ÚÚ[™ˆ˜œ˜XÛÈ‹Bˆœ˜XÛ×ØØ][Ù×ØÛÙNˆ\›K˜ÛÙKBˆZ]×ØØ][Ù×ØÛÙNˆ[Bˆ]\˜[ØØ][Ù×ØÛÙNˆ[BˆX™[ˆ”páÓÈ	Ø\›K›YX\İ\™WÛX™[HÛXBˆJJKBˆ‹‹–Èœ[\ˆ‹šYØH—K™›]X\
+const WORK_STATUSES = new Set(["planejamento", "ativa", "concluida", "cancelada"]);
+const ORDER_STATUSES = new Set(["orcamento", "aprovado", "em_producao", "entregue", "atrasado", "cancelado"]);
+const MOLD_STATUSES = new Set(["ativo", "manutencao", "bloqueado", "retirado"]);
+const POSITION_STATUSES = new Set(["disponivel", "em_preparacao", "em_producao", "em_manutencao"]);
+const PREPARATION_STATUSES = new Set(["planejada", "em_andamento", "aguardando_aprovacao", "aprovada", "reprovada", "cancelada"]);
+const ALLOCATION_STATUSES = new Set(["planned", "in_progress", "done", "cancelled"]);
 
-YXÙRÚ[™
-HOˆ™YË™›]X\
+function badRequest(message: string, status = 400) {
+  return Object.assign(new Error(message), { status });
+}
 
-™Y
-HOˆÚY\Ë›X\
+function textValue(value: unknown, label: string, maxLength = 500, required = false) {
+  const result = String(value ?? "").trim();
+  if (required && !result) throw badRequest(`Informe ${label}.`);
+  if (result.length > maxLength) throw badRequest(`${label} deve ter no mÃ¡ximo ${maxLength} caracteres.`);
+  return result;
+}
 
-ÚYJHOˆ
-ÃBˆÙ^Nˆ	Ø™Y˜ÛÙ__	ÜÚYK˜ÛÙ_XBˆYXÙWÚÚ[™ˆYXÙRÚ[™BˆÛÛ™šYİ\˜][Û—ÚÚ[™ˆœ[\—İšYØH‹Bˆœ˜XÛ×ØØ][Ù×ØÛÙNˆ[BˆZ]×ØØ][Ù×ØÛÙNˆ™Y˜ÛÙKBˆ]\˜[ØØ][Ù×ØÛÙNˆÚYK˜ÛÙKBˆX™[ˆRUÈ	Ø™Y›YX\İ\™WÛX™[HÛH0åÈUTS	ÜÚYK›YX\İ\™WÛX™[HÛXBˆJJJJKBˆNÃBŸCBƒB˜\Ş[˜È[˜İ[Ûˆ™XYÜ\˜][ÛœÑ]Jˆ[KÜ™Ø[š^˜][Û’Yˆİš[™ÊHÃBˆÛÛœİØÛY[Ô™\İ[ÛÜšÜÔ™\İ[Ü™\œÔ™\İ[YXÙ\Ô™\İ[[ÛÔ™\İ[ÛÛ\]™\İ[™\\˜][ÛœÔ™\İ[[ØØ][ÛœÔ™\İ[Ø][ÙÔ™\İ[YXÙS[ÛÔ™\İ[ÜÚ][ÛœÔ™\İ[HH]ØZ]›ÛZ\ÙK˜[
-ÃBˆ‹™œ›ÛJ˜ÛY[ÈŠKœÙ[Xİ
-šY˜[YKØİ[Y[ÛÛXİÛ˜[YKÛ™K[XZ[Y™\ÜË\×ØXİ]™HŠCBˆ™\J›Ü™Ø[š^˜][Û—ÚY‹Ü™Ø[š^˜][Û’Y
-K™\Jš\×ØXİ]™H‹YJK›Ü™\Š›˜[YHŠK›[Z]
-L
-KBˆ‹™œ›ÛJÛÜšÜÈŠKœÙ[Xİ
-šYÛÜš×Û[X™\‹˜[YKÛY[ÚYY™\ÜË™\ÜÛœÚX›WÛ˜[YKİ\Ù]K™\]Y\İYÙYWÙ]Kİ]\ËØœÙ\˜][ÛœË\×ØXİ]™KÜ™X]YØ]\]YØ]ŠCBˆ™\J›Ü™Ø[š^˜][Û—ÚY‹Ü™Ø[š^˜][Û’Y
-K™\Jš\×ØXİ]™H‹YJK›Ü™\Š›˜[YHŠK›[Z]
-L
-KBˆ‹™œ›ÛJ›Ü™\œÈŠKœÙ[Xİ
-šYÜ™\—Û[X™\‹ÛÜš×ÚYÛY[ÚYİ\Ù]K™\]Y\İYÙYWÙ]K[›™YÙ[™Ù]Kİ]\ËØœÙ\˜][ÛœË\×ØXİ]™KÜ™X]YØ]\]YØ]ŠCBˆ™\J›Ü™Ø[š^˜][Û—ÚY‹Ü™Ø[š^˜][Û’Y
-K™\Jš\×ØXİ]™H‹YJK›Ü™\Šœİ\Ù]H‹È\ØÙ[™[™Îˆ˜[ÙHJK›[Z]
-L
-KBˆ‹™œ›ÛJœYXÙWİ\\ÈŠKœÙ[Xİ
-šYØ]YÛÜWÚYÛÙK˜[YKYXÙWÚÚ[™[Y[œÚ[Û—ŞØÛK[Y[œÚ[Û—ŞWØÛK[Y[œÚ[Û—Ş—ØÛK[Y[œÚ[ÛœË›Û[YWØÛLËÙZYÚÚÙË›Û[YWÛLË›ÙXİ[Û—ÛZ[]\×Ü\—İ[š][š]X[ÜİØÚ×Ü]X[]KİØÚ×ÛZ[š[][WÜ]X[]KØœÙ\˜][ÛœË\×ØXİ]™HŠCBˆ™\J›Ü™Ø[š^˜][Û—ÚY‹Ü™Ø[š^˜][Û’Y
-K›Ü™\Š˜ÛÙHŠK›[Z]
-L
-KBˆ‹™œ›ÛJ›[ÛÈŠKœÙ[Xİ
-šYÛÙK˜[YK[Ûİ\K[Y[œÚ[ÛœËØ][Ù×ØÛÙKŞXÛWÛZ[]\×Ü\—İ[š]™\\˜][Û—Ù^\Ëİ]\ËØœÙ\˜][ÛœËÜ™X]YØ]\]YØ]ŠCBˆ™\J›Ü™Ø[š^˜][Û—ÚY‹Ü™Ø[š^˜][Û’Y
-K›Ü™\Š˜ÛÙHŠK›[Z]
-L
-KBˆ‹™œ›ÛJ›[ÛÜYXÙWİ\\ÈŠKœÙ[Xİ
-›[ÛÚYYXÙWİ\WÚYŠCBˆ™\J›Ü™Ø[š^˜][Û—ÚY‹Ü™Ø[š^˜][Û’Y
-K›[Z]
-L
-KBˆ‹™œ›ÛJ›[ÛÜ™\\˜][ÛœÈŠKœÙ[Xİ
-šY[ÛÚYİ\Ù]K[™Ù]Kİ]\ËÚXÚÛ\İ\›İ™YØK\›İ™YØ]ØœÙ\˜][ÛœËÜ™X]YØ]\]YØ]ŠCBˆ™\J›Ü™Ø[š^˜][Û—ÚY‹Ü™Ø[š^˜][Û’Y
-K›Ü™\Šœİ\Ù]H‹È\ØÙ[™[™Îˆ˜[ÙHJK›[Z]
-L
-KBˆ‹™œ›ÛJœ™\Ûİ\˜ÙWØ[ØØ][ÛœÈŠKœÙ[Xİ
-šY™\Ûİ\˜ÙWÚÚ[™[ÛÚY™\Ûİ\˜ÙWÛ˜[YKÜ™\—Ú][WÚYİ\Ù]K[™Ù]Kİ]\ËÛÛ™›XİÜ™X\ÛÛ‹ÛÛ™›XİÜ™\ÜÛœÚX›KØœÙ\˜][ÛœËÜ™X]YØ]\]YØ]ŠCBˆ™\J›Ü™Ø[š^˜][Û—ÚY‹Ü™Ø[š^˜][Û’Y
-K›Ü™\Šœİ\Ù]H‹È\ØÙ[™[™Îˆ˜[ÙHJK›[Z]
-Œ
-KBˆ‹™œ›ÛJ›[ÛØØ][ÙÈŠKœÙ[Xİ
-˜ÛÙK[Ûİ\KYX\İ\™WÛX™[ÛÜÛÜ™\ˆŠK›Ü™\ŠœÛÜÛÜ™\ˆŠKBˆ‹™œ›ÛJœYXÙWİ\WÛ[ÛÈŠKœÙ[Xİ
-œYXÙWİ\WÚY›ÛKØ][Ù×ØÛÙHŠCBˆ™\J›Ü™Ø[š^˜][Û—ÚY‹Ü™Ø[š^˜][Û’Y
-K›[Z]
-L
-KBˆ‹™œ›ÛJ›[ÛÜÜÚ][ÛœÈŠKœÙ[Xİ
-šYÛÙKİ]\Ë›İ\ËÛÛ™šYİ\˜][Û—ÚÚ[™œ˜XÛ×ØØ][Ù×ØÛÙKZ]×ØØ][Ù×ØÛÙK]\˜[ØØ][Ù×ØÛÙHŠCBˆ™\J›Ü™Ø[š^˜][Û—ÚY‹Ü™Ø[š^˜][Û’Y
-K›Ü™\Š˜ÛÙHŠK›[Z]
+function dateValue(value: unknown, label: string, optional = false): string | null {
+  const result = String(value ?? "").trim();
+  if (!result && optional) return null;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(result)) throw badRequest(`Informe uma ${label} vÃ¡lida.`);
+  const parsed = new Date(`${result}T00:00:00.000Z`);
+  if (Number.isNaN(parsed.getTime()) || parsed.toISOString().slice(0, 10) !== result) {
+    throw badRequest(`Informe uma ${label} vÃ¡lida.`);
+  }
+  return result;
+}
 
-KBˆJNÃBˆÛÛœİ™\İ[ÈHØÛY[Ô™\İ[ÛÜšÜÔ™\İ[Ü™\œÔ™\İ[YXÙ\Ô™\İ[[ÛÔ™\İ[ÛÛ\]™\İ[™\\˜][ÛœÔ™\İ[[ØØ][ÛœÔ™\İ[Ø][ÙÔ™\İ[YXÙS[ÛÔ™\İ[ÜÚ][ÛœÔ™\İ[NÃBˆÛÛœİX™[ÈHÈ˜ÛY[\È‹›Øœ˜\È‹œYYÜÈ‹\ÜÈHpéØH‹›[Û\È‹˜ÛÛ\]Xš[YY\È‹œ™\\˜péğíY\È‹˜[ØØpéğíY\È‹˜Ø]0è[ÙÛÈš^ÈH[Û\È‹›[Û\È\ÈpéØ\È‹œÜÚpéğíY\ÈH[ÛH—NÃBˆ™\İ[Ë™›Ü‘XXÚ
+function integerValue(value: unknown, label: string, minimum: number, optional = false) {
+  const raw = String(value ?? "").trim();
+  if (!raw && optional) return null;
+  const number = Number(raw);
+  if (!Number.isInteger(number) || number < minimum) {
+    throw badRequest(`${label} deve ser um nÃºmero inteiro maior ou igual a ${minimum}.`);
+  }
+  return number;
+}
 
-™\İ[[™^
-HOˆÈYˆ
-™\İ[™\œ›ÜŠH›İÑ‘\œ›ÜŠ™\İ[™\œ›Ü‹°èÛÈ›ÚHÜÜğë]™[Ø\œ™YØ\ˆ	ÛX™[ÖÚ[™^_K˜
-NÈJNÃBˆÛÛœİÛÛXš[˜][ÛœÔ™\İ[H]ØZ]‹™œ›ÛJœYXÙWÛ[ÛØÛÛXš[˜][ÛœÈŠCBˆœÙ[Xİ
-œYXÙWÚÚ[™ÛÛ™šYİ\˜][Û—ÚÚ[™Ü[Û—ÚÙ^Kœ˜XÛ×ØØ][Ù×ØÛÙKZ]×ØØ][Ù×ØÛÙK]\˜[ØØ][Ù×ØÛÙKX™[ÛÜÛÜ™\ˆŠCBˆ›Ü™\ŠœYXÙWÚÚ[™ŠK›Ü™\ŠœÛÜÛÜ™\ˆŠNÃBˆÛÛœİ[ÛÛÛXš[˜][ÛœÈHÛÛXš[˜][ÛœÔ™\İ[™\œ›ÜƒBˆÈZ[[ÛÛÛXš[˜][ÛœÊØ][ÙÔ™\İ[™]H×JCBˆˆÛÛXš[˜][ÛœÔ™\İ[™]H×NÃBƒBˆÛÛœİÜ™\’YÈH
-Ü™\œÔ™\İ[™]H×JK›X\
+function decimalValue(value: unknown, label: string, optional = false) {
+  const raw = String(value ?? "").trim();
+  if (!raw && optional) return null;
+  const number = Number(raw);
+  if (!Number.isFinite(number) || number < 0) throw badRequest(`${label} deve ser um nÃºmero maior ou igual a zero.`);
+  return number;
+}
 
-Ü™\ˆ[JHOˆÜ™\‹šY
-NÃBˆÛÛœİ][\Ô™\İ[HÜ™\’YË›[™İBˆÈ]ØZ]‹™œ›ÛJ›Ü™\—Ú][\ÈŠKœÙ[Xİ
-šYÜ™\—ÚYYXÙWİ\WÚY]X[]K›ÙXİ[Û—ÛZ[]\×ÜÛ˜\ÚİÙ\]Y[˜ÙKØœÙ\˜][ÛœÈŠCBˆ™\J›Ü™Ø[š^˜][Û—ÚY‹Ü™Ø[š^˜][Û’Y
-Kš[Š›Ü™\—ÚY‹Ü™\’YÊK›Ü™\ŠœÙ\]Y[˜ÙHŠCBˆˆÈ]Nˆ×K\œ›Üˆ[NÃBˆYˆ
-][\Ô™\İ[™\œ›ÜŠH›İÑ‘\œ›ÜŠ][\Ô™\İ[™\œ›Ü‹“°èÛÈ›ÚHÜÜğë]™[Ø\œ™YØ\ˆÜÈ][œÈÜÈYYÜËˆŠNÃBƒBˆËÈÛÛœİ[\ÈÜÚ[Û˜Z\ÈH]\HKˆ[H˜[˜ÛÈÙ[HHZYÜ˜][ÛˆHÛÛ[XCBˆËÈÙ\š[™È\È[\ÈYØY\ËX\ÈH™\ÜÜİH[™›Ü›XH]YHÈ›İ›È›^È°èÛÈ\İ0èH]]›ËƒBˆÛÛœİÜ›Ú™XİÔ™\İ[ÙXİ[ÛœÔ™\İ[ÙXİ[Û’][\Ô™\İ[İ\Ô™\İ[ÛÛœİ[Ô™\İ[HH]ØZ]›ÛZ\ÙK˜[
-ÃBˆ‹™œ›ÛJ™[™Ú[™Y\š[™×Ü›Ú™XİÈŠKœÙ[Xİ
-šYÜ™\—ÚYÜ™X]YØ]\]YØ]ŠCBˆ™\J›Ü™Ø[š^˜][Û—ÚY‹Ü™Ø[š^˜][Û’Y
-K›[Z]
-L
-KBˆ‹™œ›ÛJœ›Ú™XİÜÙXİ[ÛœÈŠKœÙ[Xİ
-šY›Ú™XİÚYÙXİ[Û—Û˜[YKÛÜÛÜ™\‹Ü™X]YØ]\]YØ]ŠCBˆ™\J›Ü™Ø[š^˜][Û—ÚY‹Ü™Ø[š^˜][Û’Y
-K›Ü™\ŠœÛÜÛÜ™\ˆŠK›[Z]
-L
-KBˆ‹™œ›ÛJœ›Ú™XİÜÙXİ[Û—Ú][\ÈŠKœÙ[Xİ
-šYÙXİ[Û—ÚYÜ™\—Ú][WÚY]X[]HŠCBˆ™\J›Ü™Ø[š^˜][Û—ÚY‹Ü™Ø[š^˜][Û’Y
-K›[Z]
-L
-KBˆ‹™œ›ÛJœ›ÙXİ[Û—ÛÜ™\—Üİ\ÈŠKœÙ[Xİ
-šY›ÙXİ[Û—ÛÜ™\—ÚYİ\ÚÚ[™Ù\]Y[˜ÙK\˜][Û—ÛZ[]\Ë[›™YÜİ\Ø][›™YÙ[™Ø]XİX[Üİ\Ø]XİX[Ù[™Ø]İ]\Ë›İ\ÈŠCBˆ™\J›Ü™Ø[š^˜][Û—ÚY‹Ü™Ø[š^˜][Û’Y
-K›Ü™\Šœ[›™YÜİ\Ø]ŠK›[Z]
-L
-KBˆ‹™œ›ÛJ˜Ø[İ[][Û—ØÛÛœİ[ÈŠKœÙ[Xİ
-˜ÛÛœİ[ÚÙ^K[Y\šX×İ˜[YK[š]ŠCBˆ™\J›Ü™Ø[š^˜][Û—ÚY‹Ü™Ø[š^˜][Û’Y
-K›Ü™\Š˜ÛÛœİ[ÚÙ^HŠKBˆJNÃBˆÛÛœİ˜Xš[Ì”™\İ[ÈHÜ›Ú™XİÔ™\İ[ÙXİ[ÛœÔ™\İ[ÙXİ[Û’][\Ô™\İ[İ\Ô™\İ[ÛÛœİ[Ô™\İ[NÃBˆÛÛœİ˜Xš[Ì]˜Z[X›HH˜Xš[Ì”™\İ[Ë™]™\J
-™\İ[
-HOˆ\™\İ[™\œ›ÜŠNÃBƒBˆÛÛœİÛY[ÈHÛY[Ô™\İ[™]H×NÃBˆÛÛœİÛÜšÜÈHÛÜšÜÔ™\İ[™]H×NÃBˆÛÛœİYXÙ\ÈHYXÙ\Ô™\İ[™]H×NÃBˆÛÛœİXİ]™TYXÙ\ÈHYXÙ\Ë™š[\Š
-YXÙNˆ[JHOˆYXÙKš\×ØXİ]™JNÃBˆÛÛœİ[ÛÈH[ÛÔ™\İ[™]H×NÃBˆÛÛœİÛY[RYH™]ÈX\
-ÛY[Ë›X\
+function addDays(value: string, days: number) {
+  const date = new Date(`${value}T00:00:00.000Z`);
+  date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString().slice(0, 10);
+}
 
-ÛY[ˆ[JHOˆØÛY[šYÛY[›˜[YWJJNÃBˆÛÛœİÛÜšĞRYH™]ÈX\
-ÛÜšÜË›X\
+function enumValue(value: unknown, values: Set<string>, fallback: string, label: string) {
+  const result = String(value || fallback);
+  if (!values.has(result)) throw badRequest(`${label} invÃ¡lido.`);
+  return result;
+}
 
-ÛÜšÎˆ[JHOˆİÛÜšËšYÛÜšË›˜[YWJJNÃBˆÛÛœİYXÙPRYH™]ÈX\
-YXÙ\Ë›X\
+function throwDbError(error: any, label: string): never {
+  if (!error) throw new Error(label);
+  const message = String(error.message || label);
+  const code = String(error.code || "");
+  const isConflict = code === "23505" || /ocupado|sobreposi[cÃ§][aÃ£]o|conflito|jÃ¡ existe|outra prepara[cÃ§][aÃ£]o/i.test(message);
+  const status = isConflict ? 409 : code === "P0001" || code.startsWith("23") || code.startsWith("22") ? 422 : 500;
+  const safeMessage = status === 500
+    ? label
+    : code === "23505"
+      ? "JÃ¡ existe um cadastro com o mesmo cÃ³digo ou nÃºmero nesta unidade."
+      : message;
+  throw Object.assign(new Error(safeMessage), { status });
+}
 
-YXÙNˆ[JHOˆÜYXÙKšYYXÙWJJNÃBˆÛÛœİ[ØØ]Y][RYÈH™]ÈÙ]
+async function resolveClientId(db: any, organizationId: string, input: Record<string, unknown>) {
+  const clientId = String(input.clientId || "").trim();
+  if (clientId) return clientId;
+  const name = textValue(input.clientName, "o cliente", 180, true);
+  const { data: current, error: readError } = await db.from("clients")
+    .select("id").eq("organization_id", organizationId).eq("name", name).eq("is_active", true)
+    .limit(1).maybeSingle();
+  if (readError) throwDbError(readError, "NÃ£o foi possÃ­vel consultar o cliente.");
+  if (current?.id) return current.id;
+  const { data, error } = await db.from("clients")
+    .insert({ organization_id: organizationId, name })
+    .select("id").single();
+  if (error) throwDbError(error, "NÃ£o foi possÃ­vel cadastrar o cliente.");
+  return data.id;
+}
 
-[ØØ][ÛœÔ™\İ[™]H×JK›X\
+function buildMoldCombinations(catalog: any[]) {
+  const arms = catalog.filter((item) => item.mold_type === "BRACO");
+  const beds = catalog.filter((item) => item.mold_type === "LEITO");
+  const sides = catalog.filter((item) => item.mold_type === "LATERAL");
+  return [
+    ...arms.map((arm) => ({
+      key: arm.code,
+      piece_kind: "braco",
+      configuration_kind: "braco",
+      braco_catalog_code: arm.code,
+      leito_catalog_code: null,
+      lateral_catalog_code: null,
+      label: `BRAÃ‡O ${arm.measure_label} cm`,
+    })),
+    ...["pilar", "viga"].flatMap((pieceKind) => beds.flatMap((bed) => sides.map((side) => ({
+      key: `${bed.code}|${side.code}`,
+      piece_kind: pieceKind,
+      configuration_kind: "pilar_viga",
+      braco_catalog_code: null,
+      leito_catalog_code: bed.code,
+      lateral_catalog_code: side.code,
+      label: `LEITO ${bed.measure_label} cm Ã— LATERAL ${side.measure_label} cm`,
+    })))),
+  ];
+}
 
-[ØØ][Ûˆ[JHOˆ[ØØ][Û‹›Ü™\—Ú][WÚY
-JNÃBˆÛÛœİ][\ĞSÜ™\ˆH™]ÈX\İš[™Ë[V×OŠ
-NÃBˆ›Üˆ
-ÛÛœİ][HÙˆ][\Ô™\İ[™]H×JHÃBˆÛÛœİ\İH][\ĞSÜ™\‹™Ù]
-][K›Ü™\—ÚY
-H×NÃBˆÛÛœİYXÙNˆ[HHYXÙPRY™Ù]
-][KœYXÙWİ\WÚY
-NÃBˆ\İœ\Ú
-È‹‹š][KYXÙWØÛÙNˆYXÙOË˜ÛÙHˆ‹YXÙWÛ˜[YNˆYXÙOË›˜[YHˆˆJNÃBˆ][\ĞSÜ™\‹œÙ]
-][K›Ü™\—ÚY\İ
-NÃBˆCBˆÛÛœİÜ™\’][PRYH™]ÈX\
+async function readOperationsData(db: any, organizationId: string) {
+  const [clientsResult, worksResult, ordersResult, piecesResult, moldsResult, compatResult, preparationsResult, allocationsResult, catalogResult, pieceMoldsResult, positionsResult] = await Promise.all([
+    db.from("clients").select("id, name, document, contact_name, phone, email, address, is_active")
+      .eq("organization_id", organizationId).eq("is_active", true).order("name").limit(1000),
+    db.from("works").select("id, work_number, name, client_id, address, responsible_name, start_date, requested_due_date, status, observations, is_active, created_at, updated_at")
+      .eq("organization_id", organizationId).eq("is_active", true).order("name").limit(1000),
+    db.from("orders").select("id, order_number, work_id, client_id, start_date, requested_due_date, planned_end_date, status, observations, is_active, created_at, updated_at")
+      .eq("organization_id", organizationId).eq("is_active", true).order("start_date", { ascending: false }).limit(1000),
+    db.from("piece_types").select("id, category_id, code, name, piece_kind, dimension_x_cm, dimension_y_cm, dimension_z_cm, dimensions, volume_cm3, weight_kg, volume_m3, production_minutes_per_unit, initial_stock_quantity, stock_minimum_quantity, observations, is_active")
+      .eq("organization_id", organizationId).order("code").limit(1000),
+    db.from("molds").select("id, code, name, mold_type, dimensions, catalog_code, cycle_minutes_per_unit, preparation_days, status, observations, created_at, updated_at")
+      .eq("organization_id", organizationId).order("code").limit(1000),
+    db.from("mold_piece_types").select("mold_id, piece_type_id")
+      .eq("organization_id", organizationId).limit(5000),
+    db.from("mold_preparations").select("id, mold_id, start_date, end_date, status, checklist, approved_by, approved_at, observations, created_at, updated_at")
+      .eq("organization_id", organizationId).order("start_date", { ascending: false }).limit(1000),
+    db.from("resource_allocations").select("id, resource_kind, mold_id, resource_name, order_item_id, start_date, end_date, status, conflict_reason, conflict_responsible, observations, created_at, updated_at")
+      .eq("organization_id", organizationId).order("start_date", { ascending: false }).limit(2000),
+    db.from("mold_catalog").select("code, mold_type, measure_label, sort_order").order("sort_order"),
+    db.from("piece_type_molds").select("piece_type_id, role, catalog_code")
+      .eq("organization_id", organizationId).limit(5000),
+    db.from("mold_positions").select("id, code, status, notes, configuration_kind, braco_catalog_code, leito_catalog_code, lateral_catalog_code")
+      .eq("organization_id", organizationId).order("code").limit(4),
+  ]);
+  const results = [clientsResult, worksResult, ordersResult, piecesResult, moldsResult, compatResult, preparationsResult, allocationsResult, catalogResult, pieceMoldsResult, positionsResult];
+  const labels = ["clientes", "obras", "pedidos", "tipos de peÃ§a", "moldes", "compatibilidades", "preparaÃ§Ãµes", "alocaÃ§Ãµes", "catÃ¡logo fixo de moldes", "moldes das peÃ§as", "posiÃ§Ãµes de molde"];
+  results.forEach((result, index) => { if (result.error) throwDbError(result.error, `NÃ£o foi possÃ­vel carregar ${labels[index]}.`); });
+  const combinationsResult = await db.from("piece_mold_combinations")
+    .select("piece_kind, configuration_kind, option_key, braco_catalog_code, leito_catalog_code, lateral_catalog_code, label, sort_order")
+    .order("piece_kind").order("sort_order");
+  const moldCombinations = combinationsResult.error
+    ? buildMoldCombinations(catalogResult.data || [])
+    : combinationsResult.data || [];
 
-][\Ô™\İ[™]H×JK›X\
+  const orderIds = (ordersResult.data || []).map((order: any) => order.id);
+  const itemsResult = orderIds.length
+    ? await db.from("order_items").select("id, order_id, piece_type_id, quantity, production_minutes_snapshot, sequence, observations")
+      .eq("organization_id", organizationId).in("order_id", orderIds).order("sequence")
+    : { data: [], error: null };
+  if (itemsResult.error) throwDbError(itemsResult.error, "NÃ£o foi possÃ­vel carregar os itens dos pedidos.");
 
-][Nˆ[JHOˆÚ][KšY][WJJNÃBˆÛÛœİÙXİ[ÛœĞT›Ú™XİH™]ÈX\İš[™Ë[V×OŠ
-NÃBˆ›Üˆ
-ÛÛœİÙXİ[ÛˆÙˆÙXİ[ÛœÔ™\İ[™]H×JHÃBˆÛÛœİ›İÜÈHÙXİ[ÛœĞT›Ú™Xİ™Ù]
-ÙXİ[Û‹œ›Ú™XİÚY
-H×NÃBˆ›İÜËœ\Ú
-ÙXİ[ÛŠNÃBˆÙXİ[ÛœĞT›Ú™XİœÙ]
-ÙXİ[Û‹œ›Ú™XİÚY›İÜÊNÃBˆCBˆÛÛœİ›Ú™Xİ][\ĞTÙXİ[ÛˆH™]ÈX\İš[™Ë[V×OŠ
-NÃBˆ›Üˆ
-ÛÛœİ][HÙˆÙXİ[Û’][\Ô™\İ[™]H×JHÃBˆÛÛœİ›İÜÈH›Ú™Xİ][\ĞTÙXİ[Û‹™Ù]
-][KœÙXİ[Û—ÚY
-H×NÃBˆ›İÜËœ\Ú
-È‹‹š][KÜ™\—Ú][NˆÜ™\’][PRY™Ù]
-][K›Ü™\—Ú][WÚY
-H[JNÃBˆ›Ú™Xİ][\ĞTÙXİ[Û‹œÙ]
-][KœÙXİ[Û—ÚY›İÜÊNÃBˆCBˆÛÛœİ[ÛYĞTYXÙHH™]ÈX\İš[™Ëİš[™Ö×OŠ
-NÃBˆÛÛœİYXÙRYĞS[ÛH™]ÈX\İš[™Ëİš[™Ö×OŠ
-NÃBˆ›Üˆ
-ÛÛœİZ\ˆÙˆÛÛ\]™\İ[™]H×JHÃBˆ[ÛYĞTYXÙKœÙ]
-Z\‹œYXÙWİ\WÚYË‹‹Š[ÛYĞTYXÙK™Ù]
-Z\‹œYXÙWİ\WÚY
-H×JKZ\‹›[ÛÚYJNÃBˆYXÙRYĞS[ÛœÙ]
-Z\‹›[ÛÚYË‹‹ŠYXÙRYĞS[Û™Ù]
-Z\‹›[ÛÚY
-H×JKZ\‹œYXÙWİ\WÚYJNÃBˆCBˆÛÛœİØ][ÙĞPÛÙHH™]ÈX\
+  // Consultas opcionais da Etapa 5. Um banco sem a migration 009 continua
+  // servindo as telas legadas, mas a resposta informa que o novo fluxo nÃ£o estÃ¡ ativo.
+  const [projectsResult, sectionsResult, sectionItemsResult, stepsResult, constantsResult] = await Promise.all([
+    db.from("engineering_projects").select("id, order_id, created_at, updated_at")
+      .eq("organization_id", organizationId).limit(1000),
+    db.from("project_sections").select("id, project_id, section_name, sort_order, created_at, updated_at")
+      .eq("organization_id", organizationId).order("sort_order").limit(5000),
+    db.from("project_section_items").select("id, section_id, order_item_id, quantity")
+      .eq("organization_id", organizationId).limit(10000),
+    db.from("production_order_steps").select("id, production_order_id, step_kind, sequence, duration_minutes, planned_start_at, planned_end_at, actual_start_at, actual_end_at, status, notes")
+      .eq("organization_id", organizationId).order("planned_start_at").limit(10000),
+    db.from("calculation_constants").select("constant_key, numeric_value, unit")
+      .eq("organization_id", organizationId).order("constant_key"),
+  ]);
+  const fabio2Results = [projectsResult, sectionsResult, sectionItemsResult, stepsResult, constantsResult];
+  const fabio2Available = fabio2Results.every((result) => !result.error);
 
-Ø][ÙÔ™\İ[™]H×JK›X\
+  const clients = clientsResult.data || [];
+  const works = worksResult.data || [];
+  const pieces = piecesResult.data || [];
+  const activePieces = pieces.filter((piece: any) => piece.is_active);
+  const molds = moldsResult.data || [];
+  const clientById = new Map(clients.map((client: any) => [client.id, client.name]));
+  const workById = new Map(works.map((work: any) => [work.id, work.name]));
+  const pieceById = new Map(pieces.map((piece: any) => [piece.id, piece]));
+  const allocatedItemIds = new Set((allocationsResult.data || []).map((allocation: any) => allocation.order_item_id));
+  const itemsByOrder = new Map<string, any[]>();
+  for (const item of itemsResult.data || []) {
+    const list = itemsByOrder.get(item.order_id) || [];
+    const piece: any = pieceById.get(item.piece_type_id);
+    list.push({ ...item, piece_code: piece?.code || "", piece_name: piece?.name || "" });
+    itemsByOrder.set(item.order_id, list);
+  }
+  const orderItemById = new Map((itemsResult.data || []).map((item: any) => [item.id, item]));
+  const sectionsByProject = new Map<string, any[]>();
+  for (const section of sectionsResult.data || []) {
+    const rows = sectionsByProject.get(section.project_id) || [];
+    rows.push(section);
+    sectionsByProject.set(section.project_id, rows);
+  }
+  const projectItemsBySection = new Map<string, any[]>();
+  for (const item of sectionItemsResult.data || []) {
+    const rows = projectItemsBySection.get(item.section_id) || [];
+    rows.push({ ...item, order_item: orderItemById.get(item.order_item_id) || null });
+    projectItemsBySection.set(item.section_id, rows);
+  }
+  const moldIdsByPiece = new Map<string, string[]>();
+  const pieceIdsByMold = new Map<string, string[]>();
+  for (const pair of compatResult.data || []) {
+    moldIdsByPiece.set(pair.piece_type_id, [...(moldIdsByPiece.get(pair.piece_type_id) || []), pair.mold_id]);
+    pieceIdsByMold.set(pair.mold_id, [...(pieceIdsByMold.get(pair.mold_id) || []), pair.piece_type_id]);
+  }
+  const catalogByCode = new Map((catalogResult.data || []).map((row: any) => [row.code, row]));
+  const moldCatalogsByPiece = new Map<string, Record<string, string>>();
+  for (const requirement of pieceMoldsResult.data || []) {
+    const moldsForPiece = moldCatalogsByPiece.get(requirement.piece_type_id) || {};
+    moldsForPiece[requirement.role] = requirement.catalog_code;
+    moldCatalogsByPiece.set(requirement.piece_type_id, moldsForPiece);
+  }
+  const projects = fabio2Available
+    ? (projectsResult.data || []).map((project: any) => ({
+      ...project,
+      sections: (sectionsByProject.get(project.id) || []).map((section: any) => ({
+        ...section,
+        items: projectItemsBySection.get(section.id) || [],
+      })),
+    }))
+    : [];
+  return {
+    schemaVersion: fabio2Available ? 5 : 4,
+    fabio2Available,
+    fabio2UnavailableReason: fabio2Available ? null : "A migration 009 nÃ£o estÃ¡ instalada ou suas tabelas nÃ£o estÃ£o disponÃ­veis.",
+    clients,
+    works: works.map((work: any) => ({ ...work, client_name: clientById.get(work.client_id) || "" })),
+    orders: (ordersResult.data || []).map((order: any) => ({
+      ...order,
+      client_name: clientById.get(order.client_id) || "",
+      work_name: workById.get(order.work_id) || "",
+      items: itemsByOrder.get(order.id) || [],
+      hasResourceAllocation: (itemsByOrder.get(order.id) || []).some((item) => allocatedItemIds.has(item.id)),
+    })),
+    pieceTypes: activePieces.map((piece: any) => ({
+      ...piece,
+      mold_ids: moldIdsByPiece.get(piece.id) || [],
+      mold_catalogs: moldCatalogsByPiece.get(piece.id) || {},
+    })),
+    molds: molds.map((mold: any) => ({
+      ...mold,
+      catalog_label: catalogByCode.has(mold.catalog_code)
+        ? `${catalogByCode.get(mold.catalog_code).mold_type} ${catalogByCode.get(mold.catalog_code).measure_label} cm`
+        : null,
+      piece_type_ids: pieceIdsByMold.get(mold.id) || [],
+    })),
+    moldCatalog: catalogResult.data || [],
+    moldCombinations,
+    positions: positionsResult.data || [],
+    preparations: preparationsResult.data || [],
+    allocations: allocationsResult.data || [],
+    engineeringProjects: projects,
+    productionOrderSteps: fabio2Available ? stepsResult.data || [] : [],
+    calculationConstants: fabio2Available ? constantsResult.data || [] : [],
+  };
+}
 
-›İÎˆ[JHOˆÜ›İË˜ÛÙK›İ×JJNÃBˆÛÛœİ[ÛØ][ÙÜĞTYXÙHH™]ÈX\İš[™Ë™XÛÜ™İš[™Ëİš[™ÏŠ
-NÃBˆ›Üˆ
-ÛÛœİ™\]Z\™[Y[ÙˆYXÙS[ÛÔ™\İ[™]H×JHÃBˆÛÛœİ[ÛÑ›Ü”YXÙHH[ÛØ][ÙÜĞTYXÙK™Ù]
-™\]Z\™[Y[œYXÙWİ\WÚY
-HßNÃBˆ[ÛÑ›Ü”YXÙVÜ™\]Z\™[Y[œ›ÛWHH™\]Z\™[Y[˜Ø][Ù×ØÛÙNÃBˆ[ÛØ][ÙÜĞTYXÙKœÙ]
-™\]Z\™[Y[œYXÙWİ\WÚY[ÛÑ›Ü”YXÙJNÃBˆCBˆÛÛœİ›Ú™XİÈH˜Xš[Ì]˜Z[X›CBˆÈ
-›Ú™XİÔ™\İ[™]H×JK›X\
+async function replanOpenQueue(db: any, organizationId: string) {
+  const { data: openOrders, error: orderError } = await db.from("orders")
+    .select("id, status")
+    .eq("organization_id", organizationId).eq("is_active", true)
+    .order("start_date", { ascending: true }).order("created_at", { ascending: true }).limit(1000);
+  if (orderError) throwDbError(orderError, "NÃ£o foi possÃ­vel localizar pedidos para replanejar.");
+  const targetOrder = (openOrders || []).find((order: any) => !["cancelado", "entregue", "concluido"].includes(order.status));
+  if (!targetOrder) return { committed: true, warning: null };
 
-›Ú™Xİˆ[JHOˆ
-ÃBˆ‹‹œ›Ú™XİBˆÙXİ[ÛœÎˆ
-ÙXİ[ÛœĞT›Ú™Xİ™Ù]
-›Ú™XİšY
-H×JK›X\
+  const queuePlan = await buildPlanningQueue({ db, organizationId, input: { orderId: targetOrder.id } });
+  const { error: commitError } = await db.rpc("commit_planning_queue", {
+    p_org_id: organizationId,
+    p_plans: queuePlan.plans.map((entry) => ({ orderId: entry.orderId, plan: entry.plan })),
+  });
+  if (commitError) throwDbError(commitError, "NÃ£o foi possÃ­vel recalcular o calendÃ¡rio apÃ³s a alteraÃ§Ã£o do cadastro.");
+  const warnings = queuePlan.plans.flatMap(({ orderId, plan: queuedPlan }) => queuedPlan.feasible ? [] : queuedPlan.conflicts.map((conflict: any) => `Pedido ${queuedPlan.order?.orderNumber || orderId}: ${conflict.message}`));
+  return { committed: true, warning: warnings.length ? warnings.slice(0, 5).join(" ") : null };
+}
 
-ÙXİ[Ûˆ[JHOˆ
-ÃBˆ‹‹œÙXİ[Û‹Bˆ][\Îˆ›Ú™Xİ][\ĞTÙXİ[Û‹™Ù]
-ÙXİ[Û‹šY
-H×KBˆJJKBˆJJCBˆˆ×NÃBˆ™]\›ˆÃBˆØÚ[XU™\œÚ[Ûˆ˜Xš[Ì]˜Z[X›HÈHˆBˆ˜Xš[Ì]˜Z[X›KBˆ˜Xš[Ì•[˜]˜Z[X›T™X\ÛÛˆ˜Xš[Ì]˜Z[X›HÈ[ˆHZYÜ˜][ÛˆH°èÛÈ\İ0èH[œİ[YHİHİX\ÈX™[\È°èÛÈ\İ0èÛÈ\ÜÛ°ë]™Z\Ëˆ‹BˆÛY[ËBˆÛÜšÜÎˆÛÜšÜË›X\
+async function moldPreparationEndDate(db: any, organizationId: string, moldId: string, startDate: string) {
+  const { data: mold, error } = await db.from("molds").select("preparation_days, status")
+    .eq("organization_id", organizationId).eq("id", moldId).maybeSingle();
+  if (error) throwDbError(error, "NÃ£o foi possÃ­vel consultar a duraÃ§Ã£o da preparaÃ§Ã£o.");
+  if (!mold || mold.status === "retirado") throw badRequest("Forma nÃ£o encontrada ou retirada nesta unidade.", 404);
+  const preparationDays = integerValue(mold.preparation_days, "A duraÃ§Ã£o da preparaÃ§Ã£o", 1);
+  if (preparationDays === 7) return addDays(startDate, 6); // Compatibilidade com o fluxo anterior Ã  migration 009.
+  return await findWorkingDayCompletionDate({ db, organizationId, startDate, workingDays: preparationDays });
+}
 
-ÛÜšÎˆ[JHOˆ
-È‹‹ÛÜšËÛY[Û˜[YNˆÛY[RY™Ù]
-ÛÜšË˜ÛY[ÚY
-HˆˆJJKBˆÜ™\œÎˆ
-Ü™\œÔ™\İ[™]H×JK›X\
+async function handler(request: Request) {
+  try {
+    const method = ensurePost(request);
+    if (method === "options") return json({ ok: true });
+    const config = getServerConfig();
+    const db = createAdminClient(config);
+    const input = await readJson(request);
+    const action = String(input.action || "bootstrap");
+    const organizationId = config.organizationId;
 
-Ü™\ˆ[JHOˆ
-ÃBˆ‹‹›Ü™\‹BˆÛY[Û˜[YNˆÛY[RY™Ù]
-Ü™\‹˜ÛY[ÚY
-Hˆ‹BˆÛÜš×Û˜[YNˆÛÜšĞRY™Ù]
-Ü™\‹ÛÜš×ÚY
-Hˆ‹Bˆ][\Îˆ][\ĞSÜ™\‹™Ù]
-Ü™\‹šY
-H×KBˆ\Ô™\Ûİ\˜ÙP[ØØ][Ûˆ
-][\ĞSÜ™\‹™Ù]
-Ü™\‹šY
-H×JKœÛÛYJ
-][JHOˆ[ØØ]Y][RYËš\Ê][KšY
-JKBˆJJKBˆYXÙU\\ÎˆXİ]™TYXÙ\Ë›X\
+    if (action === "bootstrap") return json({ ok: true, ...(await readOperationsData(db, organizationId)) });
 
-YXÙNˆ[JHOˆ
-ÃBˆ‹‹œYXÙKBˆ[ÛÚYÎˆ[ÛYĞTYXÙK™Ù]
-YXÙKšY
-H×KBˆ[ÛØØ][ÙÜÎˆ[ÛØ][ÙÜĞTYXÙK™Ù]
-YXÙKšY
-HßKBˆJJKBˆ[ÛÎˆ[ÛË›X\
+    if (action === "save_work") {
+      const clientId = await resolveClientId(db, organizationId, input);
+      const record = {
+        id: textValue(input.id, "o identificador", 80) || null,
+        workNumber: textValue(input.workNumber, "o nÃºmero da obra", 80),
+        name: textValue(input.name, "o nome da obra", 180, true),
+        clientId,
+        address: textValue(input.address, "o endereÃ§o", 300),
+        responsibleName: textValue(input.responsibleName, "o responsÃ¡vel", 180),
+        startDate: dateValue(input.startDate, "data de inÃ­cio", true),
+        requestedDueDate: dateValue(input.requestedDueDate, "data prevista", true),
+        status: enumValue(input.status, WORK_STATUSES, "planejamento", "Status da obra"),
+        observations: textValue(input.observations, "as observaÃ§Ãµes", 1000),
+      };
+      if (record.startDate && record.requestedDueDate && record.requestedDueDate < record.startDate) {
+        throw badRequest("A data prevista da obra nÃ£o pode ser anterior ao inÃ­cio.");
+      }
+      let previousStartDate: string | null = null;
+      if (record.id) {
+        const { data: previousWork, error: previousError } = await db.from("works")
+          .select("start_date").eq("organization_id", organizationId).eq("id", record.id).maybeSingle();
+        if (previousError) throwDbError(previousError, "NÃ£o foi possÃ­vel consultar a obra antes da atualizaÃ§Ã£o.");
+        previousStartDate = previousWork?.start_date || null;
+      }
+      const { data, error } = await db.rpc("save_work_record", { p_org_id: organizationId, p_record: record });
+      if (error) throwDbError(error, "NÃ£o foi possÃ­vel salvar a obra.");
+      let planning: Record<string, unknown> | null = null;
+      if (record.id && previousStartDate !== (data?.start_date || null)) {
+        try {
+          planning = await replanOpenQueue(db, organizationId);
+        } catch {
+          planning = { committed: false, warning: "A obra foi salva, mas o calendÃ¡rio nÃ£o pÃ´de ser recalculado. Atualize o planejamento." };
+        }
+      }
+      return json({ ok: true, work: data, planning });
+    }
 
-[Ûˆ[JHOˆ
-ÃBˆ‹‹›[ÛBˆØ][Ù×ÛX™[ˆØ][ÙĞPÛÙKš\Ê[Û˜Ø][Ù×ØÛÙJCBˆÈ	ØØ][ÙĞPÛÙK™Ù]
-[Û˜Ø][Ù×ØÛÙJK›[Ûİ\_H	ØØ][ÙĞPÛÙK™Ù]
-[Û˜Ø][Ù×ØÛÙJK›YX\İ\™WÛX™[HÛXBˆˆ[BˆYXÙWİ\WÚYÎˆYXÙRYĞS[Û™Ù]
-[ÛšY
-H×KBˆJJKBˆ[ÛØ][ÙÎˆØ][ÙÔ™\İ[™]H×KBˆ[ÛÛÛXš[˜][ÛœËBˆÜÚ][ÛœÎˆÜÚ][ÛœÔ™\İ[™]H×KBˆ™\\˜][ÛœÎˆ™\\˜][ÛœÔ™\İ[™]H×KBˆ[ØØ][ÛœÎˆ[ØØ][ÛœÔ™\İ[™]H×KBˆ[™Ú[™Y\š[™Ô›Ú™XİÎˆ›Ú™XİËBˆ›ÙXİ[Û“Ü™\”İ\Îˆ˜Xš[Ì]˜Z[X›HÈİ\Ô™\İ[™]H×Hˆ×KBˆØ[İ[][ÛÛÛœİ[Îˆ˜Xš[Ì]˜Z[X›HÈÛÛœİ[Ô™\İ[™]H×Hˆ×KBˆNÃBŸCBƒB˜\Ş[˜È[˜İ[Ûˆ™\[“Ü[”]Y]YJˆ[KÜ™Ø[š^˜][Û’Yˆİš[™ÊHÃBˆÛÛœİÈ]NˆÜ[“Ü™\œË\œ›ÜˆÜ™\‘\œ›ÜˆHH]ØZ]‹™œ›ÛJ›Ü™\œÈŠCBˆœÙ[Xİ
-šYİ]\ÈŠCBˆ™\J›Ü™Ø[š^˜][Û—ÚY‹Ü™Ø[š^˜][Û’Y
-K™\Jš\×ØXİ]™H‹YJCBˆ›Ü™\Šœİ\Ù]H‹È\ØÙ[™[™ÎˆYHJK›Ü™\Š˜Ü™X]YØ]‹È\ØÙ[™[™ÎˆYHJK›[Z]
-L
-NÃBˆYˆ
-Ü™\‘\œ›ÜŠH›İÑ‘\œ›ÜŠÜ™\‘\œ›Ü‹“°èÛÈ›ÚHÜÜğë]™[ØØ[^˜\ˆYYÜÈ\˜H™\[™Z˜\‹ˆŠNÃBˆÛÛœİ\™Ù]Ü™\ˆH
-Ü[“Ü™\œÈ×JK™š[™
+    if (action === "save_order") {
+      const workId = textValue(input.workId, "a obra", 80);
+      let clientId: string;
+      let inheritedStartDate: string | null = null;
+      if (workId) {
+        const { data: work, error } = await db.from("works").select("id, client_id, start_date")
+          .eq("organization_id", organizationId).eq("id", workId).eq("is_active", true).maybeSingle();
+        if (error) throwDbError(error, "NÃ£o foi possÃ­vel localizar a obra.");
+        if (!work) throw badRequest("Obra nÃ£o encontrada ou inativa.", 404);
+        if (!work.start_date) throw badRequest("Cadastre a data de inÃ­cio da obra antes de vincular este pedido.");
+        clientId = work.client_id;
+        inheritedStartDate = work.start_date;
+      } else {
+        clientId = await resolveClientId(db, organizationId, input);
+      }
+      const items = Array.isArray(input.items) ? input.items.map((item: any) => ({
+        pieceTypeId: textValue(item?.pieceTypeId, "o tipo de peÃ§a", 80, true),
+        quantity: integerValue(item?.quantity, "A quantidade", 1),
+        observations: textValue(item?.observations, "as observaÃ§Ãµes do item", 500),
+      })) : [];
+      if (!items.length || items.length > 100) {
+        throw badRequest("Inclua de 1 a 100 itens com quantidade vÃ¡lida.");
+      }
+      const order = {
+        id: textValue(input.id, "o identificador", 80) || null,
+        orderNumber: textValue(input.orderNumber, "o nÃºmero do pedido", 80),
+        workId: workId || null,
+        clientId,
+        startDate: inheritedStartDate || dateValue(input.startDate, "data de inÃ­cio")!,
+        requestedDueDate: dateValue(input.requestedDueDate, "prazo", true),
+        status: enumValue(input.status, ORDER_STATUSES, "orcamento", "Status do pedido"),
+        observations: textValue(input.observations, "as observaÃ§Ãµes", 1000),
+      };
+      if (order.requestedDueDate && order.requestedDueDate < order.startDate) {
+        throw badRequest("O prazo do pedido nÃ£o pode ser anterior ao inÃ­cio.");
+      }
+      const { data, error } = await db.rpc("save_order_with_items", {
+        p_org_id: organizationId,
+        p_order: order,
+        p_items: items,
+      });
+      if (error) throwDbError(error, "NÃ£o foi possÃ­vel salvar o pedido.");
 
-Ü™\ˆ[JHOˆVÈ˜Ø[˜Ù[YÈ‹™[™YİYH‹˜ÛÛ˜ÛZYÈ—Kš[˜ÛY\ÊÜ™\‹œİ]\ÊJNÃBˆYˆ
-]\™Ù]Ü™\ŠH™]\›ˆÈÛÛ[Z]YˆYKØ\›š[™Îˆ[NÃBƒBˆÛÛœİ]Y]YT[ˆH]ØZ]Z[[›š[™Ô]Y]YJÈ‹Ü™Ø[š^˜][Û’Y[œ]ˆÈÜ™\’Yˆ\™Ù]Ü™\‹šYHJNÃBˆÛÛœİÈ\œ›ÜˆÛÛ[Z]\œ›ÜˆHH]ØZ]‹œœÊ˜ÛÛ[Z]Ü[›š[™×Ü]Y]YH‹ÃBˆÛÜ™×ÚYˆÜ™Ø[š^˜][Û’YBˆÜ[œÎˆ]Y]YT[‹œ[œË›X\
+      // O cadastro e a programaÃ§Ã£o usam transaÃ§Ãµes separadas porque o motor
+      // Ã© calculado em JavaScript. Se houver falha, o pedido permanece salvo
+      // e a resposta informa claramente que a programaÃ§Ã£o precisa ser revista.
+      let planning: Record<string, unknown> = { committed: false };
+      try {
+        const { error: clearPlanError } = await db.from("orders")
+          .update({ planned_start_date: null, planned_end_date: null, forecast_end_date: null })
+          .eq("organization_id", organizationId)
+          .eq("id", data.id);
+        if (clearPlanError) throw clearPlanError;
 
-[JHOˆ
-ÈÜ™\’Yˆ[K›Ü™\’Y[ˆ[Kœ[ˆJJKBˆJNÃBˆYˆ
-ÛÛ[Z]\œ›ÜŠH›İÑ‘\œ›ÜŠÛÛ[Z]\œ›Ü‹“°èÛÈ›ÚHÜÜğë]™[™XØ[İ[\ˆÈØ[[™0è\š[È\0ìÜÈH[\˜péğèÛÈÈØY\İ›ËˆŠNÃBˆÛÛœİØ\›š[™ÜÈH]Y]YT[‹œ[œË™›]X\
+        const queuePlan = await buildPlanningQueue({
+          db,
+          organizationId,
+          input: {
+            orderId: data.id,
+            allowClosedTarget: ["cancelado", "entregue", "concluido"].includes(data.status),
+          },
+        });
+        const { data: committed, error: commitError } = await db.rpc("commit_planning_queue", {
+          p_org_id: organizationId,
+          p_plans: queuePlan.plans.map((entry) => ({ orderId: entry.orderId, plan: entry.plan })),
+        });
+        if (commitError) throwDbError(commitError, "NÃ£o foi possÃ­vel atualizar o calendÃ¡rio do pedido.");
+        const warningMessages = queuePlan.plans.flatMap(({ orderId, plan: queuedPlan }) =>
+          queuedPlan.feasible
+            ? []
+            : queuedPlan.conflicts.map((conflict: any) =>
+              `Pedido ${queuedPlan.order?.orderNumber || orderId}: ${conflict.message}`
+            )
+        );
+        planning = {
+          committed: true,
+          feasible: queuePlan.targetPlan?.feasible ?? true,
+          queueFeasible: queuePlan.queue.infeasibleOrderIds.length === 0,
+          replanOrderCount: queuePlan.queue.replanOrderCount,
+          removedFromPlan: queuePlan.removedTargetFromPlan,
+          plannedStartDate: queuePlan.targetPlan?.effectiveStartDate ?? null,
+          plannedEndDate: queuePlan.targetPlan?.plannedEndDate ?? null,
+          suggestedDueDate: queuePlan.targetPlan?.suggestedDueDate ?? null,
+          totalPlannedQuantity: queuePlan.targetPlan?.totalPlannedQuantity ?? 0,
+          totalRemainingQuantity: queuePlan.targetPlan?.totalRemainingQuantity ?? 0,
+          commit: committed,
+          warning: warningMessages.length ? warningMessages.slice(0, 5).join(" ") : null,
+        };
+      } catch (planningError) {
+        const message = planningError instanceof OrderPlanningError
+          ? planningError.message
+          : "O pedido foi salvo, mas o calendÃ¡rio nÃ£o pÃ´de ser atualizado. Atualize o planejamento para tentar novamente.";
+        planning = { committed: false, warning: message };
+      }
+      return json({ ok: true, order: data, planning });
+    }
 
-ÈÜ™\’Y[ˆ]Y]YY[ˆJHOˆ]Y]YY[‹™™X\ÚX›HÈ×Hˆ]Y]YY[‹˜ÛÛ™›XİË›X\
+    if (action === "save_engineering_project") {
+      const orderId = textValue(input.orderId, "o pedido", 80, true);
+      if (!Array.isArray(input.sections) || input.sections.length < 1 || input.sections.length > 100) {
+        throw badRequest("Informe de uma a cem seÃ§Ãµes para o projeto.");
+      }
+      const sections = input.sections.map((section: any, sectionIndex: number) => {
+        const items = Array.isArray(section?.items) ? section.items : [];
+        if (items.length > 500) throw badRequest("Cada seÃ§Ã£o pode conter atÃ© 500 itens.");
+        return {
+          sectionName: textValue(section?.sectionName, "o nome da seÃ§Ã£o", 120, true),
+          sortOrder: integerValue(section?.sortOrder ?? sectionIndex + 1, "A ordem da seÃ§Ã£o", 1),
+          items: items.map((item: any) => ({
+            orderItemId: textValue(item?.orderItemId, "o item do pedido", 80, true),
+            quantity: integerValue(item?.quantity, "A quantidade na seÃ§Ã£o", 1),
+          })),
+        };
+      });
+      const sectionNames = sections.map((section: any) => section.sectionName.toLocaleLowerCase());
+      if (new Set(sectionNames).size !== sectionNames.length) {
+        throw badRequest("O nome de cada seÃ§Ã£o precisa ser Ãºnico dentro do projeto.");
+      }
+      const { data, error } = await db.rpc("save_engineering_project_structure", {
+        p_org_id: organizationId,
+        p_order_id: orderId,
+        p_sections: sections,
+      });
+      if (error) throwDbError(error, "NÃ£o foi possÃ­vel salvar o projeto de engenharia. Confirme se a migration 009 estÃ¡ aplicada.");
+      return json({ ok: true, project: data });
+    }
 
-ÛÛ™›Xİˆ[JHOˆYYÈ	Ü]Y]YY[‹›Ü™\Ë›Ü™\“[X™\ˆÜ™\’YNˆ	ØÛÛ™›Xİ›Y\ÜØYÙ_X
-JNÃBˆ™]\›ˆÈÛÛ[Z]YˆYKØ\›š[™ÎˆØ\›š[™ÜË›[™İÈØ\›š[™ÜËœÛXÙJJKš›Ú[ŠˆŠHˆ[NÃBŸCBƒB˜\Ş[˜È[˜İ[Ûˆ[Û™\\˜][Û‘[™]Jˆ[KÜ™Ø[š^˜][Û’Yˆİš[™Ë[ÛYˆİš[™Ëİ\]Nˆİš[™ÊHÃBˆÛÛœİÈ]Nˆ[Û\œ›ÜˆHH]ØZ]‹™œ›ÛJ›[ÛÈŠKœÙ[Xİ
-œ™\\˜][Û—Ù^\Ëİ]\ÈŠCBˆ™\J›Ü™Ø[š^˜][Û—ÚY‹Ü™Ø[š^˜][Û’Y
-K™\JšY‹[ÛY
-K›X^X™TÚ[™ÛJ
-NÃBˆYˆ
-\œ›ÜŠH›İÑ‘\œ›ÜŠ\œ›Ü‹“°èÛÈ›ÚHÜÜğë]™[ÛÛœİ[\ˆH\˜péğèÛÈH™\\˜péğèÛËˆŠNÃBˆYˆ
-[[Û[Ûœİ]\ÈOOHœ™]\˜YÈŠH›İÈ˜Y™\]Y\İ
-‘›Ü›XH°èÛÈ[˜ÛÛ˜YHİH™]\˜YH™\İH[šYYKˆ‹
-NÃBˆÛÛœİ™\\˜][Û‘^\ÈH[YÙ\•˜[YJ[Ûœ™\\˜][Û—Ù^\ËH\˜péğèÛÈH™\\˜péğèÛÈ‹JNÃBˆYˆ
-™\\˜][Û‘^\ÈOOHÊH™]\›ˆY^\Êİ\]KŠNÈËÈÛÛ\]Xš[YYHÛÛHÈ›^È[\š[Üˆ0èZYÜ˜][ÛˆKƒBˆ™]\›ˆ]ØZ]š[™ÛÜšÚ[™Ñ^PÛÛ\][Û‘]JÈ‹Ü™Ø[š^˜][Û’Yİ\]KÛÜšÚ[™Ñ^\Îˆ™\\˜][Û‘^\ÈJNÃBŸCBƒB˜\Ş[˜È[˜İ[Ûˆ[™\Š™\]Y\İˆ™\]Y\İ
-HÃBˆHÃBˆÛÛœİY]ÙH[œİ\™TÜİ
-™\]Y\İ
-NÃBˆYˆ
-Y]ÙOOH›Ü[ÛœÈŠH™]\›ˆœÛÛŠÈÚÎˆYHJNÃBˆÛÛœİÛÛ™šYÈHÙ]Ù\™\ÛÛ™šYÊ
-NÃBˆÛÛœİˆHÜ™X]PYZ[ÛY[
-ÛÛ™šYÊNÃBˆÛÛœİ[œ]H]ØZ]™XYœÛÛŠ™\]Y\İ
-NÃBˆÛÛœİXİ[ÛˆHİš[™Ê[œ]˜Xİ[Ûˆ˜›Ûİİ˜\ŠNÃBˆÛÛœİÜ™Ø[š^˜][Û’YHÛÛ™šYË›Ü™Ø[š^˜][Û’YÃBƒBˆYˆ
-Xİ[ÛˆOOH˜›Ûİİ˜\ŠH™]\›ˆœÛÛŠÈÚÎˆYK‹‹Š]ØZ]™XYÜ\˜][ÛœÑ]J‹Ü™Ø[š^˜][Û’Y
-JHJNÃBƒBˆYˆ
-Xİ[ÛˆOOHœØ]™WİÛÜšÈŠHÃBˆÛÛœİÛY[YH]ØZ]™\ÛÛ™PÛY[Y
-‹Ü™Ø[š^˜][Û’Y[œ]
-NÃBˆÛÛœİ™XÛÜ™HÃBˆYˆ^˜[YJ[œ]šY›ÈY[YšXØYÜˆ‹
-H[BˆÛÜšÓ[X™\ˆ^˜[YJ[œ]ÛÜšÓ[X™\‹›È°î›Y\›ÈHØœ˜H‹
-KBˆ˜[YNˆ^˜[YJ[œ]›˜[YK›È›ÛYHHØœ˜H‹NYJKBˆÛY[YBˆY™\ÜÎˆ^˜[YJ[œ]˜Y™\ÜË›È[™\™péÛÈ‹Ì
-KBˆ™\ÜÛœÚX›S˜[YNˆ^˜[YJ[œ]œ™\ÜÛœÚX›S˜[YK›È™\ÜÛœğè]™[‹N
-KBˆİ\]Nˆ]U˜[YJ[œ]œİ\]K™]HH[°ëXÚ[È‹YJKBˆ™\]Y\İYYQ]Nˆ]U˜[YJ[œ]œ™\]Y\İYYQ]K™]H™]š\İH‹YJKBˆİ]\Îˆ[[U˜[YJ[œ]œİ]\ËÓÔ’×ÔÕUTÑTËœ[™Z˜[Y[È‹”İ]\ÈHØœ˜HŠKBˆØœÙ\˜][ÛœÎˆ^˜[YJ[œ]›ØœÙ\˜][ÛœË˜\ÈØœÙ\˜péğíY\È‹L
-KBˆNÃBˆYˆ
-™XÛÜ™œİ\]H	‰ˆ™XÛÜ™œ™\]Y\İYYQ]H	‰ˆ™XÛÜ™œ™\]Y\İYYQ]H™XÛÜ™œİ\]JHÃBˆ›İÈ˜Y™\]Y\İ
-H]H™]š\İHHØœ˜H°èÛÈÙHÙ\ˆ[\š[Üˆ[È[°ëXÚ[ËˆŠNÃBˆCBˆ]™]š[İ\Ôİ\]Nˆİš[™È[H[ÃBˆYˆ
-™XÛÜ™šY
-HÃBˆÛÛœİÈ]Nˆ™]š[İ\ÕÛÜšË\œ›Üˆ™]š[İ\Ñ\œ›ÜˆHH]ØZ]‹™œ›ÛJÛÜšÜÈŠCBˆœÙ[Xİ
-œİ\Ù]HŠK™\J›Ü™Ø[š^˜][Û—ÚY‹Ü™Ø[š^˜][Û’Y
-K™\JšY‹™XÛÜ™šY
-K›X^X™TÚ[™ÛJ
-NÃBˆYˆ
-™]š[İ\Ñ\œ›ÜŠH›İÑ‘\œ›ÜŠ™]š[İ\Ñ\œ›Ü‹“°èÛÈ›ÚHÜÜğë]™[ÛÛœİ[\ˆHØœ˜H[\ÈH]X[^˜péğèÛËˆŠNÃBˆ™]š[İ\Ôİ\]HH™]š[İ\ÕÛÜšÏËœİ\Ù]H[ÃBˆCBˆÛÛœİÈ]K\œ›ÜˆHH]ØZ]‹œœÊœØ]™WİÛÜš×Ü™XÛÜ™‹ÈÛÜ™×ÚYˆÜ™Ø[š^˜][Û’YÜ™XÛÜ™ˆ™XÛÜ™JNÃBˆYˆ
-\œ›ÜŠH›İÑ‘\œ›ÜŠ\œ›Ü‹“°èÛÈ›ÚHÜÜğë]™[Ø[˜\ˆHØœ˜KˆŠNÃBˆ][›š[™Îˆ™XÛÜ™İš[™Ë[šÛ›İÛˆ[H[ÃBˆYˆ
-™XÛÜ™šY	‰ˆ™]š[İ\Ôİ\]HOOH
-]OËœİ\Ù]H[
-JHÃBˆHÃBˆ[›š[™ÈH]ØZ]™\[“Ü[”]Y]YJ‹Ü™Ø[š^˜][Û’Y
-NÃBˆHØ]ÚÃBˆ[›š[™ÈHÈÛÛ[Z]Yˆ˜[ÙKØ\›š[™ÎˆHØœ˜H›ÚHØ[˜KX\ÈÈØ[[™0è\š[È°èÛÈ0íHÙ\ˆ™XØ[İ[YËˆ]X[^™HÈ[™Z˜[Y[ËˆˆNÃBˆCBˆCBˆ™]\›ˆœÛÛŠÈÚÎˆYKÛÜšÎˆ]K[›š[™ÈJNÃBˆCBƒBˆYˆ
-Xİ[ÛˆOOHœØ]™WÛÜ™\ˆŠHÃBˆÛÛœİÛÜšÒYH^˜[YJ[œ]ÛÜšÒY˜HØœ˜H‹
-NÃBˆ]ÛY[Yˆİš[™ÎÃBˆ][š\š]Yİ\]Nˆİš[™È[H[ÃBˆYˆ
-ÛÜšÒY
-HÃBˆÛÛœİÈ]NˆÛÜšË\œ›ÜˆHH]ØZ]‹™œ›ÛJÛÜšÜÈŠKœÙ[Xİ
-šYÛY[ÚYİ\Ù]HŠCBˆ™\J›Ü™Ø[š^˜][Û—ÚY‹Ü™Ø[š^˜][Û’Y
-K™\JšY‹ÛÜšÒY
-K™\Jš\×ØXİ]™H‹YJK›X^X™TÚ[™ÛJ
-NÃBˆYˆ
-\œ›ÜŠH›İÑ‘\œ›ÜŠ\œ›Ü‹“°èÛÈ›ÚHÜÜğë]™[ØØ[^˜\ˆHØœ˜KˆŠNÃBˆYˆ
-]ÛÜšÊH›İÈ˜Y™\]Y\İ
-“Øœ˜H°èÛÈ[˜ÛÛ˜YHİH[˜]]˜Kˆ‹
-NÃBˆYˆ
-]ÛÜšËœİ\Ù]JH›İÈ˜Y™\]Y\İ
-ØY\İ™HH]HH[°ëXÚ[ÈHØœ˜H[\ÈHš[˜İ[\ˆ\İHYYËˆŠNÃBˆÛY[YHÛÜšË˜ÛY[ÚYÃBˆ[š\š]Yİ\]HHÛÜšËœİ\Ù]NÃBˆH[ÙHÃBˆÛY[YH]ØZ]™\ÛÛ™PÛY[Y
-‹Ü™Ø[š^˜][Û’Y[œ]
-NÃBˆCBˆÛÛœİ][\ÈH\œ˜^Kš\Ğ\œ˜^J[œ]š][\ÊHÈ[œ]š][\Ë›X\
+    if (action === "calculate_piece_metrics") {
+      const dimensions = {
+        x: input.x ?? input.dimensionX ?? input.dimension_x_cm,
+        y: input.y ?? input.dimensionY ?? input.dimension_y_cm,
+        z: input.z ?? input.dimensionZ ?? input.dimension_z_cm,
+      };
+      const metrics = input.pieceKind === "placa"
+        ? calculatePlateMetrics(dimensions)
+        : calculatePieceMetrics(dimensions);
+      return json({ ok: true, metrics });
+    }
 
-][Nˆ[JHOˆ
-ÃBˆYXÙU\RYˆ^˜[YJ][OËœYXÙU\RY›È\ÈHpéØH‹YJKBˆ]X[]Nˆ[YÙ\•˜[YJ][OËœ]X[]KH]X[YYH‹JKBˆØœÙ\˜][ÛœÎˆ^˜[YJ][OË›ØœÙ\˜][ÛœË˜\ÈØœÙ\˜péğíY\ÈÈ][H‹L
-KBˆJJHˆ×NÃBˆYˆ
-Z][\Ë›[™İ][\Ë›[™İˆL
-HÃBˆ›İÈ˜Y™\]Y\İ
-’[˜ÛXHHHHL][œÈÛÛH]X[YYH°è[YKˆŠNÃBˆCBˆÛÛœİÜ™\ˆHÃBˆYˆ^˜[YJ[œ]šY›ÈY[YšXØYÜˆ‹
-H[BˆÜ™\“[X™\ˆ^˜[YJ[œ]›Ü™\“[X™\‹›È°î›Y\›ÈÈYYÈ‹
-KBˆÛÜšÒYˆÛÜšÒY[BˆÛY[YBˆİ\]Nˆ[š\š]Yİ\]H]U˜[YJ[œ]œİ\]K™]HH[°ëXÚ[ÈŠHKBˆ™\]Y\İYYQ]Nˆ]U˜[YJ[œ]œ™\]Y\İYYQ]Kœ˜^›È‹YJKBˆİ]\Îˆ[[U˜[YJ[œ]œİ]\ËÔ‘T—ÔÕUTÑTË›Ü˜Ø[Y[È‹”İ]\ÈÈYYÈŠKBˆØœÙ\˜][ÛœÎˆ^˜[YJ[œ]›ØœÙ\˜][ÛœË˜\ÈØœÙ\˜péğíY\È‹L
-KBˆNÃBˆYˆ
-Ü™\‹œ™\]Y\İYYQ]H	‰ˆÜ™\‹œ™\]Y\İYYQ]HÜ™\‹œİ\]JHÃBˆ›İÈ˜Y™\]Y\İ
-“È˜^›ÈÈYYÈ°èÛÈÙHÙ\ˆ[\š[Üˆ[È[°ëXÚ[ËˆŠNÃBˆCBˆÛÛœİÈ]K\œ›ÜˆHH]ØZ]‹œœÊœØ]™WÛÜ™\—İÚ]Ú][\È‹ÃBˆÛÜ™×ÚYˆÜ™Ø[š^˜][Û’YBˆÛÜ™\ˆÜ™\‹BˆÚ][\Îˆ][\ËBˆJNÃBˆYˆ
-\œ›ÜŠH›İÑ‘\œ›ÜŠ\œ›Ü‹“°èÛÈ›ÚHÜÜğë]™[Ø[˜\ˆÈYYËˆŠNÃBƒBˆËÈÈØY\İ›ÈHH›ÙÜ˜[XpéğèÛÈ\Ø[H˜[œØpéğíY\ÈÙ\\˜Y\ÈÜœ]YHÈ[İÜƒBˆËÈ0êHØ[İ[YÈ[H˜]˜TØÜš\ˆÙHİ]™\ˆ˜[KÈYYÈ\›X[™XÙHØ[›ÃBˆËÈHH™\ÜÜİH[™›Ü›XHÛ\˜[Y[H]YHH›ÙÜ˜[XpéğèÛÈ™XÚ\ØHÙ\ˆ™]š\İKƒBˆ][›š[™Îˆ™XÛÜ™İš[™Ë[šÛ›İÛˆHÈÛÛ[Z]Yˆ˜[ÙHNÃBˆHÃBˆÛÛœİÈ\œ›ÜˆÛX\”[‘\œ›ÜˆHH]ØZ]‹™œ›ÛJ›Ü™\œÈŠCBˆ\]JÈ[›™YÜİ\Ù]Nˆ[[›™YÙ[™Ù]Nˆ[›Ü™XØ\İÙ[™Ù]Nˆ[JCBˆ™\J›Ü™Ø[š^˜][Û—ÚY‹Ü™Ø[š^˜][Û’Y
-CBˆ™\JšY‹]KšY
-NÃBˆYˆ
-ÛX\”[‘\œ›ÜŠH›İÈÛX\”[‘\œ›ÜÃBƒBˆÛÛœİ]Y]YT[ˆH]ØZ]Z[[›š[™Ô]Y]YJÃBˆ‹BˆÜ™Ø[š^˜][Û’YBˆ[œ]ˆÃBˆÜ™\’Yˆ]KšYBˆ[İĞÛÜÙY\™Ù]ˆÈ˜Ø[˜Ù[YÈ‹™[™YİYH‹˜ÛÛ˜ÛZYÈ—Kš[˜ÛY\Ê]Kœİ]\ÊKBˆKBˆJNÃBˆÛÛœİÈ]NˆÛÛ[Z]Y\œ›ÜˆÛÛ[Z]\œ›ÜˆHH]ØZ]‹œœÊ˜ÛÛ[Z]Ü[›š[™×Ü]Y]YH‹ÃBˆÛÜ™×ÚYˆÜ™Ø[š^˜][Û’YBˆÜ[œÎˆ]Y]YT[‹œ[œË›X\
+    if (action === "save_delay_adjustment") {
+      const record = {
+        orderId: textValue(input.orderId, "o pedido", 80, true),
+        reason: textValue(input.reason, "o motivo do ajuste", 500, true),
+        occurredOn: dateValue(input.occurredOn, "data do ajuste")!,
+        adjustedForecastEndDate: dateValue(input.adjustedForecastEndDate, "nova data prevista")!,
+        recordedBy: textValue(input.recordedBy, "o responsÃ¡vel", 180) || null,
+      };
+      const { data, error } = await db.rpc("save_delay_adjustment", {
+        p_org_id: organizationId,
+        p_order_id: record.orderId,
+        p_reason: record.reason,
+        p_occurred_on: record.occurredOn,
+        p_adjusted_forecast_end: record.adjustedForecastEndDate,
+        p_recorded_by: record.recordedBy,
+      });
+      if (error) throwDbError(error, "NÃ£o foi possÃ­vel registrar o ajuste manual do prazo.");
+      return json({ ok: true, adjustment: data });
+    }
 
-[JHOˆ
-ÈÜ™\’Yˆ[K›Ü™\’Y[ˆ[Kœ[ˆJJKBˆJNÃBˆYˆ
-ÛÛ[Z]\œ›ÜŠH›İÑ‘\œ›ÜŠÛÛ[Z]\œ›Ü‹“°èÛÈ›ÚHÜÜğë]™[]X[^˜\ˆÈØ[[™0è\š[ÈÈYYËˆŠNÃBˆÛÛœİØ\›š[™ÓY\ÜØYÙ\ÈH]Y]YT[‹œ[œË™›]X\
+    if (action === "save_piece_type") {
+      const pieceKind = enumValue(input.pieceKind, new Set(["braco", "pilar", "viga"]), "", "Tipo de peÃ§a");
+      const dimensionXcm = decimalValue(input.dimensionXcm, "A dimensÃ£o X");
+      const dimensionYcm = decimalValue(input.dimensionYcm, "A dimensÃ£o Y");
+      const dimensionZcm = decimalValue(input.dimensionZcm, "A dimensÃ£o Z");
+      if (dimensionXcm === null || dimensionYcm === null || dimensionZcm === null || dimensionXcm <= 0 || dimensionYcm <= 0 || dimensionZcm <= 0) {
+        throw badRequest("Informe dimensÃµes X, Y e Z maiores que zero, em centÃ­metros.");
+      }
+      calculatePieceMetrics({ x: dimensionXcm, y: dimensionYcm, z: dimensionZcm });
+      const record = {
+        id: textValue(input.id, "o identificador", 80) || null,
+        code: textValue(input.code, "o cÃ³digo da peÃ§a", 60, true),
+        name: textValue(input.name, "o nome da peÃ§a", 180, true),
+        pieceKind,
+        dimensionXcm,
+        dimensionYcm,
+        dimensionZcm,
+        productionMinutesPerUnit: integerValue(input.productionMinutesPerUnit, "O tempo de produÃ§Ã£o", 1),
+        observations: textValue(input.observations, "as observaÃ§Ãµes", 1000),
+      };
+      const moldCatalogs = input.moldCatalogs && typeof input.moldCatalogs === "object" ? input.moldCatalogs as Record<string, unknown> : {};
+      const requiredRoles = pieceKind === "braco" ? ["braco"] : ["leito", "lateral"];
+      const selectedMolds: Record<string, string> = {};
+      for (const role of requiredRoles) selectedMolds[role] = textValue(moldCatalogs[role], `o molde ${role.toUpperCase()}`, 40, true);
+      if (pieceKind === "braco" && (moldCatalogs.leito || moldCatalogs.lateral)) throw badRequest("BraÃ§o usa somente um molde BRAÃ‡O.");
+      if (pieceKind !== "braco" && moldCatalogs.braco) throw badRequest("Pilar e Viga usam um molde LEITO e um LATERAL.");
+      const { data, error } = await db.rpc("save_piece_type", { p_org_id: organizationId, p_record: record, p_mold_catalogs: selectedMolds });
+      if (error) throwDbError(error, "NÃ£o foi possÃ­vel salvar o tipo de peÃ§a.");
+      let planning: Record<string, unknown>;
+      try {
+        planning = await replanOpenQueue(db, organizationId);
+      } catch (planningError) {
+        planning = {
+          committed: false,
+          warning: planningError instanceof OrderPlanningError
+            ? planningError.message
+            : "A peÃ§a foi salva, mas o calendÃ¡rio nÃ£o pÃ´de ser recalculado. Atualize o planejamento.",
+        };
+      }
+      return json({ ok: true, pieceType: data, planning });
+    }
 
-ÈÜ™\’Y[ˆ]Y]YY[ˆJHOƒBˆ]Y]YY[‹™™X\ÚX›CBˆÈ×CBˆˆ]Y]YY[‹˜ÛÛ™›XİË›X\
+    if (action === "save_plate_type") {
+      const dimensionXcm = decimalValue(input.dimensionXcm, "A Ã¡rea X da placa");
+      const dimensionYcm = decimalValue(input.dimensionYcm, "A Ã¡rea Y da placa");
+      const dimensionZcm = decimalValue(input.dimensionZcm, "A espessura Z da placa");
+      if (dimensionXcm === null || dimensionYcm === null || dimensionZcm === null || dimensionXcm <= 0 || dimensionYcm <= 0 || dimensionZcm <= 0) {
+        throw badRequest("Informe X, Y e espessura Z maiores que zero, em centÃ­metros.");
+      }
+      calculatePlateMetrics({ x: dimensionXcm, y: dimensionYcm, z: dimensionZcm });
+      const record = {
+        id: textValue(input.id, "o identificador", 80) || null,
+        code: textValue(input.code, "o cÃ³digo da placa", 60, true),
+        name: textValue(input.name, "o nome da placa", 180, true),
+        dimensionXcm,
+        dimensionYcm,
+        dimensionZcm,
+        productionMinutesPerUnit: integerValue(input.productionMinutesPerUnit, "O tempo de produÃ§Ã£o", 1),
+        observations: textValue(input.observations, "as observaÃ§Ãµes", 1000),
+      };
+      const { data, error } = await db.rpc("save_plate_type", { p_org_id: organizationId, p_record: record });
+      if (error) throwDbError(error, "NÃ£o foi possÃ­vel salvar a placa. Confirme se a migration 009 estÃ¡ aplicada.");
+      let planning: Record<string, unknown>;
+      try {
+        planning = await replanOpenQueue(db, organizationId);
+      } catch (planningError) {
+        planning = {
+          committed: false,
+          warning: planningError instanceof OrderPlanningError
+            ? planningError.message
+            : "A placa foi salva, mas o calendÃ¡rio nÃ£o pÃ´de ser recalculado. Atualize o planejamento.",
+        };
+      }
+      return json({ ok: true, pieceType: data, planning });
+    }
 
-ÛÛ™›Xİˆ[JHOƒBˆYYÈ	Ü]Y]YY[‹›Ü™\Ë›Ü™\“[X™\ˆÜ™\’YNˆ	ØÛÛ™›Xİ›Y\ÜØYÙ_XBˆ
-CBˆ
-NÃBˆ[›š[™ÈHÃBˆÛÛ[Z]YˆYKBˆ™X\ÚX›Nˆ]Y]YT[‹\™Ù][Ë™™X\ÚX›HÏÈYKBˆ]Y]YQ™X\ÚX›Nˆ]Y]YT[‹œ]Y]YKš[™™X\ÚX›SÜ™\’YË›[™İOOHBˆ™\[“Ü™\Ûİ[ˆ]Y]YT[‹œ]Y]YKœ™\[“Ü™\Ûİ[Bˆ™[[İ™Yœ›ÛT[ˆ]Y]YT[‹œ™[[İ™Y\™Ù]œ›ÛT[‹Bˆ[›™Yİ\]Nˆ]Y]YT[‹\™Ù][Ë™Y™™Xİ]™Tİ\]HÏÈ[Bˆ[›™Y[™]Nˆ]Y]YT[‹\™Ù][Ëœ[›™Y[™]HÏÈ[BˆİYÙÙ\İYYQ]Nˆ]Y]YT[‹\™Ù][ËœİYÙÙ\İYYQ]HÏÈ[Bˆİ[[›™Y]X[]Nˆ]Y]YT[‹\™Ù][Ëİ[[›™Y]X[]HÏÈBˆİ[™[XZ[š[™Ô]X[]Nˆ]Y]YT[‹\™Ù][Ëİ[™[XZ[š[™Ô]X[]HÏÈBˆÛÛ[Z]ˆÛÛ[Z]YBˆØ\›š[™ÎˆØ\›š[™ÓY\ÜØYÙ\Ë›[™İÈØ\›š[™ÓY\ÜØYÙ\ËœÛXÙJJKš›Ú[ŠˆŠHˆ[BˆNÃBˆHØ]Ú
-[›š[™Ñ\œ›ÜŠHÃBˆÛÛœİY\ÜØYÙHH[›š[™Ñ\œ›Üˆ[œİ[˜Ù[ÙˆÜ™\”[›š[™Ñ\œ›ÜƒBˆÈ[›š[™Ñ\œ›Ü‹›Y\ÜØYÙCBˆˆ“ÈYYÈ›ÚHØ[›ËX\ÈÈØ[[™0è\š[È°èÛÈ0íHÙ\ˆ]X[^˜YËˆ]X[^™HÈ[™Z˜[Y[È\˜H[\ˆ›İ˜[Y[KˆÃBˆ[›š[™ÈHÈÛÛ[Z]Yˆ˜[ÙKØ\›š[™ÎˆY\ÜØYÙHNÃBˆCBˆ™]\›ˆœÛÛŠÈÚÎˆYKÜ™\ˆ]K[›š[™ÈJNÃBˆCBƒBˆYˆ
-Xİ[ÛˆOOHœØ]™WÙ[™Ú[™Y\š[™×Ü›Ú™XİŠHÃBˆÛÛœİÜ™\’YH^˜[YJ[œ]›Ü™\’Y›ÈYYÈ‹YJNÃBˆYˆ
-P\œ˜^Kš\Ğ\œ˜^J[œ]œÙXİ[ÛœÊH[œ]œÙXİ[ÛœË›[™İH[œ]œÙXİ[ÛœË›[™İˆL
-HÃBˆ›İÈ˜Y™\]Y\İ
-’[™›Ü›YHH[XHHÙ[HÙpéğíY\È\˜HÈ›Ú™]ËˆŠNÃBˆCBˆÛÛœİÙXİ[ÛœÈH[œ]œÙXİ[ÛœË›X\
+    if (action === "save_mold") {
+      const record = {
+        id: textValue(input.id, "o identificador", 80) || null,
+        catalogCode: textValue(input.catalogCode, "a medida do molde", 40, true),
+        cycleMinutesPerUnit: integerValue(input.cycleMinutesPerUnit, "O ciclo do molde", 1, true),
+        status: enumValue(input.status, MOLD_STATUSES, "ativo", "Status do molde"),
+        observations: textValue(input.observations, "as observaÃ§Ãµes", 1000),
+      };
+      const { data, error } = await db.rpc("save_mold", { p_org_id: organizationId, p_record: record, p_piece_type_ids: [] });
+      if (error) throwDbError(error, "NÃ£o foi possÃ­vel salvar o molde.");
+      return json({ ok: true, mold: data });
+    }
 
-ÙXİ[Ûˆ[KÙXİ[Û’[™^ˆ[X™\ŠHOˆÃBˆÛÛœİ][\ÈH\œ˜^Kš\Ğ\œ˜^JÙXİ[ÛËš][\ÊHÈÙXİ[Û‹š][\Èˆ×NÃBˆYˆ
-][\Ë›[™İˆL
-H›İÈ˜Y™\]Y\İ
-ØYHÙpéğèÛÈÙHÛÛ\ˆ]0êHL][œËˆŠNÃBˆ™]\›ˆÃBˆÙXİ[Û“˜[YNˆ^˜[YJÙXİ[ÛËœÙXİ[Û“˜[YK›È›ÛYHHÙpéğèÛÈ‹LŒYJKBˆÛÜÜ™\ˆ[YÙ\•˜[YJÙXİ[ÛËœÛÜÜ™\ˆÏÈÙXİ[Û’[™^
-ÈKHÜ™[HHÙpéğèÛÈ‹JKBˆ][\Îˆ][\Ë›X\
+    if (action === "save_position") {
+      const code = textValue(input.code, "a posiÃ§Ã£o", 3, true);
+      const status = enumValue(input.status, POSITION_STATUSES, "disponivel", "Status da posiÃ§Ã£o");
+      const configurationKind = enumValue(input.configurationKind, new Set(["braco", "pilar_viga", "placa"]), "", "ConfiguraÃ§Ã£o da posiÃ§Ã£o");
+      const bracoCatalogCode = textValue(input.bracoCatalogCode, "o molde BRAÃ‡O", 40);
+      const leitoCatalogCode = textValue(input.leitoCatalogCode, "o molde LEITO", 40);
+      const lateralCatalogCode = textValue(input.lateralCatalogCode, "o molde LATERAL", 40);
+      const notes = textValue(input.notes, "as observaÃ§Ãµes", 1000);
+      if (configurationKind === "braco" && (!bracoCatalogCode || leitoCatalogCode || lateralCatalogCode)) {
+        throw badRequest("Configure a posiÃ§Ã£o com uma medida BRAÃ‡O.");
+      }
+      if (configurationKind === "pilar_viga" && (bracoCatalogCode || !leitoCatalogCode || !lateralCatalogCode)) {
+        throw badRequest("Configure a posiÃ§Ã£o com uma medida LEITO e uma LATERAL.");
+      }
+      if (configurationKind === "placa" && (bracoCatalogCode || leitoCatalogCode || lateralCatalogCode)) {
+        throw badRequest("A bancada de placa nÃ£o pode ter formas vinculadas.");
+      }
+      const { data, error } = await db.rpc("save_mold_position", {
+        p_org_id: organizationId,
+        p_code: code,
+        p_status: status,
+        p_configuration_kind: configurationKind,
+        p_braco_catalog_code: bracoCatalogCode || null,
+        p_leito_catalog_code: leitoCatalogCode || null,
+        p_lateral_catalog_code: lateralCatalogCode || null,
+        p_notes: notes || null,
+      });
+      if (error) throwDbError(error, "NÃ£o foi possÃ­vel salvar a configuraÃ§Ã£o da posiÃ§Ã£o.");
 
-][Nˆ[JHOˆ
-ÃBˆÜ™\’][RYˆ^˜[YJ][OË›Ü™\’][RY›È][HÈYYÈ‹YJKBˆ]X[]Nˆ[YÙ\•˜[YJ][OËœ]X[]KH]X[YYH˜HÙpéğèÛÈ‹JKBˆJJKBˆNÃBˆJNÃBˆÛÛœİÙXİ[Û“˜[Y\ÈHÙXİ[ÛœË›X\
+      let planning: Record<string, unknown>;
+      try {
+        planning = await replanOpenQueue(db, organizationId);
+      } catch (planningError) {
+        planning = {
+          committed: false,
+          warning: planningError instanceof OrderPlanningError
+            ? planningError.message
+            : "A posiÃ§Ã£o foi salva, mas o calendÃ¡rio nÃ£o pÃ´de ser recalculado. Atualize o planejamento.",
+        };
+      }
+      return json({ ok: true, position: data, planning });
+    }
 
-ÙXİ[Ûˆ[JHOˆÙXİ[Û‹œÙXİ[Û“˜[YKÓØØ[SİÙ\Ø\ÙJ
-JNÃBˆYˆ
-™]ÈÙ]
-ÙXİ[Û“˜[Y\ÊKœÚ^™HOOHÙXİ[Û“˜[Y\Ë›[™İ
-HÃBˆ›İÈ˜Y™\]Y\İ
-“È›ÛYHHØYHÙpéğèÛÈ™XÚ\ØHÙ\ˆ0î›šXÛÈ[›ÈÈ›Ú™]ËˆŠNÃBˆCBˆÛÛœİÈ]K\œ›ÜˆHH]ØZ]‹œœÊœØ]™WÙ[™Ú[™Y\š[™×Ü›Ú™XİÜİXİ\™H‹ÃBˆÛÜ™×ÚYˆÜ™Ø[š^˜][Û’YBˆÛÜ™\—ÚYˆÜ™\’YBˆÜÙXİ[ÛœÎˆÙXİ[ÛœËBˆJNÃBˆYˆ
-\œ›ÜŠH›İÑ‘\œ›ÜŠ\œ›Ü‹“°èÛÈ›ÚHÜÜğë]™[Ø[˜\ˆÈ›Ú™]ÈH[™Ù[š\šXKˆÛÛ™š\›YHÙHHZYÜ˜][ÛˆH\İ0èH\XØYKˆŠNÃBˆ™]\›ˆœÛÛŠÈÚÎˆYK›Ú™Xİˆ]HJNÃBˆCBƒBˆYˆ
-Xİ[ÛˆOOH˜Ø[İ[]WÜYXÙWÛY]šXÜÈŠHÃBˆÛÛœİ[Y[œÚ[ÛœÈHÃBˆˆ[œ]ÏÈ[œ]™[Y[œÚ[Û–ÏÈ[œ]™[Y[œÚ[Û—ŞØÛKBˆNˆ[œ]HÏÈ[œ]™[Y[œÚ[Û–HÏÈ[œ]™[Y[œÚ[Û—ŞWØÛKBˆˆ[œ]ˆÏÈ[œ]™[Y[œÚ[Û–ˆÏÈ[œ]™[Y[œÚ[Û—Ş—ØÛKBˆNÃBˆÛÛœİY]šXÜÈH[œ]œYXÙRÚ[™OOHœXØHƒBˆÈØ[İ[]T]SY]šXÜÊ[Y[œÚ[ÛœÊCBˆˆØ[İ[]TYXÙSY]šXÜÊ[Y[œÚ[ÛœÊNÃBˆ™]\›ˆœÛÛŠÈÚÎˆYKY]šXÜÈJNÃBˆCBƒBˆYˆ
-Xİ[ÛˆOOHœØ]™WÙ[^WØY\İY[ŠHÃBˆÛÛœİ™XÛÜ™HÃBˆÜ™\’Yˆ^˜[YJ[œ]›Ü™\’Y›ÈYYÈ‹YJKBˆ™X\ÛÛˆ^˜[YJ[œ]œ™X\ÛÛ‹›È[İ]›ÈÈZ\İH‹LYJKBˆØØİ\œ™YÛˆ]U˜[YJ[œ]›ØØİ\œ™YÛ‹™]HÈZ\İHŠHKBˆY\İY›Ü™XØ\İ[™]Nˆ]U˜[YJ[œ]˜Y\İY›Ü™XØ\İ[™]K››İ˜H]H™]š\İHŠHKBˆ™XÛÜ™YNˆ^˜[YJ[œ]œ™XÛÜ™YK›È™\ÜÛœğè]™[‹N
-H[BˆNÃBˆÛÛœİÈ]K\œ›ÜˆHH]ØZ]‹œœÊœØ]™WÙ[^WØY\İY[‹ÃBˆÛÜ™×ÚYˆÜ™Ø[š^˜][Û’YBˆÛÜ™\—ÚYˆ™XÛÜ™›Ü™\’YBˆÜ™X\ÛÛˆ™XÛÜ™œ™X\ÛÛ‹BˆÛØØİ\œ™YÛÛˆ™XÛÜ™›ØØİ\œ™YÛ‹BˆØY\İYÙ›Ü™XØ\İÙ[™ˆ™XÛÜ™˜Y\İY›Ü™XØ\İ[™]KBˆÜ™XÛÜ™YØNˆ™XÛÜ™œ™XÛÜ™YKBˆJNÃBˆYˆ
-\œ›ÜŠH›İÑ‘\œ›ÜŠ\œ›Ü‹“°èÛÈ›ÚHÜÜğë]™[™YÚ\İ˜\ˆÈZ\İHX[X[È˜^›ËˆŠNÃBˆ™]\›ˆœÛÛŠÈÚÎˆYKY\İY[ˆ]HJNÃBˆCBƒBˆYˆ
-Xİ[ÛˆOOHœØ]™WÜYXÙWİ\HŠHÃBˆÛÛœİYXÙRÚ[™H[[U˜[YJ[œ]œYXÙRÚ[™™]ÈÙ]
-È˜œ˜XÛÈ‹œ[\ˆ‹šYØH—JKˆ‹•\ÈHpéØHŠNÃBˆÛÛœİ[Y[œÚ[Û–ÛHHXÚ[X[˜[YJ[œ]™[Y[œÚ[Û–ÛKH[Y[œğèÛÈŠNÃBˆÛÛœİ[Y[œÚ[Û–XÛHHXÚ[X[˜[YJ[œ]™[Y[œÚ[Û–XÛKH[Y[œğèÛÈHŠNÃBˆÛÛœİ[Y[œÚ[Û–˜ÛHHXÚ[X[˜[YJ[œ]™[Y[œÚ[Û–˜ÛKH[Y[œğèÛÈˆŠNÃBˆYˆ
-[Y[œÚ[Û–ÛHOOH[[Y[œÚ[Û–XÛHOOH[[Y[œÚ[Û–˜ÛHOOH[[Y[œÚ[Û–ÛHH[Y[œÚ[Û–XÛHH[Y[œÚ[Û–˜ÛHH
-HÃBˆ›İÈ˜Y™\]Y\İ
-’[™›Ü›YH[Y[œğíY\ÈHHˆXZ[Ü™\È]YH™\›Ë[HÙ[0ë[Y]›ÜËˆŠNÃBˆCBˆØ[İ[]TYXÙSY]šXÜÊÈˆ[Y[œÚ[Û–ÛKNˆ[Y[œÚ[Û–XÛKˆ[Y[œÚ[Û–˜ÛHJNÃBˆÛÛœİ™XÛÜ™HÃBˆYˆ^˜[YJ[œ]šY›ÈY[YšXØYÜˆ‹
-H[BˆÛÙNˆ^˜[YJ[œ]˜ÛÙK›ÈğìÙYÛÈHpéØH‹ŒYJKBˆ˜[YNˆ^˜[YJ[œ]›˜[YK›È›ÛYHHpéØH‹NYJKBˆYXÙRÚ[™Bˆ[Y[œÚ[Û–ÛKBˆ[Y[œÚ[Û–XÛKBˆ[Y[œÚ[Û–˜ÛKBˆ›ÙXİ[Û“Z[]\Ô\•[š]ˆ[YÙ\•˜[YJ[œ]œ›ÙXİ[Û“Z[]\Ô\•[š]“È[\ÈH›ÙpéğèÛÈ‹JKBˆØœÙ\˜][ÛœÎˆ^˜[YJ[œ]›ØœÙ\˜][ÛœË˜\ÈØœÙ\˜péğíY\È‹L
-KBˆNÃBˆÛÛœİ[ÛØ][ÙÜÈH[œ]›[ÛØ][ÙÜÈ	‰ˆ\[Ùˆ[œ]›[ÛØ][ÙÜÈOOH›Øš™XİˆÈ[œ]›[ÛØ][ÙÜÈ\È™XÛÜ™İš[™Ë[šÛ›İÛˆˆßNÃBˆÛÛœİ™\]Z\™Y›Û\ÈHYXÙRÚ[™OOH˜œ˜XÛÈˆÈÈ˜œ˜XÛÈ—HˆÈ›Z]È‹›]\˜[—NÃBˆÛÛœİÙ[XİY[ÛÎˆ™XÛÜ™İš[™Ëİš[™ÏˆHßNÃBˆ›Üˆ
-ÛÛœİ›ÛHÙˆ™\]Z\™Y›Û\ÊHÙ[XİY[ÛÖÜ›ÛWHH^˜[YJ[ÛØ][ÙÜÖÜ›ÛWKÈ[ÛH	Ü›ÛKÕ\\Ø\ÙJ
-_XYJNÃBˆYˆ
-YXÙRÚ[™OOH˜œ˜XÛÈˆ	‰ˆ
-[ÛØ][ÙÜË›Z]È[ÛØ][ÙÜË›]\˜[
-JH›İÈ˜Y™\]Y\İ
-œ˜péÛÈ\ØHÛÛY[H[H[ÛH”páÓËˆŠNÃBˆYˆ
-YXÙRÚ[™OOH˜œ˜XÛÈˆ	‰ˆ[ÛØ][ÙÜË˜œ˜XÛÊH›İÈ˜Y™\]Y\İ
-”[\ˆHšYØH\Ø[H[H[ÛHRUÈH[HUTSˆŠNÃBˆÛÛœİÈ]K\œ›ÜˆHH]ØZ]‹œœÊœØ]™WÜYXÙWİ\H‹ÈÛÜ™×ÚYˆÜ™Ø[š^˜][Û’YÜ™XÛÜ™ˆ™XÛÜ™Û[ÛØØ][ÙÜÎˆÙ[XİY[ÛÈJNÃBˆYˆ
-\œ›ÜŠH›İÑ‘\œ›ÜŠ\œ›Ü‹“°èÛÈ›ÚHÜÜğë]™[Ø[˜\ˆÈ\ÈHpéØKˆŠNÃBˆ][›š[™Îˆ™XÛÜ™İš[™Ë[šÛ›İÛÃBˆHÃBˆ[›š[™ÈH]ØZ]™\[“Ü[”]Y]YJ‹Ü™Ø[š^˜][Û’Y
-NÃBˆHØ]Ú
-[›š[™Ñ\œ›ÜŠHÃBˆ[›š[™ÈHÃBˆÛÛ[Z]Yˆ˜[ÙKBˆØ\›š[™Îˆ[›š[™Ñ\œ›Üˆ[œİ[˜Ù[ÙˆÜ™\”[›š[™Ñ\œ›ÜƒBˆÈ[›š[™Ñ\œ›Ü‹›Y\ÜØYÙCBˆˆHpéØH›ÚHØ[˜KX\ÈÈØ[[™0è\š[È°èÛÈ0íHÙ\ˆ™XØ[İ[YËˆ]X[^™HÈ[™Z˜[Y[Ëˆ‹BˆNÃBˆCBˆ™]\›ˆœÛÛŠÈÚÎˆYKYXÙU\Nˆ]K[›š[™ÈJNÃBˆCBƒBˆYˆ
-Xİ[ÛˆOOHœØ]™WÜ]Wİ\HŠHÃBˆÛÛœİ[Y[œÚ[Û–ÛHHXÚ[X[˜[YJ[œ]™[Y[œÚ[Û–ÛKH0è\™XHHXØHŠNÃBˆÛÛœİ[Y[œÚ[Û–XÛHHXÚ[X[˜[YJ[œ]™[Y[œÚ[Û–XÛKH0è\™XHHHXØHŠNÃBˆÛÛœİ[Y[œÚ[Û–˜ÛHHXÚ[X[˜[YJ[œ]™[Y[œÚ[Û–˜ÛKH\Ü\Üİ\˜HˆHXØHŠNÃBˆYˆ
-[Y[œÚ[Û–ÛHOOH[[Y[œÚ[Û–XÛHOOH[[Y[œÚ[Û–˜ÛHOOH[[Y[œÚ[Û–ÛHH[Y[œÚ[Û–XÛHH[Y[œÚ[Û–˜ÛHH
-HÃBˆ›İÈ˜Y™\]Y\İ
-’[™›Ü›YHHH\Ü\Üİ\˜HˆXZ[Ü™\È]YH™\›Ë[HÙ[0ë[Y]›ÜËˆŠNÃBˆCBˆØ[İ[]T]SY]šXÜÊÈˆ[Y[œÚ[Û–ÛKNˆ[Y[œÚ[Û–XÛKˆ[Y[œÚ[Û–˜ÛHJNÃBˆÛÛœİ™XÛÜ™HÃBˆYˆ^˜[YJ[œ]šY›ÈY[YšXØYÜˆ‹
-H[BˆÛÙNˆ^˜[YJ[œ]˜ÛÙK›ÈğìÙYÛÈHXØH‹ŒYJKBˆ˜[YNˆ^˜[YJ[œ]›˜[YK›È›ÛYHHXØH‹NYJKBˆ[Y[œÚ[Û–ÛKBˆ[Y[œÚ[Û–XÛKBˆ[Y[œÚ[Û–˜ÛKBˆ›ÙXİ[Û“Z[]\Ô\•[š]ˆ[YÙ\•˜[YJ[œ]œ›ÙXİ[Û“Z[]\Ô\•[š]“È[\ÈH›ÙpéğèÛÈ‹JKBˆØœÙ\˜][ÛœÎˆ^˜[YJ[œ]›ØœÙ\˜][ÛœË˜\ÈØœÙ\˜péğíY\È‹L
-KBˆNÃBˆÛÛœİÈ]K\œ›ÜˆHH]ØZ]‹œœÊœØ]™WÜ]Wİ\H‹ÈÛÜ™×ÚYˆÜ™Ø[š^˜][Û’YÜ™XÛÜ™ˆ™XÛÜ™JNÃBˆYˆ
-\œ›ÜŠH›İÑ‘\œ›ÜŠ\œ›Ü‹“°èÛÈ›ÚHÜÜğë]™[Ø[˜\ˆHXØKˆÛÛ™š\›YHÙHHZYÜ˜][ÛˆH\İ0èH\XØYKˆŠNÃBˆ][›š[™Îˆ™XÛÜ™İš[™Ë[šÛ›İÛÃBˆHÃBˆ[›š[™ÈH]ØZ]™\[“Ü[”]Y]YJ‹Ü™Ø[š^˜][Û’Y
-NÃBˆHØ]Ú
-[›š[™Ñ\œ›ÜŠHÃBˆ[›š[™ÈHÃBˆÛÛ[Z]Yˆ˜[ÙKBˆØ\›š[™Îˆ[›š[™Ñ\œ›Üˆ[œİ[˜Ù[ÙˆÜ™\”[›š[™Ñ\œ›ÜƒBˆÈ[›š[™Ñ\œ›Ü‹›Y\ÜØYÙCBˆˆHXØH›ÚHØ[˜KX\ÈÈØ[[™0è\š[È°èÛÈ0íHÙ\ˆ™XØ[İ[YËˆ]X[^™HÈ[™Z˜[Y[Ëˆ‹BˆNÃBˆCBˆ™]\›ˆœÛÛŠÈÚÎˆYKYXÙU\Nˆ]K[›š[™ÈJNÃBˆCBƒBˆYˆ
-Xİ[ÛˆOOHœØ]™WÛ[ÛŠHÃBˆÛÛœİ™XÛÜ™HÃBˆYˆ^˜[YJ[œ]šY›ÈY[YšXØYÜˆ‹
-H[BˆØ][ÙĞÛÙNˆ^˜[YJ[œ]˜Ø][ÙĞÛÙK˜HYYYHÈ[ÛH‹YJKBˆŞXÛSZ[]\Ô\•[š]ˆ[YÙ\•˜[YJ[œ]˜ŞXÛSZ[]\Ô\•[š]“ÈÚXÛÈÈ[ÛH‹KYJKBˆİ]\Îˆ[[U˜[YJ[œ]œİ]\ËSÓÔÕUTÑTË˜]]›È‹”İ]\ÈÈ[ÛHŠKBˆØœÙ\˜][ÛœÎˆ^˜[YJ[œ]›ØœÙ\˜][ÛœË˜\ÈØœÙ\˜péğíY\È‹L
-KBˆNÃBˆÛÛœİÈ]K\œ›ÜˆHH]ØZ]‹œœÊœØ]™WÛ[Û‹ÈÛÜ™×ÚYˆÜ™Ø[š^˜][Û’YÜ™XÛÜ™ˆ™XÛÜ™ÜYXÙWİ\WÚYÎˆ×HJNÃBˆYˆ
-\œ›ÜŠH›İÑ‘\œ›ÜŠ\œ›Ü‹“°èÛÈ›ÚHÜÜğë]™[Ø[˜\ˆÈ[ÛKˆŠNÃBˆ™]\›ˆœÛÛŠÈÚÎˆYK[Ûˆ]HJNÃBˆCBƒBˆYˆ
-Xİ[ÛˆOOHœØ]™WÜÜÚ][ÛˆŠHÃBˆÛÛœİÛÙHH^˜[YJ[œ]˜ÛÙK˜HÜÚpéğèÛÈ‹ËYJNÃBˆÛÛœİİ]\ÈH[[U˜[YJ[œ]œİ]\ËÔÒUSÓ—ÔÕUTÑTË™\ÜÛš]™[‹”İ]\ÈHÜÚpéğèÛÈŠNÃBˆÛÛœİÛÛ™šYİ\˜][Û’Ú[™H[[U˜[YJ[œ]˜ÛÛ™šYİ\˜][Û’Ú[™™]ÈÙ]
-È˜œ˜XÛÈ‹œ[\—İšYØH‹œXØH—JKˆ‹ÛÛ™šYİ\˜péğèÛÈHÜÚpéğèÛÈŠNÃBˆÛÛœİœ˜XÛĞØ][ÙĞÛÙHH^˜[YJ[œ]˜œ˜XÛĞØ][ÙĞÛÙK›È[ÛH”páÓÈ‹
-NÃBˆÛÛœİZ]ĞØ][ÙĞÛÙHH^˜[YJ[œ]›Z]ĞØ][ÙĞÛÙK›È[ÛHRUÈ‹
-NÃBˆÛÛœİ]\˜[Ø][ÙĞÛÙHH^˜[YJ[œ]›]\˜[Ø][ÙĞÛÙK›È[ÛHUTS‹
-NÃBˆÛÛœİ›İ\ÈH^˜[YJ[œ]››İ\Ë˜\ÈØœÙ\˜péğíY\È‹L
-NÃBˆYˆ
-ÛÛ™šYİ\˜][Û’Ú[™OOH˜œ˜XÛÈˆ	‰ˆ
-Xœ˜XÛĞØ][ÙĞÛÙHZ]ĞØ][ÙĞÛÙH]\˜[Ø][ÙĞÛÙJJHÃBˆ›İÈ˜Y™\]Y\İ
-ÛÛ™šYİ\™HHÜÚpéğèÛÈÛÛH[XHYYYH”páÓËˆŠNÃBˆCBˆYˆ
-ÛÛ™šYİ\˜][Û’Ú[™OOHœ[\—İšYØHˆ	‰ˆ
-œ˜XÛĞØ][ÙĞÛÙH[Z]ĞØ][ÙĞÛÙH[]\˜[Ø][ÙĞÛÙJJHÃBˆ›İÈ˜Y™\]Y\İ
-ÛÛ™šYİ\™HHÜÚpéğèÛÈÛÛH[XHYYYHRUÈH[XHUTSˆŠNÃBˆCBˆYˆ
-ÛÛ™šYİ\˜][Û’Ú[™OOHœXØHˆ	‰ˆ
-œ˜XÛĞØ][ÙĞÛÙHZ]ĞØ][ÙĞÛÙH]\˜[Ø][ÙĞÛÙJJHÃBˆ›İÈ˜Y™\]Y\İ
-H˜[˜ØYHHXØH°èÛÈÙH\ˆ›Ü›X\Èš[˜İ[Y\ËˆŠNÃBˆCBˆÛÛœİÈ]K\œ›ÜˆHH]ØZ]‹œœÊœØ]™WÛ[ÛÜÜÚ][Ûˆ‹ÃBˆÛÜ™×ÚYˆÜ™Ø[š^˜][Û’YBˆØÛÙNˆÛÙKBˆÜİ]\Îˆİ]\ËBˆØÛÛ™šYİ\˜][Û—ÚÚ[™ˆÛÛ™šYİ\˜][Û’Ú[™BˆØœ˜XÛ×ØØ][Ù×ØÛÙNˆœ˜XÛĞØ][ÙĞÛÙH[BˆÛZ]×ØØ][Ù×ØÛÙNˆZ]ĞØ][ÙĞÛÙH[BˆÛ]\˜[ØØ][Ù×ØÛÙNˆ]\˜[Ø][ÙĞÛÙH[BˆÛ›İ\Îˆ›İ\È[BˆJNÃBˆYˆ
-\œ›ÜŠH›İÑ‘\œ›ÜŠ\œ›Ü‹“°èÛÈ›ÚHÜÜğë]™[Ø[˜\ˆHÛÛ™šYİ\˜péğèÛÈHÜÚpéğèÛËˆŠNÃBƒBˆ][›š[™Îˆ™XÛÜ™İš[™Ë[šÛ›İÛÃBˆHÃBˆ[›š[™ÈH]ØZ]™\[“Ü[”]Y]YJ‹Ü™Ø[š^˜][Û’Y
-NÃBˆHØ]Ú
-[›š[™Ñ\œ›ÜŠHÃBˆ[›š[™ÈHÃBˆÛÛ[Z]Yˆ˜[ÙKBˆØ\›š[™Îˆ[›š[™Ñ\œ›Üˆ[œİ[˜Ù[ÙˆÜ™\”[›š[™Ñ\œ›ÜƒBˆÈ[›š[™Ñ\œ›Ü‹›Y\ÜØYÙCBˆˆHÜÚpéğèÛÈ›ÚHØ[˜KX\ÈÈØ[[™0è\š[È°èÛÈ0íHÙ\ˆ™XØ[İ[YËˆ]X[^™HÈ[™Z˜[Y[Ëˆ‹BˆNÃBˆCBˆ™]\›ˆœÛÛŠÈÚÎˆYKÜÚ][Ûˆ]K[›š[™ÈJNÃBˆCBƒBˆYˆ
-Xİ[ÛˆOOH˜Ø[İ[]WÜ™\\˜][Û—Ù[™ŠHÃBˆÛÛœİ[ÛYH^˜[YJ[œ]›[ÛY˜H›Ü›XH‹YJNÃBˆÛÛœİİ\]HH]U˜[YJ[œ]œİ\]Kš[°ëXÚ[ÈH™\\˜péğèÛÈŠHNÃBˆÛÛœİ[™]HH]ØZ][Û™\\˜][Û‘[™]J‹Ü™Ø[š^˜][Û’Y[ÛYİ\]JNÃBˆ™]\›ˆœÛÛŠÈÚÎˆYK[™]HJNÃBˆCBƒBˆYˆ
-Xİ[ÛˆOOHœØ]™WÜ™\\˜][ÛˆŠHÃBˆÛÛœİ[ÛYH^˜[YJ[œ]›[ÛY›È[ÛH‹YJNÃBˆÛÛœİİ\]HH]U˜[YJ[œ]œİ\]Kš[°ëXÚ[ÈH™\\˜péğèÛÈŠHNÃBˆÛÛœİ[™]HH]ØZ][Û™\\˜][Û‘[™]J‹Ü™Ø[š^˜][Û’Y[ÛYİ\]JNÃBˆÛÛœİİ]\ÈH[[U˜[YJ[œ]œİ]\Ë‘TTUSÓ—ÔÕUTÑTËœ[™Z˜YH‹”İ]\ÈH™\\˜péğèÛÈŠNÃBˆÛÛœİÚXÚÛ\İ[œ]H[œ]˜ÚXÚÛ\İ	‰ˆ\[Ùˆ[œ]˜ÚXÚÛ\İOOH›Øš™XİˆÈ[œ]˜ÚXÚÛ\İ\È™XÛÜ™İš[™Ë[šÛ›İÛˆˆßNÃBˆÛÛœİÚXÚÛ\İHÃBˆ[\^˜NˆÚXÚÛ\İ[œ]›[\^˜HOOHYKBˆ\Û[Û[NˆÚXÚÛ\İ[œ]™\Û[Û[HOOHYKBˆ[ÛYÙ[NˆÚXÚÛ\İ[œ]›[ÛYÙ[HOOHYKBˆNÃBˆÛÛœİ\›İ™YHH^˜[YJ[œ]˜\›İ™YK˜H\ÜÛØH\›İ˜YÜ˜H‹N
-NÃBˆYˆ
-İ]\ÈOOH˜\›İ˜YHˆ	‰ˆ
-XÚXÚÛ\İ›[\^˜HXÚXÚÛ\İ™\Û[Û[HXÚXÚÛ\İ›[ÛYÙ[HX\›İ™YJJHÃBˆ›İÈ˜Y™\]Y\İ
-”\˜H\›İ˜\‹ÛÛ˜ÛXH[\^˜K\Û[Û[HH[ÛYÙ[HH[™›Ü›YH]Y[H\›İ›İKˆŠNÃBˆCBˆÛÛœİ™XÛÜ™ˆ™XÛÜ™İš[™Ë[šÛ›İÛˆHÃBˆÜ™Ø[š^˜][Û—ÚYˆÜ™Ø[š^˜][Û’YBˆ[ÛÚYˆ[ÛYBˆİ\Ù]Nˆİ\]KBˆ[™Ù]Nˆ[™]KBˆİ]\ËBˆÚXÚÛ\İBˆ\›İ™YØNˆİ]\ÈOOH˜\›İ˜YHˆÈ\›İ™YHˆ[BˆØœÙ\˜][ÛœÎˆ^˜[YJ[œ]›ØœÙ\˜][ÛœË˜\ÈØœÙ\˜péğíY\È‹L
-H[BˆNÃBˆÛÛœİYH^˜[YJ[œ]šY›ÈY[YšXØYÜˆ‹
-NÃBˆYˆ
-Y
-H™XÛÜ™šYHYÃBˆÛÛœİÈ]K\œ›ÜˆHH]ØZ]‹™œ›ÛJ›[ÛÜ™\\˜][ÛœÈŠK\Ù\
-™XÛÜ™
-KœÙ[Xİ
-šY[ÛÚYİ\Ù]K[™Ù]Kİ]\ËÚXÚÛ\İ\›İ™YØK\›İ™YØ]ØœÙ\˜][ÛœËÜ™X]YØ]\]YØ]ŠKœÚ[™ÛJ
-NÃBˆYˆ
-\œ›ÜŠH›İÑ‘\œ›ÜŠ\œ›Ü‹“°èÛÈ›ÚHÜÜğë]™[Ø[˜\ˆH™\\˜péğèÛÈÈ[ÛKˆŠNÃBˆ™]\›ˆœÛÛŠÈÚÎˆYK™\\˜][Ûˆ]HJNÃBˆCBƒBˆYˆ
-Xİ[ÛˆOOHœØ]™WØ[ØØ][ÛˆŠHÃBˆÛÛœİ™\Ûİ\˜ÙRÚ[™Hİš[™Ê[œ]œ™\Ûİ\˜ÙRÚ[™›[ÛŠNÃBˆYˆ
-™\Ûİ\˜ÙRÚ[™OOH›[Ûˆ	‰ˆ™\Ûİ\˜ÙRÚ[™OOH›İ\ˆŠH›İÈ˜Y™\]Y\İ
-•\ÈH™Xİ\œÛÈ[°è[YËˆŠNÃBˆÛÛœİİ\]HH]U˜[YJ[œ]œİ\]K™]H[šXÚX[ŠHNÃBˆÛÛœİ[™]HH]U˜[YJ[œ]™[™]K™]Hš[˜[ŠHNÃBˆYˆ
-[™]Hİ\]JH›İÈ˜Y™\]Y\İ
-H]Hš[˜[°èÛÈÙHÙ\ˆ[\š[Üˆ0è]H[šXÚX[ˆŠNÃBˆÛÛœİ™XÛÜ™ˆ™XÛÜ™İš[™Ë[šÛ›İÛˆHÃBˆÜ™Ø[š^˜][Û—ÚYˆÜ™Ø[š^˜][Û’YBˆ™\Ûİ\˜ÙWÚÚ[™ˆ™\Ûİ\˜ÙRÚ[™Bˆ[ÛÚYˆ™\Ûİ\˜ÙRÚ[™OOH›[ÛˆÈ^˜[YJ[œ]›[ÛY›È[ÛH‹YJHˆ[Bˆ™\Ûİ\˜ÙWÛ˜[YNˆ™\Ûİ\˜ÙRÚ[™OOH›İ\ˆˆÈ^˜[YJ[œ]œ™\Ûİ\˜ÙS˜[YK›È›ÛYHÈ™Xİ\œÛÈ‹NYJHˆˆ‹BˆÜ™\—Ú][WÚYˆ^˜[YJ[œ]›Ü™\’][RY›È][HÈYYÈ‹YJKBˆİ\Ù]Nˆİ\]KBˆ[™Ù]Nˆ[™]KBˆİ]\Îˆ[[U˜[YJ[œ]œİ]\ËSĞĞUSÓ—ÔÕUTÑTËœ[›™Y‹”İ]\ÈH[ØØpéğèÛÈŠKBˆÛÛ™›XİÜ™X\ÛÛˆ^˜[YJ[œ]˜ÛÛ™›Xİ™X\ÛÛ‹˜H\İYšXØ]]˜H‹L
-H[BˆÛÛ™›XİÜ™\ÜÛœÚX›Nˆ^˜[YJ[œ]˜ÛÛ™›Xİ™\ÜÛœÚX›K›È™\ÜÛœğè]™[[ÈÛÛ™›]È‹N
-H[BˆØœÙ\˜][ÛœÎˆ^˜[YJ[œ]›ØœÙ\˜][ÛœË˜\ÈØœÙ\˜péğíY\È‹L
-H[BˆNÃBˆÛÛœİYH^˜[YJ[œ]šY›ÈY[YšXØYÜˆ‹
-NÃBˆYˆ
-Y
-H™XÛÜ™šYHYÃBˆÛÛœİÈ]K\œ›ÜˆHH]ØZ]‹™œ›ÛJœ™\Ûİ\˜ÙWØ[ØØ][ÛœÈŠK\Ù\
-™XÛÜ™
-KœÙ[Xİ
-šY™\Ûİ\˜ÙWÚÚ[™[ÛÚY™\Ûİ\˜ÙWÛ˜[YKÜ™\—Ú][WÚYİ\Ù]K[™Ù]Kİ]\ËÛÛ™›XİÜ™X\ÛÛ‹ÛÛ™›XİÜ™\ÜÛœÚX›KØœÙ\˜][ÛœËÜ™X]YØ]\]YØ]ŠKœÚ[™ÛJ
-NÃBˆYˆ
-\œ›ÜŠH›İÑ‘\œ›ÜŠ\œ›Ü‹“°èÛÈ›ÚHÜÜğë]™[Ø[˜\ˆH[ØØpéğèÛÈÈ™Xİ\œÛËˆŠNÃBˆ™]\›ˆœÛÛŠÈÚÎˆYK[ØØ][Ûˆ]HJNÃBˆCBƒBˆYˆ
-Xİ[ÛˆOOH˜\˜Ú]™HŠHÃBˆÛÛœİYH^˜[YJ[œ]šY›È™YÚ\İ›È‹YJNÃBˆÛÛœİÚ[™Hİš[™Ê[œ]šÚ[™ˆŠNÃBˆ]]Y\NÃBˆYˆ
-Ú[™OOHÛÜšÈŠHÃBˆÛÛœİÈ]Nˆ[šÙYÜ™\œË\œ›Üˆ[šÙY\œ›ÜˆHH]ØZ]‹™œ›ÛJ›Ü™\œÈŠKœÙ[Xİ
-šYİ]\ÈŠCBˆ™\J›Ü™Ø[š^˜][Û—ÚY‹Ü™Ø[š^˜][Û’Y
-K™\JÛÜš×ÚY‹Y
-K™\Jš\×ØXİ]™H‹YJK›[Z]
-L
-NÃBˆYˆ
-[šÙY\œ›ÜŠH›İÑ‘\œ›ÜŠ[šÙY\œ›Ü‹“°èÛÈ›ÚHÜÜğë]™[ÛÛ™™\š\ˆÜÈYYÜÈš[˜İ[YÜËˆŠNÃBˆYˆ
+    if (action === "calculate_preparation_end") {
+      const moldId = textValue(input.moldId, "a forma", 80, true);
+      const startDate = dateValue(input.startDate, "inÃ­cio da preparaÃ§Ã£o")!;
+      const endDate = await moldPreparationEndDate(db, organizationId, moldId, startDate);
+      return json({ ok: true, endDate });
+    }
 
-[šÙYÜ™\œÈ×JK›[™İ
-HÃBˆ›İÈ˜Y™\]Y\İ
-HØœ˜H\İ0èHš[˜İ[YHHYYÜËˆX[[šHÈØY\İ›È\˜H™\Ù\˜\ˆÈ\İ0ìÜšXÛËˆ‹JNÃBˆCBˆ]Y\HH‹™œ›ÛJÛÜšÜÈŠK\]JÈ\×ØXİ]™Nˆ˜[ÙHJK™\JšY‹Y
-K™\J›Ü™Ø[š^˜][Û—ÚY‹Ü™Ø[š^˜][Û’Y
-KœÙ[Xİ
-šYŠK›X^X™TÚ[™ÛJ
-NÃBˆCBˆ[ÙHYˆ
-Ú[™OOHœYXÙWİ\HŠHÃBˆÛÛœİÈ]Nˆ[šÙY][\Ë\œ›Üˆ[šÙY\œ›ÜˆHH]ØZ]‹™œ›ÛJ›Ü™\—Ú][\ÈŠKœÙ[Xİ
-šYŠCBˆ™\J›Ü™Ø[š^˜][Û—ÚY‹Ü™Ø[š^˜][Û’Y
-K™\JœYXÙWİ\WÚY‹Y
-K›[Z]
-JNÃBˆYˆ
-[šÙY\œ›ÜŠH›İÑ‘\œ›ÜŠ[šÙY\œ›Ü‹“°èÛÈ›ÚHÜÜğë]™[ÛÛ™™\š\ˆÜÈYYÜÈ]YH\Ø[H\İHpéØKˆŠNÃBˆYˆ
-[šÙY][\ÏË›[™İ
-H›İÈ˜Y™\]Y\İ
-‘\İH\ÈHpéØH\İ0èHš[˜İ[YÈHYYÜËˆX[[šHÈØY\İ›È\˜H™\Ù\˜\ˆÈ\İ0ìÜšXÛËˆ‹JNÃBˆ]Y\HH‹™œ›ÛJœYXÙWİ\\ÈŠK\]JÈ\×ØXİ]™Nˆ˜[ÙHJK™\JšY‹Y
-K™\J›Ü™Ø[š^˜][Û—ÚY‹Ü™Ø[š^˜][Û’Y
-KœÙ[Xİ
-šYŠK›X^X™TÚ[™ÛJ
-NÃBˆCBˆ[ÙHYˆ
-Ú[™OOH›[ÛŠHÃBˆÛÛœİŞÈ]Nˆ[ØØ][ÛœË\œ›Üˆ[ØØ][Û‘\œ›ÜˆKÈ]Nˆ™\\˜][ÛœË\œ›Üˆ™\\˜][Û‘\œ›ÜˆWHH]ØZ]›ÛZ\ÙK˜[
-ÃBˆ‹™œ›ÛJœ™\Ûİ\˜ÙWØ[ØØ][ÛœÈŠKœÙ[Xİ
-šYŠK™\J›Ü™Ø[š^˜][Û—ÚY‹Ü™Ø[š^˜][Û’Y
-K™\J›[ÛÚY‹Y
-Kš[Šœİ]\È‹Èœ[›™Y‹š[—Ü›ÙÜ™\ÜÈ—JK›[Z]
-JKBˆ‹™œ›ÛJ›[ÛÜ™\\˜][ÛœÈŠKœÙ[Xİ
-šYŠK™\J›Ü™Ø[š^˜][Û—ÚY‹Ü™Ø[š^˜][Û’Y
-K™\J›[ÛÚY‹Y
-Kš[Šœİ]\È‹Èœ[™Z˜YH‹™[WØ[™[Y[È‹˜YİX\™[™×Ø\›İ˜XØ[È—JK›[Z]
-JKBˆJNÃBˆYˆ
-[ØØ][Û‘\œ›ÜŠH›İÑ‘\œ›ÜŠ[ØØ][Û‘\œ›Ü‹“°èÛÈ›ÚHÜÜğë]™[ÛÛ™™\š\ˆ\È[ØØpéğíY\ÈÈ[ÛKˆŠNÃBˆYˆ
-™\\˜][Û‘\œ›ÜŠH›İÑ‘\œ›ÜŠ™\\˜][Û‘\œ›Ü‹“°èÛÈ›ÚHÜÜğë]™[ÛÛ™™\š\ˆ\È™\\˜péğíY\ÈÈ[ÛKˆŠNÃBˆYˆ
-[ØØ][ÛœÏË›[™İ™\\˜][ÛœÏË›[™İ
-H›İÈ˜Y™\]Y\İ
-Ø[˜Ù[H\È[ØØpéğíY\ÈHÛÛ˜ÛXHİHØ[˜Ù[H\È™\\˜péğíY\È[\ÈH™]\˜\ˆÈ[ÛKˆ‹JNÃBˆ]Y\HH‹™œ›ÛJ›[ÛÈŠK\]JÈİ]\Îˆœ™]\˜YÈˆJK™\JšY‹Y
-K™\J›Ü™Ø[š^˜][Û—ÚY‹Ü™Ø[š^˜][Û’Y
-KœÙ[Xİ
-šYŠK›X^X™TÚ[™ÛJ
-NÃBˆCBˆ[ÙH›İÈ˜Y™\]Y\İ
-•\ÈHØY\İ›È[°è[YËˆŠNÃBˆÛÛœİÈ]K\œ›ÜˆHH]ØZ]]Y\NÃBˆYˆ
-\œ›ÜŠH›İÑ‘\œ›ÜŠ\œ›Ü‹“°èÛÈ›ÚHÜÜğë]™[\œ]Z]˜\ˆÈØY\İ›ËˆŠNÃBˆYˆ
-Y]JH›İÈ˜Y™\]Y\İ
-ØY\İ›È°èÛÈ[˜ÛÛ˜YËˆ‹
-NÃBˆ™]\›ˆœÛÛŠÈÚÎˆYK\˜Ú]™YYˆ]KšYJNÃBˆCBƒBˆ›İÈ˜Y™\]Y\İ
-péğèÛÈHØY\İ›ÜÈ[°è[YKˆŠNÃBˆHØ]Ú
-\œ›ÜŠHÃBˆ™]\›ˆ[™Q\œ›ÜŠ\œ›ÜŠNÃBˆCBŸCBƒB‘[›ËœÙ\™J[™\ŠNÃB
+    if (action === "save_preparation") {
+      const moldId = textValue(input.moldId, "o molde", 80, true);
+      const startDate = dateValue(input.startDate, "inÃ­cio da preparaÃ§Ã£o")!;
+      const endDate = await moldPreparationEndDate(db, organizationId, moldId, startDate);
+      const status = enumValue(input.status, PREPARATION_STATUSES, "planejada", "Status da preparaÃ§Ã£o");
+      const checklistInput = input.checklist && typeof input.checklist === "object" ? input.checklist as Record<string, unknown> : {};
+      const checklist = {
+        limpeza: checklistInput.limpeza === true,
+        desmoldante: checklistInput.desmoldante === true,
+        montagem: checklistInput.montagem === true,
+      };
+      const approvedBy = textValue(input.approvedBy, "a pessoa aprovadora", 180);
+      if (status === "aprovada" && (!checklist.limpeza || !checklist.desmoldante || !checklist.montagem || !approvedBy)) {
+        throw badRequest("Para aprovar, conclua limpeza, desmoldante e montagem e informe quem aprovou.");
+      }
+      const record: Record<string, unknown> = {
+        organization_id: organizationId,
+        mold_id: moldId,
+        start_date: startDate,
+        end_date: endDate,
+        status,
+        checklist,
+        approved_by: status === "aprovada" ? approvedBy : null,
+        observations: textValue(input.observations, "as observaÃ§Ãµes", 1000) || null,
+      };
+      const id = textValue(input.id, "o identificador", 80);
+      if (id) record.id = id;
+      const { data, error } = await db.from("mold_preparations").upsert(record).select("id, mold_id, start_date, end_date, status, checklist, approved_by, approved_at, observations, created_at, updated_at").single();
+      if (error) throwDbError(error, "NÃ£o foi possÃ­vel salvar a preparaÃ§Ã£o do molde.");
+      return json({ ok: true, preparation: data });
+    }
+
+    if (action === "save_allocation") {
+      const resourceKind = String(input.resourceKind || "mold");
+      if (resourceKind !== "mold" && resourceKind !== "other") throw badRequest("Tipo de recurso invÃ¡lido.");
+      const startDate = dateValue(input.startDate, "data inicial")!;
+      const endDate = dateValue(input.endDate, "data final")!;
+      if (endDate < startDate) throw badRequest("A data final nÃ£o pode ser anterior Ã  data inicial.");
+      const record: Record<string, unknown> = {
+        organization_id: organizationId,
+        resource_kind: resourceKind,
+        mold_id: resourceKind === "mold" ? textValue(input.moldId, "o molde", 80, true) : null,
+        resource_name: resourceKind === "other" ? textValue(input.resourceName, "o nome do recurso", 180, true) : "",
+        order_item_id: textValue(input.orderItemId, "o item do pedido", 80, true),
+        start_date: startDate,
+        end_date: endDate,
+        status: enumValue(input.status, ALLOCATION_STATUSES, "planned", "Status da alocaÃ§Ã£o"),
+        conflict_reason: textValue(input.conflictReason, "a justificativa", 500) || null,
+        conflict_responsible: textValue(input.conflictResponsible, "o responsÃ¡vel pelo conflito", 180) || null,
+        observations: textValue(input.observations, "as observaÃ§Ãµes", 1000) || null,
+      };
+      const id = textValue(input.id, "o identificador", 80);
+      if (id) record.id = id;
+      const { data, error } = await db.from("resource_allocations").upsert(record).select("id, resource_kind, mold_id, resource_name, order_item_id, start_date, end_date, status, conflict_reason, conflict_responsible, observations, created_at, updated_at").single();
+      if (error) throwDbError(error, "NÃ£o foi possÃ­vel salvar a alocaÃ§Ã£o do recurso.");
+      return json({ ok: true, allocation: data });
+    }
+
+    if (action === "archive") {
+      const id = textValue(input.id, "o registro", 80, true);
+      const kind = String(input.kind || "");
+      let query;
+      if (kind === "work") {
+        const { data: linkedOrders, error: linkedError } = await db.from("orders").select("id, status")
+          .eq("organization_id", organizationId).eq("work_id", id).eq("is_active", true).limit(1000);
+        if (linkedError) throwDbError(linkedError, "NÃ£o foi possÃ­vel conferir os pedidos vinculados.");
+        if ((linkedOrders || []).length) {
+          throw badRequest("A obra estÃ¡ vinculada a pedidos. Mantenha o cadastro para preservar o histÃ³rico.", 409);
+        }
+        query = db.from("works").update({ is_active: false }).eq("id", id).eq("organization_id", organizationId).select("id").maybeSingle();
+      }
+      else if (kind === "piece_type") {
+        const { data: linkedItems, error: linkedError } = await db.from("order_items").select("id")
+          .eq("organization_id", organizationId).eq("piece_type_id", id).limit(1);
+        if (linkedError) throwDbError(linkedError, "NÃ£o foi possÃ­vel conferir os pedidos que usam esta peÃ§a.");
+        if (linkedItems?.length) throw badRequest("Este tipo de peÃ§a estÃ¡ vinculado a pedidos. Mantenha o cadastro para preservar o histÃ³rico.", 409);
+        query = db.from("piece_types").update({ is_active: false }).eq("id", id).eq("organization_id", organizationId).select("id").maybeSingle();
+      }
+      else if (kind === "mold") {
+        const [{ data: allocations, error: allocationError }, { data: preparations, error: preparationError }] = await Promise.all([
+          db.from("resource_allocations").select("id").eq("organization_id", organizationId).eq("mold_id", id).in("status", ["planned", "in_progress"]).limit(1),
+          db.from("mold_preparations").select("id").eq("organization_id", organizationId).eq("mold_id", id).in("status", ["planejada", "em_andamento", "aguardando_aprovacao"]).limit(1),
+        ]);
+        if (allocationError) throwDbError(allocationError, "NÃ£o foi possÃ­vel conferir as alocaÃ§Ãµes do molde.");
+        if (preparationError) throwDbError(preparationError, "NÃ£o foi possÃ­vel conferir as preparaÃ§Ãµes do molde.");
+        if (allocations?.length || preparations?.length) throw badRequest("Cancele as alocaÃ§Ãµes e conclua ou cancele as preparaÃ§Ãµes antes de retirar o molde.", 409);
+        query = db.from("molds").update({ status: "retirado" }).eq("id", id).eq("organization_id", organizationId).select("id").maybeSingle();
+      }
+      else throw badRequest("Tipo de cadastro invÃ¡lido.");
+      const { data, error } = await query;
+      if (error) throwDbError(error, "NÃ£o foi possÃ­vel arquivar o cadastro.");
+      if (!data) throw badRequest("Cadastro nÃ£o encontrado.", 404);
+      return json({ ok: true, archivedId: data.id });
+    }
+
+    throw badRequest("AÃ§Ã£o de cadastros invÃ¡lida.");
+  } catch (error) {
+    return handleError(error);
+  }
+}
+
+Deno.serve(handler);
