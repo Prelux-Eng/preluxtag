@@ -1,907 +1,910 @@
-/*
- * MÃ³dulo de cadastros de produÃ§Ã£o.
- * Apresenta obras, pedidos, peÃ§as, moldes e posiÃ§Ãµes. Controla estado da tela e
- * formulÃ¡rios; acesso remoto passa pelo repositÃ³rio e regras puras ficam no domÃ­nio.
- */
-(function attachOperationsAdmin(global) {
-  const $ = (id) => document.getElementById(id);
-  // Estado temporÃ¡rio da tela; os registros definitivos permanecem no Supabase.
-  const state = { data: null, tab: "works", loading: false, query: "", supportsStage4: false };
-  const tabs = [
-    ["works", "Obras"],
-    ["orders", "Pedidos"],
-    ["pieces", "PeÃ§as"],
-    ["molds", "Moldes"],
-    ["positions", "PosiÃ§Ãµes"],
-  ];
+YªçŠx³¬uç%j·Â+ar‰ì¶ë•ë_¢ºŞjË"‚v›•ëÚ®&›•ëÊƒBˆ
+ˆpìÙ[ÈHØY\İ›ÜÈH›ÙpéğèÛËƒBˆ
+ˆ\™\Ù[HØœ˜\ËYYÜËpéØ\Ë[Û\ÈHÜÚpéğíY\ËˆÛÛ›ÛH\İYÈH[HCBˆ
+ˆ›Ü›][0è\š[ÜÎÈXÙ\ÜÛÈ™[[İÈ\ÜØH[È™\ÜÚ]0ìÜš[ÈH™YÜ˜\È\˜\ÈšXØ[H›ÈÛpë[š[ËƒBˆ
+‹ÃBŠ[˜İ[Ûˆ]XÚÜ\˜][ÛœĞYZ[ŠÛØ˜[
+HÃBˆÛÛœİ	H
+Y
+HOˆØİ[Y[™Ù][[Y[RY
+Y
+NÃBˆËÈ\İYÈ[\Ü°è\š[ÈH[NÈÜÈ™YÚ\İ›ÜÈYš[š]]›ÜÈ\›X[™XÙ[H›Èİ\X˜\ÙKƒBˆÛÛœİİ]HHÈ]Nˆ[XˆÛÜšÜÈ‹ØY[™Îˆ˜[ÙK]Y\Nˆˆ‹İ\ÜÔİYÙMˆ˜[ÙKİ\ÜÑ˜Xš[Ìˆ˜[ÙHNÃBˆÛÛœİXœÈHÃBˆÈÛÜšÜÈ‹“Øœ˜\È—KBˆÈ›Ü™\œÈ‹”YYÜÈ—KBˆÈœ›Ú™XİÈ‹”›Ú™]ÜÈ—KBˆÈœYXÙ\È‹”péØ\È—KBˆÈ›[ÛÈ‹‘›Ü›X\È—KBˆÈœÜÚ][ÛœÈ‹”ÜÚpéğíY\È—KBˆNÃBƒBˆ[˜İ[Ûˆ\ØØ\R[
+˜[YJHÃBˆ™]\›ˆİš[™Ê˜[YHÏÈˆŠKœ™\XÙJÖÉˆ‰×KÙË
+Ú\ŠHOˆ
+ÃBˆ‰ˆˆ‰˜[\È‹ˆ‰›È‹ˆˆ‰™İÈ‹	È‰Îˆ‰œ][İÈ‹‰Èˆ‰ˆÌÎNÈ‹BˆJVØÚ\—JNÃBˆCBƒBˆ[˜İ[ÛˆØ\İ
+Y\ÜØYÙJHÃBˆÛÛœİ[[Y[H	
+Ø\İŠNÃBˆYˆ
+Y[[Y[
+H™]\›ÃBˆ[[Y[^ÛÛ[HY\ÜØYÙNÃBˆ[[Y[˜Û\ÜÓ\İ˜Y
+œÚİÈŠNÃBˆÛX\•[Y[İ]
+Ø\İ[Y\ŠNÃBˆØ\İ[Y\ˆHÙ][Y[İ]
 
-  function escapeHtml(value) {
-    return String(value ?? "").replace(/[&<>"']/g, (char) => ({
-      "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
-    })[char]);
-  }
 
-  function toast(message) {
-    const element = $("toast");
-    if (!element) return;
-    element.textContent = message;
-    element.classList.add("show");
-    clearTimeout(toast.timer);
-    toast.timer = setTimeout(() => element.classList.remove("show"), 3000);
-  }
+HOˆ[[Y[˜Û\ÜÓ\İœ™[[İ™JœÚİÈŠKÌ
+NÃBˆCBƒBˆ[˜İ[ÛˆÙ^J
+HÃBˆÛÛœİ]HH™]È]J
+NÃBˆ™]\›ˆ	Ù]K™Ù][YX\Š
+_KIÔİš[™Ê]K™Ù][Û
 
-  function today() {
-    const date = new Date();
-    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
-  }
+H
+ÈJKœYİ\
+‹ŒŠ_KIÔİš[™Ê]K™Ù]]J
+JKœYİ\
+‹ŒŠ_XÃBˆCBƒBˆ[˜İ[ÛˆY^\Ê˜[YK[[İ[
+HÃBˆYˆ
+]˜[YJH™]\›ˆˆÃBˆÛÛœİ]HH™]È]J	İ˜[Y_UŒŒŒ˜
+NÃBˆ]KœÙ]UÑ]J]K™Ù]UÑ]J
+H
+È[[İ[
+NÃBˆ™]\›ˆ]KÒTÓÔİš[™Ê
+KœÛXÙJL
+NÃBˆCBƒBˆ[˜İ[Ûˆ]P”Š˜[YJHÃBˆYˆ
+]˜[YJH™]\›ˆ¸ %ÃBˆÛÛœİŞYX\‹[Û^WHHİš[™Ê˜[YJKœÛXÙJL
+KœÜ]
+‹HŠNÃBˆ™]\›ˆ	Ù^_KÉÛ[ÛKÉŞYX\ŸXÃBˆCBƒBˆËÈ˜Y^ˆÜÈğìÙYÛÜÈ\œÚ\İYÜÈ[È˜[˜ÛÈ[H°ìİ[ÜÈYğë]™Z\È˜H[\™˜XÙKƒBˆ[˜İ[Ûˆİ]\ÓX™[
+˜[YJHÃBˆÛÛœİX™[ÈHÃBˆ[™Z˜[Y[Îˆ”[™Z˜[Y[È‹]]˜Nˆ]]˜H‹ÛÛ˜ÛZYNˆÛÛ˜ÛpëYH‹Ø[˜Ù[YNˆØ[˜Ù[YH‹BˆÜ˜Ø[Y[Îˆ“Ü°éØ[Y[È‹\›İ˜YÎˆ\›İ˜YÈ‹[WÜ›ÙXØ[Îˆ‘[H›ÙpéğèÛÈ‹ÛÛ˜ÛZYÎˆÛÛ˜ÛpëYÈ
+YØYÊH‹Bˆ[™YİYNˆ‘[™YİYH‹]˜\ØYÎˆ]˜\ØYÈ‹Ø[˜Ù[YÎˆØ[˜Ù[YÈ‹]]›Îˆ]]›È‹BˆX[][˜Ø[Îˆ“X[][°éğèÛÈ‹›Ü]YXYÎˆ›Ü]YXYÈ‹™]\˜YÎˆ”™]\˜YÈ‹[™Z˜YNˆ”[™Z˜YH‹Bˆ\ÜÛš]™[ˆ‘\ÜÛ°ë]™[‹[WÜ™\\˜XØ[Îˆ‘[H™\\˜péğèÛÈ‹[WÛX[][˜Ø[Îˆ‘[HX[][°éğèÛÈ‹Bˆ[WØ[™[Y[Îˆ‘[H[™[Y[È‹YİX\™[™×Ø\›İ˜XØ[ÎˆYİX\™[™È\›İ˜péğèÛÈ‹\›İ˜YNˆ\›İ˜YH‹Bˆ™\›İ˜YNˆ”™\›İ˜YH‹[›™Yˆ”[™Z˜YH‹[—Ü›ÙÜ™\ÜÎˆ‘[H[™[Y[È‹Û™NˆÛÛ˜ÛpëYH‹BˆØ[˜Ù[YˆØ[˜Ù[YH‹BˆNÃBˆ™]\›ˆX™[Öİ˜[YWH˜[YH¸ %ÃBˆCBƒBˆ[˜İ[Ûˆ˜YÙJ˜[YJHÃBˆÛÛœİÛ™HHÈ˜]]˜H‹˜ÛÛ˜ÛZYH‹˜\›İ˜YÈ‹™[WÜ›ÙXØ[È‹™[™YİYH‹˜]]›È‹˜\›İ˜YH‹™Û™H‹™\ÜÛš]™[—Kš[˜ÛY\Ê˜[YJCBˆÈ™ÛÛÙƒBˆˆÈ˜]˜\ØYÈ‹›X[][˜Ø[È‹™[WÛX[][˜Ø[È‹™[WÜ™\\˜XØ[È‹˜YİX\™[™×Ø\›İ˜XØ[È‹™[WØ[™[Y[È‹š[—Ü›ÙÜ™\ÜÈ—Kš[˜ÛY\Ê˜[YJCBˆÈØ\›ˆƒBˆˆÈ˜Ø[˜Ù[YH‹˜Ø[˜Ù[YÈ‹˜›Ü]YXYÈ‹œ™]\˜YÈ‹œ™\›İ˜YH‹˜Ø[˜Ù[Y—Kš[˜ÛY\Ê˜[YJCBˆÈ˜˜YˆˆˆÃBˆ™]\›ˆÜ[ˆÛ\ÜÏH›ÜËX˜YÙH	İÛ™_H‰Ù\ØØ\R[
+İ]\ÓX™[
+˜[YJJ_OÜÜ[˜ÃBˆCBƒBˆ[˜İ[ÛˆÚİÔİ]\ÊY\ÜØYÙK\œ›ÜˆH˜[ÙJHÃBˆÛÛœİ[[Y[H	
+›Ü\˜][ÛœÔİ]\ÈŠNÃBˆYˆ
+Y[[Y[
+H™]\›ÃBˆ[[Y[^ÛÛ[HY\ÜØYÙNÃBˆ[[Y[˜Û\ÜÓ\İÙÙÛJ™\œ›Üˆ‹\œ›ÜŠNÃBˆCBƒBˆ[˜İ[ÛˆÚ[
 
-  function addDays(value, amount) {
-    if (!value) return "";
-    const date = new Date(`${value}T00:00:00.000Z`);
-    date.setUTCDate(date.getUTCDate() + amount);
-    return date.toISOString().slice(0, 10);
-  }
+HÃBˆ	
+›Ü\˜][ÛœÕšY]ÈŠKš[›™\’SHBˆ]ˆÛ\ÜÏHÛÛ˜\ˆÜ\˜][ÛœË]ÛÛ˜\ˆƒBˆ]ØY\İ›ÜÈH›ÙpéğèÛÏÚ“Øœ˜\ËYYÜË›Ú™]ÜËØ]0è[ÙÛÈHpéØ\Ë›Ü›X\ÈH]X]›ÈÜÚpéğíY\ËÜÙ]ƒBˆ]ˆÛ\ÜÏH˜Xİ[ÛœÈ]ÛˆÛ\ÜÏH˜ˆˆYH›Ü\˜][ÛœÔ™Yœ™\Úˆ\OH˜]Ûˆ]X[^˜\ˆYÜÏØ]Û]ÛˆÛ\ÜÏH˜ˆš[X\HˆYH›Ü\˜][ÛœÓ™]Èˆ\OH˜]Ûˆ“›İ˜HØœ˜OØ]ÛÙ]ƒBˆÙ]ƒBˆ]ˆÛ\ÜÏH›Y]šXËYÜšYƒBˆ]ˆÛ\ÜÏH˜Ø\™Y]šXËXØ\™ÛX[“Øœ˜\È]]˜\ÏÜÛX[İ›Û™ÈYH›Ü\˜][ÛœÕÛÜšÜÓY]šXÈ¸ %Üİ›Û™ÏÜ[˜ØY\İ›ÜÈ[H[™[Y[ÏÜÜ[Ù]ƒBˆ]ˆÛ\ÜÏH˜Ø\™Y]šXËXØ\™ÛX[”YYÜÈX™\ÜÏÜÛX[İ›Û™ÈYH›Ü\˜][ÛœÓÜ™\œÓY]šXÈ¸ %Üİ›Û™ÏÜ[™›Ü˜HÜÈİ]\È[™YİY\ËØ[˜Ù[YÜÈİHYØYÜÏÜÜ[Ù]ƒBˆ]ˆÛ\ÜÏH˜Ø\™Y]šXËXØ\™ÛX[•\ÜÈHpéØOÜÛX[İ›Û™ÈYH›Ü\˜][ÛœÔYXÙ\ÓY]šXÈ¸ %Üİ›Û™ÏÜ[˜Ø]0è[ÙÛÈ]]›ÏÜÜ[Ù]ƒBˆ]ˆÛ\ÜÏH˜Ø\™Y]šXËXØ\™ÛX[‘›Ü›X\È\ÜÛ°ë]™Z\ÏÜÛX[İ›Û™ÈYH›Ü\˜][ÛœÓ[ÛÓY]šXÈ¸ %Üİ›Û™ÏÜ[™›Ü›X\È]]˜\ÏÜÜ[Ù]ƒBˆ]ˆÛ\ÜÏH˜Ø\™Y]šXËXØ\™ÛX[”ÜÚpéğíY\ÈÛÛ™šYİ\˜Y\ÏÜÛX[İ›Û™ÈYH›Ü\˜][ÛœÔÜÚ][ÛœÓY]šXÈ¸ %Üİ›Û™ÏÜ[™HÜÚpéğíY\È°ë\ÚXØ\ÏÜÜ[Ù]ƒBˆÙ]ƒBˆ]ˆÛ\ÜÏH›Ü\˜][ÛœË\İ]\ÈˆYH›Ü\˜][ÛœÔİ]\ÈØ\œ™YØ[™ÈØY\İ›ÜËÙ]ƒBˆÙXİ[ÛˆÛ\ÜÏH˜Ø\™Ü\˜][ÛœË\[™[ƒBˆ˜]ˆÛ\ÜÏH›Ü\˜][ÛœË]XœÈˆYH›Ü\˜][ÛœÕXœÈˆ\šXK[X™[H“pìÙ[ÜÈHØY\İ›ÈÛ˜]ƒBˆ]ˆYH›Ü\˜][ÛœÕX›HÙ]ƒBˆÜÙXİ[ÛƒBˆ]ˆÛ\ÜÏH›[Ù[X˜XÚÙ›ÜÜ\˜][ÛœË[[Ù[ˆYH›Ü\˜][ÛœÓ[Ù[ˆY[ƒBˆ]ˆÛ\ÜÏH›[Ù[XØ\™ˆ›ÛOH™X[ÙÈˆ\šXK[[Ù[HYHˆ\šXK[X™[YOH›Ü\˜][ÛœÓ[Ù[]HƒBˆ]ˆÛ\ÜÏH›[Ù[ZXY]ÈYH›Ü\˜][ÛœÓ[Ù[]H“›İ›ÈØY\İ›ÏÚÏYH›Ü\˜][ÛœÓ[Ù[İX]HÜÙ]]ÛˆÛ\ÜÏH˜ÛÜÙKXˆˆYH›Ü\˜][ÛœÓ[Ù[ÛÜÙHˆ\OH˜]Ûˆˆ\šXK[X™[H‘™XÚ\ˆ°åÏØ]ÛÙ]ƒBˆ›Ü›HYH›Ü\˜][ÛœÑ›Ü›H]ˆÛ\ÜÏH›Ü\˜][ÛœË[[Ù[X›ÙHˆYH›Ü\˜][ÛœÓ[Ù[›ÙHÙ]]ˆÛ\ÜÏH›ÜË[[Ù[\İ]\ÈˆYH›Ü\˜][ÛœÓ[Ù[İ]\ÈÙ]]ˆÛ\ÜÏH›ÜË[[Ù[XXİ[ÛœÈ]ÛˆÛ\ÜÏH˜ˆˆYH›Ü\˜][ÛœÓ[Ù[Ø[˜Ù[ˆ\OH˜]ÛˆØ[˜Ù[\Ø]Û]ÛˆÛ\ÜÏH˜ˆš[X\HˆYH›Ü\˜][ÛœÓ[Ù[Ø]™Hˆ\OHœİX›Z]”Ø[˜\ˆØY\İ›ÏØ]ÛÙ]Ù›Ü›OƒBˆÙ]ƒBˆÙ]˜ÃBˆ™[™\•XœÊ
+NÃBˆ	
+›Ü\˜][ÛœÔ™Yœ™\ÚŠK˜Y]™[\İ[™\Š˜ÛXÚÈ‹
 
-  function dateBR(value) {
-    if (!value) return "â€”";
-    const [year, month, day] = String(value).slice(0, 10).split("-");
-    return `${day}/${month}/${year}`;
-  }
+HOˆ™Yœ™\Ú]J
+JNÃBˆ	
+›Ü\˜][ÛœÓ™]ÈŠK˜Y]™[\İ[™\Š˜ÛXÚÈ‹
 
-  // Traduz os cÃ³digos persistidos pelo banco em rÃ³tulos legÃ­veis na interface.
-  function statusLabel(value) {
-    const labels = {
-      planejamento: "Planejamento", ativa: "Ativa", concluida: "ConcluÃ­da", cancelada: "Cancelada",
-      orcamento: "OrÃ§amento", aprovado: "Aprovado", em_producao: "Em produÃ§Ã£o", concluido: "ConcluÃ­do",
-      entregue: "Entregue", atrasado: "Atrasado", cancelado: "Cancelado", ativo: "Ativo",
-      manutencao: "ManutenÃ§Ã£o", bloqueado: "Bloqueado", retirado: "Retirado", planejada: "Planejada",
-      disponivel: "DisponÃ­vel", em_preparacao: "Em preparaÃ§Ã£o", em_manutencao: "Em manutenÃ§Ã£o",
-      em_andamento: "Em andamento", aguardando_aprovacao: "Aguardando aprovaÃ§Ã£o", aprovada: "Aprovada",
-      reprovada: "Reprovada", planned: "Planejada", in_progress: "Em andamento", done: "ConcluÃ­da",
-      cancelled: "Cancelada",
-    };
-    return labels[value] || value || "â€”";
-  }
+HOˆÜ[“™]Ê
+JNÃBˆ	
+›Ü\˜][ÛœÕXœÈŠK˜Y]™[\İ[™\Š˜ÛXÚÈ‹
+]™[
+HOˆÃBˆÛÛœİ]ÛˆH]™[\™Ù]˜ÛÜÙ\İ
+˜]Û–Ù]K[Ü\˜][ÛœË]X—HŠNÃBˆYˆ
+X]ÛŠH™]\›ÃBˆİ]KXˆH]Û‹™]\Ù]›Ü\˜][ÛœÕXÃBˆ™[™\•XœÊ
+NÃBˆ™[™\•X›J
+NÃBˆJNÃBˆ	
+›Ü\˜][ÛœÕX›HŠK˜Y]™[\İ[™\Š˜ÛXÚÈ‹[™UX›PÛXÚÊNÃBˆ	
+›Ü\˜][ÛœÓ[Ù[ÛÜÙHŠK˜Y]™[\İ[™\Š˜ÛXÚÈ‹ÛÜÙS[Ù[
+NÃBˆ	
+›Ü\˜][ÛœÓ[Ù[Ø[˜Ù[ŠK˜Y]™[\İ[™\Š˜ÛXÚÈ‹ÛÜÙS[Ù[
+NÃBˆ	
+›Ü\˜][ÛœÓ[Ù[ŠK˜Y]™[\İ[™\Š˜ÛXÚÈ‹
+]™[
+HOˆÈYˆ
+]™[\™Ù]šYOOH›Ü\˜][ÛœÓ[Ù[ŠHÛÜÙS[Ù[
 
-  function badge(value) {
-    const tone = ["ativa", "concluida", "aprovado", "em_producao", "concluido", "entregue", "ativo", "aprovada", "done", "disponivel"].includes(value)
-      ? "good"
-      : ["atrasado", "manutencao", "em_manutencao", "em_preparacao", "aguardando_aprovacao", "em_andamento", "in_progress"].includes(value)
-        ? "warn"
-        : ["cancelada", "cancelado", "bloqueado", "retirado", "reprovada", "cancelled"].includes(value)
-          ? "bad" : "";
-    return `<span class="ops-badge ${tone}">${escapeHtml(statusLabel(value))}</span>`;
-  }
+NÈJNÃBˆ	
+›Ü\˜][ÛœÑ›Ü›HŠK˜Y]™[\İ[™\ŠœİX›Z]‹İX›Z]›Ü›JNÃBˆ	
+›Ü\˜][ÛœÓ[Ù[›ÙHŠK˜Y]™[\İ[™\Š˜Ú[™ÙH‹
+]™[
+HOˆÃBˆYˆ
+]™[\™Ù]šYOOH˜[ØØ][Û”™\Ûİ\˜ÙRÚ[™ŠH\]P[ØØ][Û‘šY[Ê
+NÃBˆYˆ
+]™[\™Ù]šYOOHœ™\\˜][Û”İ\]Hˆ]™[\™Ù]šYOOHœ™\\˜][Û“[ÛYŠH\]T™\\˜][Û‘[™
 
-  function showStatus(message, error = false) {
-    const element = $("operationsStatus");
-    if (!element) return;
-    element.textContent = message;
-    element.classList.toggle("error", error);
-  }
+NÃBˆYˆ
+]™[\™Ù]šYOOH›Ü™\•ÛÜšÒYŠHŞ[˜ÓÜ™\ÛY[[
 
-  function shell() {
-    $("operationsView").innerHTML = `
-      <div class="toolbar operations-toolbar">
-        <div><h2>Cadastros de produÃ§Ã£o</h2><p>Obras, pedidos, catÃ¡logo de peÃ§as, moldes e quatro posiÃ§Ãµes de produÃ§Ã£o.</p></div>
-        <div class="actions"><button class="btn" id="operationsRefresh" type="button">Atualizar dados</button><button class="btn primary" id="operationsNew" type="button">Nova obra</button></div>
-      </div>
-      <div class="metric-grid">
-        <div class="card metric-card"><small>Obras ativas</small><strong id="operationsWorksMetric">â€”</strong><span>cadastros em andamento</span></div>
-        <div class="card metric-card"><small>Pedidos abertos</small><strong id="operationsOrdersMetric">â€”</strong><span>pedidos nÃ£o entregues ou cancelados</span></div>
-        <div class="card metric-card"><small>Tipos de peÃ§a</small><strong id="operationsPiecesMetric">â€”</strong><span>catÃ¡logo ativo</span></div>
-        <div class="card metric-card"><small>Moldes disponÃ­veis</small><strong id="operationsMoldsMetric">â€”</strong><span>moldes ativos</span></div>
-        <div class="card metric-card"><small>PosiÃ§Ãµes configuradas</small><strong id="operationsPositionsMetric">â€”</strong><span>de 4 posiÃ§Ãµes fÃ­sicas</span></div>
-      </div>
-      <div class="operations-status" id="operationsStatus">Carregando cadastros.</div>
-      <section class="card operations-panel">
-        <nav class="operations-tabs" id="operationsTabs" aria-label="MÃ³dulos de cadastro"></nav>
-        <div id="operationsTable"></div>
-      </section>
-      <div class="modal-backdrop operations-modal" id="operationsModal" hidden>
-        <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="operationsModalTitle">
-          <div class="modal-head"><div><h3 id="operationsModalTitle">Novo cadastro</h3><p id="operationsModalSubtitle"></p></div><button class="close-btn" id="operationsModalClose" type="button" aria-label="Fechar">Ã—</button></div>
-          <form id="operationsForm"><div class="operations-modal-body" id="operationsModalBody"></div><div class="ops-modal-status" id="operationsModalStatus"></div><div class="ops-modal-actions"><button class="btn" id="operationsModalCancel" type="button">Cancelar</button><button class="btn primary" id="operationsModalSave" type="submit">Salvar cadastro</button></div></form>
-        </div>
-      </div>`;
-    renderTabs();
-    $("operationsRefresh").addEventListener("click", () => refreshData());
-    $("operationsNew").addEventListener("click", () => openNew());
-    $("operationsTabs").addEventListener("click", (event) => {
-      const button = event.target.closest("button[data-operations-tab]");
-      if (!button) return;
-      state.tab = button.dataset.operationsTab;
-      renderTabs();
-      renderTable();
-    });
-    $("operationsTable").addEventListener("click", handleTableClick);
-    $("operationsModalClose").addEventListener("click", closeModal);
-    $("operationsModalCancel").addEventListener("click", closeModal);
-    $("operationsModal").addEventListener("click", (event) => { if (event.target.id === "operationsModal") closeModal(); });
-    $("operationsForm").addEventListener("submit", submitForm);
-    $("operationsModalBody").addEventListener("change", (event) => {
-      if (event.target.id === "allocationResourceKind") updateAllocationFields();
-      if (event.target.id === "preparationStartDate") updatePreparationEnd();
-      if (event.target.id === "orderWorkId") syncOrderClientHelp();
-      if (event.target.id === "pieceKind") updatePieceMoldFields();
-      if (event.target.id === "pieceMoldPair") syncPieceMoldPair();
-      if (event.target.id === "positionConfigurationKind") updatePositionConfigFields();
-    });
-    $("operationsModalBody").addEventListener("input", (event) => {
-      if (["dimensionXcm", "dimensionYcm", "dimensionZcm"].includes(event.target.id)) updatePieceMetrics();
-    });
-    $("operationsModalBody").addEventListener("click", (event) => {
-      if (event.target.id === "addOrderItem") addOrderItemRow();
-      if (event.target.closest("[data-remove-order-item]")) event.target.closest(".ops-item-row")?.remove();
-    });
-  }
+NÃBˆYˆ
+]™[\™Ù]šYOOHœYXÙRÚ[™ŠHÈ\]TYXÙS[ÛšY[Ê
+NÈ\]TYXÙSY]šXÜÊ
+NÈCBˆYˆ
+]™[\™Ù]šYOOHœYXÙS[ÛZ\ˆŠHŞ[˜ÔYXÙS[ÛZ\Š
+NÃBˆYˆ
+]™[\™Ù]šYOOHœÜÚ][ÛÛÛ™šYİ\˜][Û’Ú[™ŠH\]TÜÚ][ÛÛÛ™šYÑšY[Ê
+NÃBˆYˆ
+]™[\™Ù]šYOOHœ›Ú™XİÜ™\’YŠH™Yœ™\Ú›Ú™XİÙXİ[ÛœÑ›Ü“Ü™\Š
+NÃBˆJNÃBˆ	
+›Ü\˜][ÛœÓ[Ù[›ÙHŠK˜Y]™[\İ[™\Šš[œ]‹
+]™[
+HOˆÃBˆYˆ
+È™[Y[œÚ[Û–ÛH‹™[Y[œÚ[Û–XÛH‹™[Y[œÚ[Û–˜ÛH—Kš[˜ÛY\Ê]™[\™Ù]šY
+JH\]TYXÙSY]šXÜÊ
+NÃBˆJNÃBˆ	
+›Ü\˜][ÛœÓ[Ù[›ÙHŠK˜Y]™[\İ[™\Š˜ÛXÚÈ‹
+]™[
+HOˆÃBˆYˆ
+]™[\™Ù]šYOOH˜YÜ™\’][HŠHYÜ™\’][T›İÊ
+NÃBˆYˆ
+]™[\™Ù]˜ÛÜÙ\İ
+–Ù]K\™[[İ™K[Ü™\‹Z][WHŠJH]™[\™Ù]˜ÛÜÙ\İ
+‹›ÜËZ][K\›İÈŠOËœ™[[İ™J
+NÃBˆYˆ
+]™[\™Ù]šYOOH˜Y›Ú™XİÙXİ[ÛˆŠHY›Ú™XİÙXİ[ÛŠ
+NÃBˆYˆ
+]™[\™Ù]˜ÛÜÙ\İ
+–Ù]KXY\›Ú™XİZ][WHŠJHY›Ú™Xİ][J]™[\™Ù]˜ÛÜÙ\İ
+‹›ÜË\›Ú™Xİ\ÙXİ[ÛˆŠJNÃBˆYˆ
+]™[\™Ù]˜ÛÜÙ\İ
+–Ù]K\™[[İ™K\›Ú™Xİ\ÙXİ[Û—HŠJH]™[\™Ù]˜ÛÜÙ\İ
+‹›ÜË\›Ú™Xİ\ÙXİ[ÛˆŠOËœ™[[İ™J
+NÃBˆYˆ
+]™[\™Ù]˜ÛÜÙ\İ
+–Ù]K\™[[İ™K\›Ú™XİZ][WHŠJH]™[\™Ù]˜ÛÜÙ\İ
+‹›ÜË\›Ú™XİZ][K\›İÈŠOËœ™[[İ™J
+NÃBˆJNÃBˆCBƒBˆ[˜İ[Ûˆ™[™\•XœÊ
+HÃBˆ	
+›Ü\˜][ÛœÕXœÈŠKš[›™\’SHXœË›X\
 
-  function renderTabs() {
-    $("operationsTabs").innerHTML = tabs.map(([key, label]) =>
-      `<button type="button" data-operations-tab="${key}" aria-pressed="${key === state.tab}">${label}</button>`
-    ).join("");
-    const labels = { works: "Nova obra", orders: "Novo pedido", pieces: "Nova peÃ§a", molds: "Novo molde", positions: "Gerenciar posiÃ§Ãµes" };
-    $("operationsNew").textContent = labels[state.tab];
-    $("operationsNew").hidden = state.tab === "positions";
-  }
+ÚÙ^KX™[JHOƒBˆ]Ûˆ\OH˜]Ûˆˆ]K[Ü\˜][ÛœË]XH‰ÚÙ^_Hˆ\šXK\™\ÜÙYH‰ÚÙ^HOOHİ]KXŸH‰ÛX™[OØ]Û˜Bˆ
+Kš›Ú[ŠˆŠNÃBˆÛÛœİX™[ÈHÈÛÜšÜÎˆ“›İ˜HØœ˜H‹Ü™\œÎˆ“›İ›ÈYYÈ‹›Ú™XİÎˆ“›İ›È›Ú™]È‹YXÙ\Îˆ“›İ˜HpéØH‹[ÛÎˆ“›İ˜H›Ü›XH‹ÜÚ][ÛœÎˆ‘Ù\™[˜ÚX\ˆÜÚpéğíY\ÈˆNÃBˆ	
+›Ü\˜][ÛœÓ™]ÈŠK^ÛÛ[HX™[ÖÜİ]KX—NÃBˆ	
+›Ü\˜][ÛœÓ™]ÈŠKšY[ˆHİ]KXˆOOHœÜÚ][ÛœÈÃBˆCBƒBˆ[˜İ[ÛˆY]šXÊY˜[YJHÈ	
+Y
+K^ÛÛ[Hİš[™Ê˜[YJNÈCBƒBˆ[˜İ[Ûˆ™[™\“Y]šXÜÊ
+HÃBˆÛÛœİ]HHİ]K™]NÃBˆYˆ
+Y]JH™]\›ÃBˆY]šXÊ›Ü\˜][ÛœÕÛÜšÜÓY]šXÈ‹]KÛÜšÜË›[™İ
+NÃBˆY]šXÊ›Ü\˜][ÛœÓÜ™\œÓY]šXÈ‹]K›Ü™\œË™š[\Š
+Ü™\ŠHOˆVÈ˜ÛÛ˜ÛZYÈ‹™[™YİYH‹˜Ø[˜Ù[YÈ—Kš[˜ÛY\ÊÜ™\‹œİ]\ÊJK›[™İ
+NÃBˆY]šXÊ›Ü\˜][ÛœÔYXÙ\ÓY]šXÈ‹]KœYXÙU\\Ë›[™İ
+NÃBˆY]šXÊ›Ü\˜][ÛœÓ[ÛÓY]šXÈ‹]K›[ÛË™š[\Š
+[Û
+HOˆ[Ûœİ]\ÈOOH˜]]›ÈŠK›[™İ
+NÃBˆY]šXÊ›Ü\˜][ÛœÔÜÚ][ÛœÓY]šXÈ‹İ]Kœİ\ÜÔİYÙMÈ]KœÜÚ][ÛœË™š[\Š
+ÜÚ][ÛŠHOˆ›ÛÛX[ŠÜÚ][Û‹˜ÛÛ™šYİ\˜][Û—ÚÚ[™
+JK›[™İˆ¸ %ŠNÃBˆCBƒBˆ[˜İ[ÛˆX›RXY\Š]K\ØÜš\[Û‹XÙZÛ\‹XY\œÊHÃBˆ™]\›ˆ]ˆÛ\ÜÏH›Ü\˜][ÛœË[\İZXY]Ï‰İ]_OÚÏ‰Ù\ØÜš\[ÛŸOÜÙ][œ]Û\ÜÏHœÙX\˜ÚˆYH›Ü\˜][ÛœÔÙX\˜Úˆ˜[YOH‰Ù\ØØ\R[
+İ]Kœ]Y\J_HˆXÙZÛ\H‰ÜXÙZÛ\ŸHˆ\šXK[X™[H”\Ü]Z\Ø\ˆ	İ]KÓİÙ\Ø\ÙJ
+_HˆÏÙ]]ˆÛ\ÜÏHX›K]Ü˜\X›HÛ\ÜÏH›Ü\˜][ÛœË]X›HXY‰ÚXY\œË›X\
 
-  function metric(id, value) { $(id).textContent = String(value); }
+XY\ŠHOˆ‰ÚXY\ŸOİ˜
+Kš›Ú[ŠˆŠ_OİİXY›ÙHYH›Ü\˜][ÛœÔ›İÜÈİ›ÙOİX›OÙ]˜ÃBˆCBƒBˆ[˜İ[ÛˆXİ[Û]ÛŠXİ[Û‹YX™[
+HÃBˆ™]\›ˆ]ÛˆÛ\ÜÏHšXÛÛ‹Xˆˆ\OH˜]Ûˆˆ]K[ÜËXXİ[ÛH‰ØXİ[ÛŸHˆ]KZYH‰Ù\ØØ\R[
+Y
+_H‰ÛX™[OØ]Û˜ÃBˆCBƒBˆ[˜İ[Ûˆ›Ü›X][X™\Š˜[YKYÚ]ÈHŠHÃBˆÛÛœİ[X™\ˆH[X™\Š˜[YJNÃBˆ™]\›ˆ[X™\‹š\Ñš[š]J[X™\ŠHÈ™]È[“[X™\‘›Ü›X]
+œP”ˆ‹ÈX^[][Qœ˜Xİ[Û‘YÚ]ÎˆYÚ]ÈJK™›Ü›X]
+[X™\ŠHˆ¸ %ÃBˆCBƒBˆ[˜İ[ÛˆYXÙU\SX™[
+˜[YJHÃBˆ™]\›ˆ
+Èœ˜XÛÎˆœ˜péÛÈ‹[\ˆ”[\ˆ‹šYØNˆ•šYØH‹XØNˆ”XØHˆJVİ˜[YWH•\È[™[HÃBˆCBƒBˆ[˜İ[ÛˆØ][ÙÓX™[
+ÛÙJHÃBˆÛÛœİ][HH
+İ]K™]OË›[ÛØ][ÙÈ×JK™š[™
 
-  function renderMetrics() {
-    const data = state.data;
-    if (!data) return;
-    metric("operationsWorksMetric", data.works.length);
-    metric("operationsOrdersMetric", data.orders.filter((order) => !["entregue", "cancelado"].includes(order.status)).length);
-    metric("operationsPiecesMetric", data.pieceTypes.length);
-    metric("operationsMoldsMetric", data.molds.filter((mold) => mold.status === "ativo").length);
-    metric("operationsPositionsMetric", state.supportsStage4 ? data.positions.filter((position) => Boolean(position.configuration_kind)).length : "â€”");
-  }
+›İÊHOˆ›İË˜ÛÙHOOHÛÙJNÃBˆ™]\›ˆ][HÈ	Ú][K›[Ûİ\HOOH”PÓÈˆÈ”páÓÈˆˆ][K›[Ûİ\_H	Ú][K›YX\İ\™WÛX™[HÛXˆ‘›Ü›XH°èÛÈ[™›Ü›XYHÃBˆCBƒBˆ[˜İ[ÛˆYXÙS[Ûİ[[X\JYXÙJHÃBˆYˆ
+YXÙKœYXÙWÚÚ[™OOHœXØHŠH™]\›ˆ˜[˜ØYH[˜H0­ÈÙ[H›Ü›XHÃBˆÛÛœİ[ÛÈHYXÙK›[ÛØØ][ÙÜÈßNÃBˆYˆ
+[ÛË˜œ˜XÛÊH™]\›ˆ\ØØ\R[
+Ø][ÙÓX™[
+[ÛË˜œ˜XÛÊJNÃBˆYˆ
+[ÛË›Z]È[ÛË›]\˜[
+H™]\›ˆ	Ù\ØØ\R[
+Ø][ÙÓX™[
+[ÛË›Z]ÊJ_OÜ[ˆÛ\ÜÏH›]]YŠÈ	Ù\ØØ\R[
+Ø][ÙÓX™[
+[ÛË›]\˜[
+J_OÜÜ[˜ÃBˆ™]\›ˆÛÛ™šYİ\˜péğèÛÈ[™[HÃBˆCBƒBˆ[˜İ[ÛˆØ[İ[]Y›Û[YPÛLÊYXÙJHÃBˆYˆ
+YXÙK›Û[YWØÛLÈOH[
+H™]\›ˆ[X™\ŠYXÙK›Û[YWØÛLÊNÃBˆÛÛœİ[Y[œÚ[ÛœÈHÜYXÙK™[Y[œÚ[Û—ŞØÛKYXÙK™[Y[œÚ[Û—ŞWØÛKYXÙK™[Y[œÚ[Û—Ş—ØÛWK›X\
+[X™\ŠNÃBˆ™]\›ˆ[Y[œÚ[ÛœË™]™\J
+˜[YJHOˆ[X™\‹š\Ñš[š]J˜[YJH	‰ˆ˜[YHˆ
+HÈ[Y[œÚ[ÛœËœ™YXÙJ
+İ[˜[YJHOˆİ[
+ˆ˜[YKJHˆ[ÃBˆCBƒBˆ[˜İ[ÛˆYXÙSY]šXÜÓX™[
+YXÙJHÃBˆÛÛœİ›Û[YPÛLÈHØ[İ[]Y›Û[YPÛLÊYXÙJNÃBˆYˆ
+›Û[YPÛLÈOH[
+HÃBˆ™]\›ˆ	Ï‘[Y[œğíY\È[™[\ÏÜ[ˆÛ\ÜÏH›]]Y”™]š\ÙHHHˆ\˜HØ[İ[\ˆ›Û[YHH\ÛÏÜÜ[İ‰ÎÃBˆCBˆÛÛœİ›Û[YSLÈHYXÙK›Û[YWÛLÈOH[È›Û[YPÛLÈÈWÌÌˆ[X™\ŠYXÙK›Û[YWÛLÊNÃBˆÛÛœİÙZYÚÙÈHYXÙKÙZYÚÚÙÈOH[È›Û[YPÛLÈ
+ˆ‹HÈLˆ[X™\ŠYXÙKÙZYÚÚÙÊNÃBˆ™]\›ˆ‰Ù›Ü›X][X™\Š›Û[YPÛLËÊ_HÛp¬ÏÜ[ˆÛ\ÜÏH›]]Y‰Ù›Ü›X][X™\Š›Û[YSLËŠ_Hp¬È0­È	Ù›Ü›X][X™\ŠÙZYÚÙËÊ_HÙÏÜÜ[İ˜ÃBˆCBƒBˆ[˜İ[ÛˆÜÚ][ÛÛÛ™šYÓX™[
+ÜÚ][ÛŠHÃBˆYˆ
+ÜÚ][Û‹˜ÛÛ™šYİ\˜][Û—ÚÚ[™OOHœXØHŠH™]\›ˆ˜[˜ØYH[˜HÃBˆYˆ
+ÜÚ][Û‹˜ÛÛ™šYİ\˜][Û—ÚÚ[™OOH˜œ˜XÛÈˆ	‰ˆÜÚ][Û‹˜œ˜XÛ×ØØ][Ù×ØÛÙJH™]\›ˆØ][ÙÓX™[
+ÜÚ][Û‹˜œ˜XÛ×ØØ][Ù×ØÛÙJNÃBˆYˆ
+ÜÚ][Û‹˜ÛÛ™šYİ\˜][Û—ÚÚ[™OOHœ[\—İšYØHˆ	‰ˆÜÚ][Û‹›Z]×ØØ][Ù×ØÛÙH	‰ˆÜÚ][Û‹›]\˜[ØØ][Ù×ØÛÙJHÃBˆ™]\›ˆ	ØØ][ÙÓX™[
+ÜÚ][Û‹›Z]×ØØ][Ù×ØÛÙJ_H
+È	ØØ][ÙÓX™[
+ÜÚ][Û‹›]\˜[ØØ][Ù×ØÛÙJ_XÃBˆCBˆ™]\›ˆÛÛ™šYİ\˜péğèÛÈ[™[HÃBˆCBƒBˆËÈX™[\ÈH[™XØYÜ™\ÎˆÛÛ™\[HÈXÛİHÈ™\ÜÚ]0ìÜš[È[H\İ\Èš[°è]™Z\ËƒBˆ[˜İ[Ûˆ™[™\•X›J]Y\HHİ]Kœ]Y\JHÃBˆİ]Kœ]Y\HH]Y\NÃBˆYˆ
+\İ]K™]JH™]\›ÃBˆÛÛœİš[\ˆH]Y\KÓØØ[SİÙ\Ø\ÙJ
+Kš[J
+NÃBˆÛÛœİ]HHİ]K™]NÃBˆYˆ
+İ]KXˆOOHÛÜšÜÈŠHÃBˆ	
+›Ü\˜][ÛœÕX›HŠKš[›™\’SHX›RXY\Š“Øœ˜\È‹ÛY[K[™\™péÛË™\ÜÛœğè]™[H˜^›ÈHØœ˜Kˆ‹”\Ü]Z\Ø\ˆØœ˜KÛY[HİH™\ÜÛœğè]™[‹È“Øœ˜H‹ÛY[H‹”™\ÜÛœğè]™[‹”˜^›È‹”İ]\È‹péğíY\È—JNÃBˆÛÛœİ›İÜÈH]KÛÜšÜË™š[\Š
+ÛÜšÊHOˆ	İÛÜšËÛÜš×Û[X™\ŸH	İÛÜšË›˜[Y_H	İÛÜšË˜ÛY[Û˜[Y_H	İÛÜšËœ™\ÜÛœÚX›WÛ˜[Y_H	İÛÜšË˜Y™\ÜßXÓØØ[SİÙ\Ø\ÙJ
+Kš[˜ÛY\Êš[\ŠJNÃBˆ	
+›Ü\˜][ÛœÔ›İÜÈŠKš[›™\’SH›İÜË›[™İÈ›İÜË›X\
 
-  function tableHeader(title, description, placeholder, headers) {
-    return `<div class="operations-list-head"><div><h3>${title}</h3><p>${description}</p></div><input class="search" id="operationsSearch" value="${escapeHtml(state.query)}" placeholder="${placeholder}" aria-label="Pesquisar ${title.toLowerCase()}" /></div><div class="table-wrap"><table class="operations-table"><thead><tr>${headers.map((header) => `<th>${header}</th>`).join("")}</tr></thead><tbody id="operationsRows"></tbody></table></div>`;
-  }
+ÛÜšÊHOˆƒBˆ‰Ù\ØØ\R[
+ÛÜšËÛÜš×Û[X™\ˆÛÜšË›˜[YJ_OÜ[ˆÛ\ÜÏH›]]Y‰Ù\ØØ\R[
+ÛÜšË›˜[YJ_OÜÜ[İƒBˆ‰Ù\ØØ\R[
+ÛÜšË˜ÛY[Û˜[YH¸ %Š_Oİ‰Ù\ØØ\R[
+ÛÜšËœ™\ÜÛœÚX›WÛ˜[YH¸ %Š_OİƒBˆ‰Ù]P”ŠÛÜšËœ™\]Y\İYÙYWÙ]J_Oİ‰Ø˜YÙJÛÜšËœİ]\Ê_OİƒBˆ]ˆÛ\ÜÏHœ›İËXXİ[ÛœÈ‰ØXİ[Û]ÛŠ™Y]‹ÛÜšËšY‘Y]\ˆŠ_IØXİ[Û]ÛŠ˜\˜Ú]™H‹ÛÜšËšY\œ]Z]˜\ˆŠ_OÙ]İƒBˆİ˜
+Kš›Ú[ŠˆŠHˆÛÛÜ[HˆˆÛ\ÜÏH™[\H“™[š[XHØœ˜H[˜ÛÛ˜YKİİ˜ÃBˆH[ÙHYˆ
+İ]KXˆOOH›Ü™\œÈŠHÃBˆ	
+›Ü\˜][ÛœÕX›HŠKš[›™\’SHX›RXY\Š”YYÜÈ‹’][œÈH]X[YY\ÈYØYÜÈH[XHØœ˜HH[ÈØ[[™0è\š[ÈH›ÙpéğèÛËˆ‹”\Ü]Z\Ø\ˆYYËØœ˜HİHÛY[H‹È”YYÈ‹“Øœ˜HÈÛY[H‹’][œÈ‹’[°ëXÚ[È‹”˜^›È‹”İ]\È‹péğíY\È—JNÃBˆÛÛœİ›İÜÈH]K›Ü™\œË™š[\Š
+Ü™\ŠHOˆ	ÛÜ™\‹›Ü™\—Û[X™\ŸH	ÛÜ™\‹ÛÜš×Û˜[Y_H	ÛÜ™\‹˜ÛY[Û˜[Y_H	ÛÜ™\‹œİ]\ßXÓØØ[SİÙ\Ø\ÙJ
+Kš[˜ÛY\Êš[\ŠJNÃBˆ	
+›Ü\˜][ÛœÔ›İÜÈŠKš[›™\’SH›İÜË›[™İÈ›İÜË›X\
 
-  function actionButton(action, id, label) {
-    return `<button class="icon-btn" type="button" data-ops-action="${action}" data-id="${escapeHtml(id)}">${label}</button>`;
-  }
+Ü™\ŠHOˆƒBˆ‰Ù\ØØ\R[
+Ü™\‹›Ü™\—Û[X™\ˆ”Ù[H°î›Y\›ÈŠ_OÜ[ˆÛ\ÜÏH›]]Y‰ÛÜ™\‹š][\Ëœ™YXÙJ
+İ[][JHOˆİ[
+È[X™\Š][Kœ]X[]H
+K
+_HpéØ\ÏÜÜ[İƒBˆ‰Ù\ØØ\R[
+Ü™\‹ÛÜš×Û˜[YH”Ù[HØœ˜HŠ_OÜ[ˆÛ\ÜÏH›]]Y‰Ù\ØØ\R[
+Ü™\‹˜ÛY[Û˜[YH¸ %Š_OÜÜ[İƒBˆ‰ÛÜ™\‹š][\Ë›X\
 
-  function formatNumber(value, digits = 2) {
-    const number = Number(value);
-    return Number.isFinite(number) ? new Intl.NumberFormat("pt-BR", { maximumFractionDigits: digits }).format(number) : "â€”";
-  }
+][JHOˆ	Ù\ØØ\R[
+][KœYXÙWØÛÙH][KœYXÙWÛ˜[YJ_H0åÈ	Ó[X™\Š][Kœ]X[]J_X
+Kš›Ú[ŠœˆŠH¸ %ŸOİƒBˆ‰Ù]P”ŠÜ™\‹œİ\Ù]J_Oİ‰Ù]P”ŠÜ™\‹œ™\]Y\İYÙYWÙ]J_Oİ‰Ø˜YÙJÜ™\‹œİ]\Ê_OİƒBˆ]ˆÛ\ÜÏHœ›İËXXİ[ÛœÈ‰ÛÜ™\‹š\Ô™\Ûİ\˜ÙP[ØØ][ÛˆÈ	ÏÜ[ˆÛ\ÜÏH›ÜËX˜YÙHØ\›ˆˆ]OH“ÜÈ][œÈğèÛÈ™\Ù\˜YÜÈ\˜HX[\ˆÈ\İ0ìÜšXÛÈ\È[ØØpéğíY\Ëˆ[ØØpéğèÛÈ™YÚ\İ˜YOÜÜ[‰ÈˆXİ[Û]ÛŠ™Y]‹Ü™\‹šY‘Y]\ˆŠ_OÙ]İƒBˆİ˜
+Kš›Ú[ŠˆŠHˆÛÛÜ[HÈˆÛ\ÜÏH™[\H“™[š[HYYÈ[˜ÛÛ˜YËİİ˜ÃBˆH[ÙHYˆ
+İ]KXˆOOHœ›Ú™XİÈŠHÃBˆYˆ
+\İ]Kœİ\ÜÑ˜Xš[ÌŠHÃBˆ	
+›Ü\˜][ÛœÕX›HŠKš[›™\’SH]ˆÛ\ÜÏH˜Ø[[™\‹\XÙZÛ\ˆ]İ›Û™Ï”›Ú™]ÜÈH[™Ù[š\šXHYİX\™[HH]\HOÜİ›Û™ÏHZYÜ˜péğèÛÈHXš[]HH]š\ğèÛÈÜÈ][œÈHØYHYYÈ[HÙpéğíY\ÈÈ›Ú™]ËÜÙ]Ù]˜ÃBˆ™]\›ÃBˆCBˆ	
+›Ü\˜][ÛœÕX›HŠKš[›™\’SHX›RXY\Š”›Ú™]ÜÈÜˆYYÈ‹“Ü™Ø[š^™HÜÈ][œÈH[HYYÈ[HÙpéğíY\ÈHÛÛ›ÛHH]X[YYH\İšXpëYKˆ‹”\Ü]Z\Ø\ˆ›Ú™]ËYYÈİHÛY[H‹È”YYÈ‹ÛY[H‹”ÙpéğíY\È‹’][œÈ\İšXpëYÜÈ‹péğíY\È—JNÃBˆÛÛœİ›İÜÈH
+]K™[™Ú[™Y\š[™Ô›Ú™XİÈ×JK™š[\Š
+›Ú™Xİ
+HOˆÃBˆÛÛœİÜ™\ˆH]K›Ü™\œË™š[™
 
-  function pieceTypeLabel(value) {
-    return ({ braco: "BraÃ§o", pilar: "Pilar", viga: "Viga" })[value] || "Tipo pendente";
-  }
+][JHOˆ][KšYOOH›Ú™Xİ›Ü™\—ÚY
+NÃBˆ™]\›ˆ	ÛÜ™\Ë›Ü™\—Û[X™\ˆˆŸH	ÛÜ™\Ë˜ÛY[Û˜[YHˆŸXÓØØ[SİÙ\Ø\ÙJ
+Kš[˜ÛY\Êš[\ŠNÃBˆJNÃBˆ	
+›Ü\˜][ÛœÔ›İÜÈŠKš[›™\’SH›İÜË›[™İÈ›İÜË›X\
 
-  function catalogLabel(code) {
-    const item = (state.data?.moldCatalog || []).find((row) => row.code === code);
-    return item ? `${item.mold_type === "BRACO" ? "BRAÃ‡O" : item.mold_type} ${item.measure_label} cm` : "Molde nÃ£o informado";
-  }
+›Ú™Xİ
+HOˆÃBˆÛÛœİÜ™\ˆH]K›Ü™\œË™š[™
 
-  function pieceMoldSummary(piece) {
-    const molds = piece.mold_catalogs || {};
-    if (molds.braco) return escapeHtml(catalogLabel(molds.braco));
-    if (molds.leito || molds.lateral) return `${escapeHtml(catalogLabel(molds.leito))}<span class="muted">+ ${escapeHtml(catalogLabel(molds.lateral))}</span>`;
-    return "ConfiguraÃ§Ã£o pendente";
-  }
+][JHOˆ][KšYOOH›Ú™Xİ›Ü™\—ÚY
+NÃBˆÛÛœİÙXİ[ÛœÈH›Ú™XİœÙXİ[ÛœÈ×NÃBˆÛÛœİ][PÛİ[HÙXİ[ÛœËœ™YXÙJ
+İ[ÙXİ[ÛŠHOˆİ[
+È
+ÙXİ[Û‹š][\È×JK›[™İ
+NÃBˆ™]\›ˆƒBˆ‰Ù\ØØ\R[
+Ü™\Ë›Ü™\—Û[X™\ˆ”YYÈÙ[H°î›Y\›ÈŠ_OÜ[ˆÛ\ÜÏH›]]Y‰Ù\ØØ\R[
+Ü™\ËÛÜš×Û˜[YH”Ù[HØœ˜HŠ_OÜÜ[İƒBˆ‰Ù\ØØ\R[
+Ü™\Ë˜ÛY[Û˜[YH¸ %Š_OİƒBˆ‰ÜÙXİ[ÛœË›[™İOÜ[ˆÛ\ÜÏH›]]Y‰ÜÙXİ[ÛœË›X\
 
-  function calculatedVolumeCm3(piece) {
-    if (piece.volume_cm3 != null) return Number(piece.volume_cm3);
-    const dimensions = [piece.dimension_x_cm, piece.dimension_y_cm, piece.dimension_z_cm].map(Number);
-    return dimensions.every((value) => Number.isFinite(value) && value > 0) ? dimensions.reduce((total, value) => total * value, 1) : null;
-  }
+ÙXİ[ÛŠHOˆ\ØØ\R[
+ÙXİ[Û‹œÙXİ[Û—Û˜[YJJKš›Ú[Šˆ0­ÈŠ_OÜÜ[İƒBˆ‰Ú][PÛİ[OİƒBˆ]ˆÛ\ÜÏHœ›İËXXİ[ÛœÈ‰ØXİ[Û]ÛŠ™Y]\›Ú™Xİ‹›Ú™XİšYXœš\ˆ›Ú™]ÈŠ_OÙ]İƒBˆİ˜ÃBˆJKš›Ú[ŠˆŠHˆÛÛÜ[HHˆÛ\ÜÏH™[\HZ[™H°èÛÈ0èH›Ú™]ÜÈH[™Ù[š\šXKˆÜšYH[H›Ú™]ÈH\\ˆH[HYYÈ]]›Ëİİ˜ÃBˆH[ÙHYˆ
+İ]KXˆOOHœYXÙ\ÈŠHÃBˆ	
+›Ü\˜][ÛœÕX›HŠKš[›™\’SHX›RXY\ŠØ]0è[ÙÛÈHpéØ\È‹•\ÜÈš^ÜË[Y[œğíY\È[HÙ[0ë[Y]›ÜÈHpê]šXØ\ÈØ[İ[Y\È]]ÛX]XØ[Y[Kˆ‹”\Ü]Z\Ø\ˆğìÙYÛÈİHpéØH‹ÈğìÙYÛÈÈpéØH‹•\È‹‘[Y[œğíY\È0åÈH0åÈˆ‹•›Û[YHÈ\ÛÈ‹•[\È™YÚ\İ˜YÈ‹‘›Ü›X\È‹péğíY\È—JNÃBˆÛÛœİ›İÜÈH]KœYXÙU\\Ë™š[\Š
+YXÙJHOˆ	ÜYXÙK˜ÛÙ_H	ÜYXÙK›˜[Y_H	ÜYXÙKœYXÙWÚÚ[™ˆŸH	ÜYXÙK™[Y[œÚ[ÛœßXÓØØ[SİÙ\Ø\ÙJ
+Kš[˜ÛY\Êš[\ŠJNÃBˆ	
+›Ü\˜][ÛœÔ›İÜÈŠKš[›™\’SH›İÜË›[™İÈ›İÜË›X\
 
-  function pieceMetricsLabel(piece) {
-    const volumeCm3 = calculatedVolumeCm3(piece);
-    if (volumeCm3 == null) {
-      return '<td>DimensÃµes pendentes<span class="muted">Revise X, Y e Z para calcular volume e peso</span></td>';
-    }
-    const volumeM3 = piece.volume_m3 == null ? volumeCm3 / 1_000_000 : Number(piece.volume_m3);
-    const weightKg = piece.weight_kg == null ? volumeCm3 * 2.5 / 1000 : Number(piece.weight_kg);
-    return `<td>${formatNumber(volumeCm3, 3)} cmÂ³<span class="muted">${formatNumber(volumeM3, 6)} mÂ³ Â· ${formatNumber(weightKg, 3)} kg</span></td>`;
-  }
+YXÙJHOˆƒBˆ‰Ù\ØØ\R[
+YXÙK˜ÛÙJ_OÜ[ˆÛ\ÜÏH›]]Y‰Ù\ØØ\R[
+YXÙK›˜[YJ_OÜÜ[İƒBˆ‰Ù\ØØ\R[
+YXÙU\SX™[
+YXÙKœYXÙWÚÚ[™
+J_OİƒBˆ‰ÜYXÙK™[Y[œÚ[Û—ŞØÛHOH[È\ØØ\R[
+YXÙK™[Y[œÚ[ÛœÈ“°èÛÈ[™›Ü›XYÈŠHˆ	Ó[X™\ŠYXÙK™[Y[œÚ[Û—ŞØÛJ_H0åÈ	Ó[X™\ŠYXÙK™[Y[œÚ[Û—ŞWØÛJ_H0åÈ	Ó[X™\ŠYXÙK™[Y[œÚ[Û—Ş—ØÛJ_HÛXOİƒBˆ	ÜYXÙSY]šXÜÓX™[
+YXÙJ_CBˆ‰Ó[X™\ŠYXÙKœ›ÙXİ[Û—ÛZ[]\×Ü\—İ[š]
+_HZ[‹İ[‹Ü[ˆÛ\ÜÏH›]]Y˜\[˜\È™YÚ\İ›ÏÜÜ[İƒBˆ‰ÜYXÙS[Ûİ[[X\JYXÙJ_OİƒBˆ]ˆÛ\ÜÏHœ›İËXXİ[ÛœÈ‰ØXİ[Û]ÛŠ™Y]‹YXÙKšY‘Y]\ˆŠ_IØXİ[Û]ÛŠ˜\˜Ú]™H‹YXÙKšY\œ]Z]˜\ˆŠ_OÙ]İƒBˆİ˜
+Kš›Ú[ŠˆŠHˆÛÛÜ[HÈˆÛ\ÜÏH™[\H“™[š[XHpéØH[˜ÛÛ˜YKİİ˜ÃBˆH[ÙHÃBˆYˆ
+İ]KXˆOOHœÜÚ][ÛœÈŠHÃBˆ™[™\”ÜÚ][ÛœÊš[\ŠNÃBˆ™]\›ÃBˆCBˆ™[™\“[ÛÊš[\ŠNÃBˆ™]\›ÃBˆCBˆ	
+›Ü\˜][ÛœÔÙX\˜ÚŠK˜Y]™[\İ[™\Šš[œ]‹
+]™[
+HOˆÈİ]Kœ]Y\HH]™[\™Ù]˜[YNÈ™[™\•X›Jİ]Kœ]Y\JNÈJNÃBˆCBƒBˆ[˜İ[Ûˆ™[™\“[ÛÊš[\ŠHÃBˆÛÛœİ]HHİ]K™]NÃBˆÛÛœİ›İÜÈH]K›[ÛË™š[\Š
+[Û
+HOˆ	Û[Û˜ÛÙ_H	Û[Û›˜[Y_H	Û[Û›[Ûİ\_H	Û[Û™[Y[œÚ[ÛœßXÓØØ[SİÙ\Ø\ÙJ
+Kš[˜ÛY\Êš[\ŠJNÃBˆÛÛœİ[ÛRYH™]ÈX\
+]K›[ÛË›X\
 
-  function positionConfigLabel(position) {
-    if (position.configuration_kind === "braco" && position.braco_catalog_code) return catalogLabel(position.braco_catalog_code);
-    if (position.configuration_kind === "pilar_viga" && position.leito_catalog_code && position.lateral_catalog_code) {
-      return `${catalogLabel(position.leito_catalog_code)} + ${catalogLabel(position.lateral_catalog_code)}`;
-    }
-    return "ConfiguraÃ§Ã£o pendente";
-  }
+[Û
+HOˆÛ[ÛšY[Û˜ÛÙWJJNÃBˆÛÛœİYXÙPRYH™]ÈX\
+]KœYXÙU\\Ë›X\
 
-  // Tabelas e indicadores: convertem o pacote do repositÃ³rio em listas filtrÃ¡veis.
-  function renderTable(query = state.query) {
-    state.query = query;
-    if (!state.data) return;
-    const filter = query.toLocaleLowerCase().trim();
-    const data = state.data;
-    if (state.tab === "works") {
-      $("operationsTable").innerHTML = tableHeader("Obras", "Cliente, endereÃ§o, responsÃ¡vel e prazo da obra.", "Pesquisar obra, cliente ou responsÃ¡vel", ["Obra", "Cliente", "ResponsÃ¡vel", "Prazo", "Status", "AÃ§Ãµes"]);
-      const rows = data.works.filter((work) => `${work.work_number} ${work.name} ${work.client_name} ${work.responsible_name} ${work.address}`.toLocaleLowerCase().includes(filter));
-      $("operationsRows").innerHTML = rows.length ? rows.map((work) => `<tr>
-        <td>${escapeHtml(work.work_number || work.name)}<span class="muted">${escapeHtml(work.name)}</span></td>
-        <td>${escapeHtml(work.client_name || "â€”")}</td><td>${escapeHtml(work.responsible_name || "â€”")}</td>
-        <td>${dateBR(work.requested_due_date)}</td><td>${badge(work.status)}</td>
-        <td><div class="row-actions">${actionButton("edit", work.id, "Editar")}${actionButton("archive", work.id, "Arquivar")}</div></td>
-      </tr>`).join("") : `<tr><td colspan="6" class="empty">Nenhuma obra encontrada.</td></tr>`;
-    } else if (state.tab === "orders") {
-      $("operationsTable").innerHTML = tableHeader("Pedidos", "Itens e quantidades ligados a uma obra e ao calendÃ¡rio de produÃ§Ã£o.", "Pesquisar pedido, obra ou cliente", ["Pedido", "Obra / cliente", "Itens", "InÃ­cio", "Prazo", "Status", "AÃ§Ãµes"]);
-      const rows = data.orders.filter((order) => `${order.order_number} ${order.work_name} ${order.client_name} ${order.status}`.toLocaleLowerCase().includes(filter));
-      $("operationsRows").innerHTML = rows.length ? rows.map((order) => `<tr>
-        <td>${escapeHtml(order.order_number || "Sem nÃºmero")}<span class="muted">${order.items.reduce((total, item) => total + Number(item.quantity || 0), 0)} peÃ§as</span></td>
-        <td>${escapeHtml(order.work_name || "Sem obra")}<span class="muted">${escapeHtml(order.client_name || "â€”")}</span></td>
-        <td>${order.items.map((item) => `${escapeHtml(item.piece_code || item.piece_name)} Ã— ${Number(item.quantity)}`).join("<br>") || "â€”"}</td>
-        <td>${dateBR(order.start_date)}</td><td>${dateBR(order.requested_due_date)}</td><td>${badge(order.status)}</td>
-        <td><div class="row-actions">${order.hasResourceAllocation ? '<span class="ops-badge warn" title="Os itens sÃ£o preservados para manter o histÃ³rico das alocaÃ§Ãµes.">AlocaÃ§Ã£o registrada</span>' : actionButton("edit", order.id, "Editar")}</div></td>
-      </tr>`).join("") : `<tr><td colspan="7" class="empty">Nenhum pedido encontrado.</td></tr>`;
-    } else if (state.tab === "pieces") {
-      $("operationsTable").innerHTML = tableHeader("CatÃ¡logo de peÃ§as", "Tipos fixos, dimensÃµes em centÃ­metros e mÃ©tricas calculadas automaticamente.", "Pesquisar cÃ³digo ou peÃ§a", ["CÃ³digo / peÃ§a", "Tipo", "DimensÃµes X Ã— Y Ã— Z", "Volume / peso", "Tempo registrado", "Moldes", "AÃ§Ãµes"]);
-      const rows = data.pieceTypes.filter((piece) => `${piece.code} ${piece.name} ${piece.piece_kind || ""} ${piece.dimensions}`.toLocaleLowerCase().includes(filter));
-      $("operationsRows").innerHTML = rows.length ? rows.map((piece) => `<tr>
-        <td>${escapeHtml(piece.code)}<span class="muted">${escapeHtml(piece.name)}</span></td>
-        <td>${escapeHtml(pieceTypeLabel(piece.piece_kind))}</td>
-        <td>${piece.dimension_x_cm == null ? escapeHtml(piece.dimensions || "NÃ£o informado") : `${Number(piece.dimension_x_cm)} Ã— ${Number(piece.dimension_y_cm)} Ã— ${Number(piece.dimension_z_cm)} cm`}</td>
-        ${pieceMetricsLabel(piece)}
-        <td>${Number(piece.production_minutes_per_unit)} min/un.<span class="muted">apenas registro</span></td>
-        <td>${pieceMoldSummary(piece)}</td>
-        <td><div class="row-actions">${actionButton("edit", piece.id, "Editar")}${actionButton("archive", piece.id, "Arquivar")}</div></td>
-      </tr>`).join("") : `<tr><td colspan="7" class="empty">Nenhuma peÃ§a encontrada.</td></tr>`;
-    } else {
-      if (state.tab === "positions") {
-        renderPositions(filter);
-        return;
-      }
-      renderMolds(filter);
-      return;
-    }
-    $("operationsSearch").addEventListener("input", (event) => { state.query = event.target.value; renderTable(state.query); });
-  }
+YXÙJHOˆÜYXÙKšYYXÙK˜ÛÙWJJNÃBˆÛÛœİÜ™\’][PRYH™]ÈX\
 
-  function renderMolds(filter) {
-    const data = state.data;
-    const rows = data.molds.filter((mold) => `${mold.code} ${mold.name} ${mold.mold_type} ${mold.dimensions}`.toLocaleLowerCase().includes(filter));
-    const moldById = new Map(data.molds.map((mold) => [mold.id, mold.code]));
-    const pieceById = new Map(data.pieceTypes.map((piece) => [piece.id, piece.code]));
-    const orderItemById = new Map();
-    for (const order of data.orders) for (const item of order.items) orderItemById.set(item.id, { item, order });
-    const moldRows = rows.length ? rows.map((mold) => `<tr>
-      <td>${escapeHtml(mold.catalog_code ? catalogLabel(mold.catalog_code) : (mold.catalog_label || mold.name || "Molde legado"))}</td>
-      <td>${escapeHtml(mold.code)}<span class="muted">${mold.catalog_code ? "identificador gerado" : "cadastro legado"}</span></td>
-      <td>${mold.cycle_minutes_per_unit == null ? "NÃ£o informado" : `${Number(mold.cycle_minutes_per_unit)} min/un.`}<span class="muted">preparaÃ§Ã£o: 7 dias corridos</span></td>
-      <td>${(mold.piece_type_ids || []).map((id) => escapeHtml(pieceById.get(id) || "")).filter(Boolean).join(", ") || "â€”"}</td>
-      <td>${badge(mold.status)}</td>
-      <td><div class="row-actions">${actionButton("edit", mold.id, "Editar")}${actionButton("prepare", mold.id, "Preparar")}${actionButton("allocate", mold.id, "Alocar")}${mold.status !== "retirado" ? actionButton("archive", mold.id, "Retirar") : ""}</div></td>
-    </tr>`).join("") : `<tr><td colspan="6" class="empty">Nenhum molde cadastrado. Os moldes existentes podem ser incluÃ­dos sem importar cÃ³digos presumidos.</td></tr>`;
-    const preparationRows = data.preparations.map((prep) => `<tr>
-      <td>${escapeHtml(moldById.get(prep.mold_id) || "Molde")}</td><td>${dateBR(prep.start_date)} â€“ ${dateBR(prep.end_date)}</td>
-      <td>${badge(prep.status)}</td><td>${escapeHtml(prep.approved_by || "â€”")}</td>
-      <td><div class="row-actions">${actionButton("edit-preparation", prep.id, "Editar")}</div></td>
-    </tr>`).join("") || `<tr><td colspan="5" class="empty">Nenhuma preparaÃ§Ã£o registrada.</td></tr>`;
-    const allocationRows = data.allocations.map((allocation) => {
-      const linked = orderItemById.get(allocation.order_item_id);
-      const product = linked ? `${linked.order.order_number || "Pedido"} Â· ${linked.item.piece_code || linked.item.piece_name}` : "Item de produÃ§Ã£o";
-      const resource = allocation.resource_kind === "mold" ? moldById.get(allocation.mold_id) || allocation.resource_name : allocation.resource_name;
-      const override = allocation.conflict_reason ? `<span class="muted">ExceÃ§Ã£o: ${escapeHtml(allocation.conflict_responsible || "responsÃ¡vel nÃ£o informado")} Â· ${escapeHtml(allocation.conflict_reason)}</span>` : "";
-      return `<tr><td>${escapeHtml(resource)}</td><td>${escapeHtml(product)}${override}</td><td>${dateBR(allocation.start_date)} â€“ ${dateBR(allocation.end_date)}</td><td>${badge(allocation.status)}</td><td><div class="row-actions">${actionButton("edit-allocation", allocation.id, "Editar")}${allocation.status !== "cancelled" ? actionButton("cancel-allocation", allocation.id, "Cancelar") : ""}</div></td></tr>`;
-    }).join("") || `<tr><td colspan="5" class="empty">Nenhuma alocaÃ§Ã£o de produÃ§Ã£o registrada.</td></tr>`;
-    $("operationsTable").innerHTML = `
-      <div class="operations-list-head"><div><h3>Moldes</h3><p>CatÃ¡logo fixo de medidas, ciclo opcional e preparaÃ§Ã£o de sete dias corridos.</p></div><input class="search" id="operationsSearch" value="${escapeHtml(state.query)}" placeholder="Pesquisar molde ou medida" aria-label="Pesquisar moldes" /></div>
-      <div class="table-wrap"><table class="operations-table"><thead><tr><th>Molde</th><th>Identificador</th><th>Ciclo</th><th>Compatibilidade</th><th>Status</th><th>AÃ§Ãµes</th></tr></thead><tbody id="moldRows">${moldRows}</tbody></table></div>
-      <div class="operations-list-head"><div><h3>PreparaÃ§Ãµes</h3><p>Sete dias corridos; produÃ§Ã£o depende de checklist aprovado.</p></div><button class="btn" type="button" data-ops-action="new-preparation">Nova preparaÃ§Ã£o</button></div>
-      <div class="table-wrap"><table class="operations-table"><thead><tr><th>Molde</th><th>PerÃ­odo contÃ­nuo</th><th>Status</th><th>Aprovador</th><th>AÃ§Ãµes</th></tr></thead><tbody>${preparationRows}</tbody></table></div>
-      <div class="operations-list-head"><div><h3>AlocaÃ§Ãµes</h3><p>O mesmo molde nÃ£o pode ser reservado em perÃ­odos sobrepostos.</p></div><button class="btn" type="button" data-ops-action="new-allocation">Alocar produÃ§Ã£o</button></div>
-      <div class="table-wrap"><table class="operations-table"><thead><tr><th>Recurso</th><th>Pedido / peÃ§a</th><th>PerÃ­odo</th><th>Status</th><th>AÃ§Ãµes</th></tr></thead><tbody>${allocationRows}</tbody></table></div>
-      <p class="operations-help">PreparaÃ§Ã£o: limpeza, aplicaÃ§Ã£o de desmoldante e montagem precisam estar marcadas antes da aprovaÃ§Ã£o. Conflitos de outros recursos sÃ³ sÃ£o mantidos com justificativa e responsÃ¡vel registrados.</p>`;
-    $("operationsSearch").addEventListener("input", (event) => { state.query = event.target.value; renderTable(state.query); });
-  }
+NÃBˆ›Üˆ
+ÛÛœİÜ™\ˆÙˆ]K›Ü™\œÊH›Üˆ
+ÛÛœİ][HÙˆÜ™\‹š][\ÊHÜ™\’][PRYœÙ]
+][KšYÈ][KÜ™\ˆJNÃBˆÛÛœİ™\\˜][Û‘\˜][Û“X™[Hİ]Kœİ\ÜÑ˜Xš[ÌˆÈHX\È0îZ\ÈˆˆÈX\ÈÛÜœšYÜÈÃBˆÛÛœİ[Û›İÜÈH›İÜË›[™İÈ›İÜË›X\
 
-  function renderPositions(filter) {
-    const positions = state.data.positions || [];
-    const rows = positions.filter((position) => `${position.code} ${position.status} ${positionConfigLabel(position)}`.toLocaleLowerCase().includes(filter));
-    const positionRows = rows.map((position) => `<tr>
-      <td>${escapeHtml(position.code)}</td>
-      <td>${escapeHtml(positionConfigLabel(position))}<span class="muted">${position.configuration_kind === "pilar_viga" ? "LEITO e LATERAL na mesma posiÃ§Ã£o" : position.configuration_kind === "braco" ? "Molde Ãºnico" : "Selecione a configuraÃ§Ã£o"}</span></td>
-      <td>${badge(position.status)}</td>
-      <td>${escapeHtml(position.notes || "â€”")}</td>
-      <td><div class="row-actions">${actionButton("edit-position", position.id, "Configurar")}</div></td>
-    </tr>`).join("") || `<tr><td colspan="5" class="empty">Nenhuma posiÃ§Ã£o encontrada.</td></tr>`;
-    const setupStatus = state.supportsStage4 ? "" : `<div class="ops-form-hint full">Para configurar posiÃ§Ãµes e moldes, aplique database/007_stage4_piece_catalog_positions.sql e publique a Edge Function operations-admin atualizada.</div>`;
-    $("operationsTable").innerHTML = `<div class="operations-list-head"><div><h3>PosiÃ§Ãµes fÃ­sicas de molde</h3><p>Quatro posiÃ§Ãµes fixas. Cada concretagem ocupa uma posiÃ§Ã£o por um dia Ãºtil e a configuraÃ§Ã£o seleciona a quais peÃ§as ela atende.</p></div><input class="search" id="operationsSearch" value="${escapeHtml(state.query)}" placeholder="Pesquisar posiÃ§Ã£o ou molde" aria-label="Pesquisar posiÃ§Ãµes" /></div>
-      ${setupStatus}
-      <div class="table-wrap"><table class="operations-table"><thead><tr><th>PosiÃ§Ã£o</th><th>ConfiguraÃ§Ã£o</th><th>Status</th><th>ObservaÃ§Ãµes</th><th>AÃ§Ãµes</th></tr></thead><tbody>${positionRows}</tbody></table></div>
-      <p class="operations-help">BraÃ§o usa uma medida BRAÃ‡O. Pilar e Viga usam um LEITO e um LATERAL na mesma posiÃ§Ã£o. Tempo de setup permanece sem valor informado.</p>`;
-    $("operationsSearch").addEventListener("input", (event) => { state.query = event.target.value; renderTable(state.query); });
-  }
+[Û
+HOˆƒBˆ‰Ù\ØØ\R[
+[Û˜Ø][Ù×ØÛÙHÈØ][ÙÓX™[
+[Û˜Ø][Ù×ØÛÙJHˆ
+[Û˜Ø][Ù×ÛX™[[Û›˜[YH‘›Ü›XHYØYHŠJ_OİƒBˆ‰Ù\ØØ\R[
+[Û˜ÛÙJ_OÜ[ˆÛ\ÜÏH›]]Y‰Û[Û˜Ø][Ù×ØÛÙHÈšY[YšXØYÜˆÙ\˜YÈˆˆ˜ØY\İ›ÈYØYÈŸOÜÜ[İƒBˆ‰Û[Û˜ŞXÛWÛZ[]\×Ü\—İ[š]OH[È“°èÛÈ[™›Ü›XYÈˆˆ	Ó[X™\Š[Û˜ŞXÛWÛZ[]\×Ü\—İ[š]
+_HZ[‹İ[‹˜OÜ[ˆÛ\ÜÏH›]]Yœ™\\˜péğèÛÎˆ	Ü™\\˜][Û‘\˜][Û“X™[OÜÜ[İƒBˆ‰Ê[ÛœYXÙWİ\WÚYÈ×JK›X\
 
-  // FormulÃ¡rios: constroem os campos e guardam qual registro estÃ¡ sendo editado.
-  function openModal(title, subtitle, body, kind, record = null) {
-    $("operationsModalTitle").textContent = title;
-    $("operationsModalSubtitle").textContent = subtitle;
-    $("operationsModalBody").innerHTML = body;
-    $("operationsModalStatus").textContent = "";
-    $("operationsModalStatus").classList.remove("show");
-    $("operationsForm").dataset.kind = kind;
-    $("operationsForm").dataset.recordId = record?.id || "";
-    $("operationsModal").hidden = false;
-    $("operationsModalSave").disabled = false;
-    $("operationsModalSave").textContent = record ? "Salvar alteraÃ§Ãµes" : "Salvar cadastro";
-    $("operationsModalBody").querySelector("input,select,textarea")?.focus();
-  }
+Y
+HOˆ\ØØ\R[
+YXÙPRY™Ù]
+Y
+HˆŠJK™š[\Š›ÛÛX[ŠKš›Ú[Š‹ŠH¸ %ŸOİƒBˆ‰Ø˜YÙJ[Ûœİ]\Ê_OİƒBˆ]ˆÛ\ÜÏHœ›İËXXİ[ÛœÈ‰ØXİ[Û]ÛŠ™Y]‹[ÛšY‘Y]\ˆŠ_IØXİ[Û]ÛŠœ™\\™H‹[ÛšY”™\\˜\ˆŠ_IØXİ[Û]ÛŠ˜[ØØ]H‹[ÛšY[ØØ\ˆŠ_IÛ[Ûœİ]\ÈOOHœ™]\˜YÈˆÈXİ[Û]ÛŠ˜\˜Ú]™H‹[ÛšY”™]\˜\ˆŠHˆˆŸOÙ]İƒBˆİ˜
+Kš›Ú[ŠˆŠHˆÛÛÜ[HˆˆÛ\ÜÏH™[\H“™[š[XH›Ü›XHØY\İ˜YKˆ\È›Ü›X\È^\İ[\ÈÙ[HÙ\ˆ[˜ÛpëY\ÈÙ[H[\Ü\ˆğìÙYÛÜÈ™\İ[ZYÜËİİ˜ÃBˆÛÛœİ™\\˜][Û”›İÜÈH]Kœ™\\˜][ÛœË›X\
 
-  function closeModal() {
-    $("operationsModal").hidden = true;
-    $("operationsForm").reset();
-    $("operationsForm").dataset.kind = "";
-    $("operationsForm").dataset.recordId = "";
-  }
+™\
+HOˆƒBˆ‰Ù\ØØ\R[
+[ÛRY™Ù]
+™\›[ÛÚY
+H‘›Ü›XHŠ_Oİ‰Ù]P”Š™\œİ\Ù]J_H8 $È	Ù]P”Š™\™[™Ù]J_OİƒBˆ‰Ø˜YÙJ™\œİ]\Ê_Oİ‰Ù\ØØ\R[
+™\˜\›İ™YØH¸ %Š_OİƒBˆ]ˆÛ\ÜÏHœ›İËXXİ[ÛœÈ‰ØXİ[Û]ÛŠ™Y]\™\\˜][Ûˆ‹™\šY‘Y]\ˆŠ_OÙ]İƒBˆİ˜
+Kš›Ú[ŠˆŠHÛÛÜ[HHˆÛ\ÜÏH™[\H“™[š[XH™\\˜péğèÛÈ™YÚ\İ˜YKİİ˜ÃBˆÛÛœİ[ØØ][Û”›İÜÈH]K˜[ØØ][ÛœË›X\
 
-  function inputField(id, label, value = "", type = "text", options = {}) {
-    const full = options.full ? " full" : "";
-    const required = options.required ? " required" : "";
-    const min = options.min != null ? ` min="${escapeHtml(options.min)}"` : "";
-    const max = options.max != null ? ` max="${escapeHtml(options.max)}"` : "";
-    const step = options.step != null ? ` step="${escapeHtml(options.step)}"` : "";
-    const disabled = options.disabled ? " disabled" : "";
-    const readonly = options.readonly ? " readonly" : "";
-    const placeholder = options.placeholder ? ` placeholder="${escapeHtml(options.placeholder)}"` : "";
-    return `<div class="field${full}"><label for="${id}">${label}${options.optional ? " <span>opcional</span>" : ""}</label><input class="input" id="${id}" name="${id}" type="${type}" value="${escapeHtml(value)}"${required}${min}${max}${step}${disabled}${readonly}${placeholder}></div>`;
-  }
+[ØØ][ÛŠHOˆÃBˆÛÛœİ[šÙYHÜ™\’][PRY™Ù]
+[ØØ][Û‹›Ü™\—Ú][WÚY
+NÃBˆÛÛœİ›ÙXİH[šÙYÈ	Û[šÙY›Ü™\‹›Ü™\—Û[X™\ˆ”YYÈŸH0­È	Û[šÙYš][KœYXÙWØÛÙH[šÙYš][KœYXÙWÛ˜[Y_Xˆ’][HH›ÙpéğèÛÈÃBˆÛÛœİ™\Ûİ\˜ÙHH[ØØ][Û‹œ™\Ûİ\˜ÙWÚÚ[™OOH›[ÛˆÈ[ÛRY™Ù]
+[ØØ][Û‹›[ÛÚY
+H[ØØ][Û‹œ™\Ûİ\˜ÙWÛ˜[YHˆ[ØØ][Û‹œ™\Ûİ\˜ÙWÛ˜[YNÃBˆÛÛœİİ™\œšYHH[ØØ][Û‹˜ÛÛ™›XİÜ™X\ÛÛˆÈÜ[ˆÛ\ÜÏH›]]Y‘^ÙpéğèÛÎˆ	Ù\ØØ\R[
+[ØØ][Û‹˜ÛÛ™›XİÜ™\ÜÛœÚX›Hœ™\ÜÛœğè]™[°èÛÈ[™›Ü›XYÈŠ_H0­È	Ù\ØØ\R[
+[ØØ][Û‹˜ÛÛ™›XİÜ™X\ÛÛŠ_OÜÜ[˜ˆˆÃBˆ™]\›ˆ‰Ù\ØØ\R[
+™\Ûİ\˜ÙJ_Oİ‰Ù\ØØ\R[
+›ÙXİ
+_IÛİ™\œšY_Oİ‰Ù]P”Š[ØØ][Û‹œİ\Ù]J_H8 $È	Ù]P”Š[ØØ][Û‹™[™Ù]J_Oİ‰Ø˜YÙJ[ØØ][Û‹œİ]\Ê_Oİ]ˆÛ\ÜÏHœ›İËXXİ[ÛœÈ‰ØXİ[Û]ÛŠ™Y]X[ØØ][Ûˆ‹[ØØ][Û‹šY‘Y]\ˆŠ_IØ[ØØ][Û‹œİ]\ÈOOH˜Ø[˜Ù[YˆÈXİ[Û]ÛŠ˜Ø[˜Ù[X[ØØ][Ûˆ‹[ØØ][Û‹šYØ[˜Ù[\ˆŠHˆˆŸOÙ]İİ˜ÃBˆJKš›Ú[ŠˆŠHÛÛÜ[HHˆÛ\ÜÏH™[\H“™[š[XH[ØØpéğèÛÈH›ÙpéğèÛÈ™YÚ\İ˜YKİİ˜ÃBˆ	
+›Ü\˜][ÛœÕX›HŠKš[›™\’SHBˆ]ˆÛ\ÜÏH›Ü\˜][ÛœË[\İZXY]Ï‘›Ü›X\ÏÚÏØ]0è[ÙÛÈš^ÈHYYY\ËÚXÛÈÜÚ[Û˜[H™\\˜péğèÛÈH	Ü™\\˜][Û‘\˜][Û“X™[KÜÙ][œ]Û\ÜÏHœÙX\˜ÚˆYH›Ü\˜][ÛœÔÙX\˜Úˆ˜[YOH‰Ù\ØØ\R[
+İ]Kœ]Y\J_HˆXÙZÛ\H”\Ü]Z\Ø\ˆ›Ü›XHİHYYYHˆ\šXK[X™[H”\Ü]Z\Ø\ˆ›Ü›X\ÈˆÏÙ]ƒBˆ]ˆÛ\ÜÏHX›K]Ü˜\X›HÛ\ÜÏH›Ü\˜][ÛœË]X›HXY‘›Ü›XOİ’Y[YšXØYÜİÚXÛÏİÛÛ\]Xš[YYOİ”İ]\ÏİpéğíY\ÏİİİXY›ÙHYH›[Û›İÜÈ‰Û[Û›İÜßOİ›ÙOİX›OÙ]ƒBˆ]ˆÛ\ÜÏH›Ü\˜][ÛœË[\İZXY]Ï”™\\˜péğíY\ÏÚÏ‰Ü™\\˜][Û‘\˜][Û“X™[NÈ›ÙpéğèÛÈ\[™HHÚXÚÛ\İ\›İ˜YËÜÙ]]ÛˆÛ\ÜÏH˜ˆˆ\OH˜]Ûˆˆ]K[ÜËXXİ[ÛH›™]Ë\™\\˜][Ûˆ“›İ˜H™\\˜péğèÛÏØ]ÛÙ]ƒBˆ]ˆÛ\ÜÏHX›K]Ü˜\X›HÛ\ÜÏH›Ü\˜][ÛœË]X›HXY‘›Ü›XOİ”\°ë[ÙÈÛÛ0ë[[Ïİ”İ]\Ïİ\›İ˜YÜİpéğíY\ÏİİİXY›ÙO‰Ü™\\˜][Û”›İÜßOİ›ÙOİX›OÙ]ƒBˆ]ˆÛ\ÜÏH›Ü\˜][ÛœË[\İZXY]Ï[ØØpéğíY\ÏÚÏHY\ÛXH›Ü›XH°èÛÈÙHÙ\ˆ™\Ù\˜YH[H\°ë[ÙÜÈÛØœ™\ÜİÜËÜÙ]]ÛˆÛ\ÜÏH˜ˆˆ\OH˜]Ûˆˆ]K[ÜËXXİ[ÛH›™]ËX[ØØ][Ûˆ[ØØ\ˆ›ÙpéğèÛÏØ]ÛÙ]ƒBˆ]ˆÛ\ÜÏHX›K]Ü˜\X›HÛ\ÜÏH›Ü\˜][ÛœË]X›HXY”™Xİ\œÛÏİ”YYÈÈpéØOİ”\°ë[ÙÏİ”İ]\ÏİpéğíY\ÏİİİXY›ÙO‰Ø[ØØ][Û”›İÜßOİ›ÙOİX›OÙ]ƒBˆÛ\ÜÏH›Ü\˜][ÛœËZ[”™\\˜péğèÛÎˆ[\^˜K\XØpéğèÛÈH\Û[Û[HH[ÛYÙ[H™XÚ\Ø[H\İ\ˆX\˜ØY\È[\ÈH\›İ˜péğèÛËˆÛÛ™›]ÜÈHİ]›ÜÈ™Xİ\œÛÜÈğìÈğèÛÈX[YÜÈÛÛH\İYšXØ]]˜HH™\ÜÛœğè]™[™YÚ\İ˜YÜËÜ˜ÃBˆ	
+›Ü\˜][ÛœÔÙX\˜ÚŠK˜Y]™[\İ[™\Šš[œ]‹
+]™[
+HOˆÈİ]Kœ]Y\HH]™[\™Ù]˜[YNÈ™[™\•X›Jİ]Kœ]Y\JNÈJNÃBˆCBƒBˆ[˜İ[Ûˆ™[™\”ÜÚ][ÛœÊš[\ŠHÃBˆÛÛœİÜÚ][ÛœÈHİ]K™]KœÜÚ][ÛœÈ×NÃBˆÛÛœİ›İÜÈHÜÚ][ÛœË™š[\Š
+ÜÚ][ÛŠHOˆ	ÜÜÚ][Û‹˜ÛÙ_H	ÜÜÚ][Û‹œİ]\ßH	ÜÜÚ][ÛÛÛ™šYÓX™[
+ÜÚ][ÛŠ_XÓØØ[SİÙ\Ø\ÙJ
+Kš[˜ÛY\Êš[\ŠJNÃBˆÛÛœİÜÚ][Û”›İÜÈH›İÜË›X\
 
-  function selectField(id, label, value, options, config = {}) {
-    const rows = options.map(([key, name]) => `<option value="${escapeHtml(key)}" ${String(value) === String(key) ? "selected" : ""}>${escapeHtml(name)}</option>`).join("");
-    return `<div class="field${config.full ? " full" : ""}"><label for="${id}">${label}${config.optional ? " <span>opcional</span>" : ""}</label><select class="select" id="${id}" name="${id}"${config.required ? " required" : ""}>${config.placeholder ? `<option value="">${escapeHtml(config.placeholder)}</option>` : ""}${rows}</select></div>`;
-  }
+ÜÚ][ÛŠHOˆƒBˆ‰Ù\ØØ\R[
+ÜÚ][Û‹˜ÛÙJ_OİƒBˆ‰Ù\ØØ\R[
+ÜÚ][ÛÛÛ™šYÓX™[
+ÜÚ][ÛŠJ_OÜ[ˆÛ\ÜÏH›]]Y‰ÜÜÚ][Û‹˜ÛÛ™šYİ\˜][Û—ÚÚ[™OOHœ[\—İšYØHˆÈ“RUÈHUTS˜HY\ÛXHÜÚpéğèÛÈˆˆÜÚ][Û‹˜ÛÛ™šYİ\˜][Û—ÚÚ[™OOH˜œ˜XÛÈˆÈ‘›Ü›XH0î›šXØHˆˆÜÚ][Û‹˜ÛÛ™šYİ\˜][Û—ÚÚ[™OOHœXØHˆÈ˜[˜ØYH[˜KÙ[H›Ü›XHˆˆ”Ù[XÚ[Û™HHÛÛ™šYİ\˜péğèÛÈŸOÜÜ[İƒBˆ‰Ø˜YÙJÜÚ][Û‹œİ]\Ê_OİƒBˆ‰Ù\ØØ\R[
+ÜÚ][Û‹››İ\È¸ %Š_OİƒBˆ]ˆÛ\ÜÏHœ›İËXXİ[ÛœÈ‰ØXİ[Û]ÛŠ™Y]\ÜÚ][Ûˆ‹ÜÚ][Û‹šYÛÛ™šYİ\˜\ˆŠ_OÙ]İƒBˆİ˜
+Kš›Ú[ŠˆŠHÛÛÜ[HHˆÛ\ÜÏH™[\H“™[š[XHÜÚpéğèÛÈ[˜ÛÛ˜YKİİ˜ÃBˆÛÛœİÙ]\İ]\ÈHİ]Kœİ\ÜÔİYÙMÈˆˆˆ]ˆÛ\ÜÏH›ÜËY›Ü›KZ[[”\˜HÛÛ™šYİ\˜\ˆÜÚpéğíY\ÈH›Ü›X\Ë\\]YH]X˜\ÙKÌ×ÜİYÙMÜYXÙWØØ][Ù×ÜÜÚ][ÛœËœÜ[HX›\]YHHYÙH[˜İ[ÛˆÜ\˜][ÛœËXYZ[ˆ]X[^˜YKÙ]˜ÃBˆ	
+›Ü\˜][ÛœÕX›HŠKš[›™\’SH]ˆÛ\ÜÏH›Ü\˜][ÛœË[\İZXY]Ï”ÜÚpéğíY\È°ë\ÚXØ\ÈH›ÙpéğèÛÏÚÏ”]X]›ÈÜÚpéğíY\Èš^\ËˆØYHÜÚpéğèÛÈšXØH™\Ù\˜YH\˜[HHÛÛ˜Ü™]YÙ[HHHİ\˜NÈHÛÛ™šYİ\˜péğèÛÈ]\›Z[˜H]XZ\ÈpéØ\È[H][™KÜÙ][œ]Û\ÜÏHœÙX\˜ÚˆYH›Ü\˜][ÛœÔÙX\˜Úˆ˜[YOH‰Ù\ØØ\R[
+İ]Kœ]Y\J_HˆXÙZÛ\H”\Ü]Z\Ø\ˆÜÚpéğèÛÈİH›Ü›XHˆ\šXK[X™[H”\Ü]Z\Ø\ˆÜÚpéğíY\ÈˆÏÙ]ƒBˆ	ÜÙ]\İ]\ßCBˆ]ˆÛ\ÜÏHX›K]Ü˜\X›HÛ\ÜÏH›Ü\˜][ÛœË]X›HXY”ÜÚpéğèÛÏİÛÛ™šYİ\˜péğèÛÏİ”İ]\Ïİ“ØœÙ\˜péğíY\ÏİpéğíY\ÏİİİXY›ÙO‰ÜÜÚ][Û”›İÜßOİ›ÙOİX›OÙ]ƒBˆÛ\ÜÏH›Ü\˜][ÛœËZ[œ˜péÛÈ\ØH[XH›Ü›XH”páÓÎÈ[\ˆHšYØH\Ø[HRUÈHUTSÈXØH\ØH˜[˜ØYH[˜HÙ[H›Ü›XKÜ˜ÃBˆ	
+›Ü\˜][ÛœÔÙX\˜ÚŠK˜Y]™[\İ[™\Šš[œ]‹
+]™[
+HOˆÈİ]Kœ]Y\HH]™[\™Ù]˜[YNÈ™[™\•X›Jİ]Kœ]Y\JNÈJNÃBˆCBƒBˆËÈ›Ü›][0è\š[ÜÎˆÛÛœİ›Ù[HÜÈØ[\ÜÈHİX\™[H]X[™YÚ\İ›È\İ0èHÙ[™ÈY]YËƒBˆ[˜İ[ÛˆÜ[“[Ù[
+]KİX]K›ÙKÚ[™™XÛÜ™H[
+HÃBˆ	
+›Ü\˜][ÛœÓ[Ù[]HŠK^ÛÛ[H]NÃBˆ	
+›Ü\˜][ÛœÓ[Ù[İX]HŠK^ÛÛ[HİX]NÃBˆ	
+›Ü\˜][ÛœÓ[Ù[›ÙHŠKš[›™\’SH›ÙNÃBˆ	
+›Ü\˜][ÛœÓ[Ù[İ]\ÈŠK^ÛÛ[HˆÃBˆ	
+›Ü\˜][ÛœÓ[Ù[İ]\ÈŠK˜Û\ÜÓ\İœ™[[İ™JœÚİÈŠNÃBˆ	
+›Ü\˜][ÛœÑ›Ü›HŠK™]\Ù]šÚ[™HÚ[™ÃBˆ	
+›Ü\˜][ÛœÑ›Ü›HŠK™]\Ù]œ™XÛÜ™YH™XÛÜ™ËšYˆÃBˆ	
+›Ü\˜][ÛœÓ[Ù[ŠKšY[ˆH˜[ÙNÃBˆ	
+›Ü\˜][ÛœÓ[Ù[Ø]™HŠK™\ØX›YH˜[ÙNÃBˆ	
+›Ü\˜][ÛœÓ[Ù[Ø]™HŠK^ÛÛ[H™XÛÜ™È”Ø[˜\ˆ[\˜péğíY\Èˆˆ”Ø[˜\ˆØY\İ›ÈÃBˆ	
+›Ü\˜][ÛœÓ[Ù[›ÙHŠKœ]Y\TÙ[XİÜŠš[œ]Ù[Xİ^\™XHŠOË™›Øİ\Ê
+NÃBˆCBƒBˆ[˜İ[ÛˆÛÜÙS[Ù[
 
-  function multiSelectField(id, label, options, selectedIds, emptyText) {
-    const choices = options.length
-      ? options.map((item) => `<option value="${escapeHtml(item.id)}" ${(selectedIds || []).includes(item.id) ? "selected" : ""}>${escapeHtml(item.code)} Â· ${escapeHtml(item.name)}</option>`).join("")
-      : `<option disabled>${escapeHtml(emptyText)}</option>`;
-    return `<div class="field full"><label for="${id}">${label} <span>Ctrl/Cmd para selecionar mais de um</span></label><select class="select" id="${id}" name="${id}" multiple>${choices}</select></div>`;
-  }
+HÃBˆ	
+›Ü\˜][ÛœÓ[Ù[ŠKšY[ˆHYNÃBˆ	
+›Ü\˜][ÛœÑ›Ü›HŠKœ™\Ù]
 
-  function textareaField(id, label, value = "", full = true) {
-    return `<div class="field${full ? " full" : ""}"><label for="${id}">${label} <span>opcional</span></label><textarea class="textarea" id="${id}" name="${id}" maxlength="1000">${escapeHtml(value)}</textarea></div>`;
-  }
+NÃBˆ	
+›Ü\˜][ÛœÑ›Ü›HŠK™]\Ù]šÚ[™HˆÃBˆ	
+›Ü\˜][ÛœÑ›Ü›HŠK™]\Ù]œ™XÛÜ™YHˆÃBˆCBƒBˆ[˜İ[Ûˆ[œ]šY[
+YX™[˜[YHHˆ‹\HH^‹Ü[ÛœÈHßJHÃBˆÛÛœİ[HÜ[ÛœË™[Èˆ[ˆˆˆÃBˆÛÛœİ™\]Z\™YHÜ[ÛœËœ™\]Z\™YÈˆ™\]Z\™YˆˆˆÃBˆÛÛœİZ[ˆHÜ[ÛœË›Z[ˆOH[ÈZ[H‰Ù\ØØ\R[
+Ü[ÛœË›Z[Š_H˜ˆˆÃBˆÛÛœİX^HÜ[ÛœË›X^OH[ÈX^H‰Ù\ØØ\R[
+Ü[ÛœË›X^
+_H˜ˆˆÃBˆÛÛœİİ\HÜ[ÛœËœİ\OH[Èİ\H‰Ù\ØØ\R[
+Ü[ÛœËœİ\
+_H˜ˆˆÃBˆÛÛœİ\ØX›YHÜ[ÛœË™\ØX›YÈˆ\ØX›YˆˆˆÃBˆÛÛœİ™XYÛ›HHÜ[ÛœËœ™XYÛ›HÈˆ™XYÛ›HˆˆˆÃBˆÛÛœİXÙZÛ\ˆHÜ[ÛœËœXÙZÛ\ˆÈXÙZÛ\H‰Ù\ØØ\R[
+Ü[ÛœËœXÙZÛ\Š_H˜ˆˆÃBˆ™]\›ˆ]ˆÛ\ÜÏH™šY[	Ù[HX™[›ÜH‰ÚYH‰ÛX™[IÛÜ[ÛœË›Ü[Û˜[ÈˆÜ[›ÜÚ[Û˜[ÜÜ[ˆˆˆˆŸOÛX™[[œ]Û\ÜÏHš[œ]ˆYH‰ÚYHˆ˜[YOH‰ÚYHˆ\OH‰İ\_Hˆ˜[YOH‰Ù\ØØ\R[
+˜[YJ_H‰Ü™\]Z\™YIÛZ[ŸIÛX^IÜİ\IÙ\ØX›YIÜ™XYÛ›_IÜXÙZÛ\ŸOÙ]˜ÃBˆCBƒBˆ[˜İ[ÛˆÙ[XİšY[
+YX™[˜[YKÜ[ÛœËÛÛ™šYÈHßJHÃBˆÛÛœİ›İÜÈHÜ[ÛœË›X\
 
-  // Cada formulÃ¡rio prepara um caso de uso e entrega a persistÃªncia ao repositÃ³rio.
-  function openNew() {
-    if (["pieces", "molds", "positions"].includes(state.tab) && !ensureStage4()) return;
-    if (state.tab === "works") return openWorkForm();
-    if (state.tab === "orders") return openOrderForm();
-    if (state.tab === "pieces") return openPieceForm();
-    if (state.tab === "molds") return openMoldForm();
-  }
+ÚÙ^K˜[YWJHOˆÜ[Ûˆ˜[YOH‰Ù\ØØ\R[
+Ù^J_Hˆ	Ôİš[™Ê˜[YJHOOHİš[™ÊÙ^JHÈœÙ[XİYˆˆˆŸO‰Ù\ØØ\R[
+˜[YJ_OÛÜ[Û˜
+Kš›Ú[ŠˆŠNÃBˆ™]\›ˆ]ˆÛ\ÜÏH™šY[	ØÛÛ™šYË™[Èˆ[ˆˆˆŸHX™[›ÜH‰ÚYH‰ÛX™[IØÛÛ™šYË›Ü[Û˜[ÈˆÜ[›ÜÚ[Û˜[ÜÜ[ˆˆˆˆŸOÛX™[Ù[XİÛ\ÜÏHœÙ[XİˆYH‰ÚYHˆ˜[YOH‰ÚYH‰ØÛÛ™šYËœ™\]Z\™YÈˆ™\]Z\™YˆˆˆŸO‰ØÛÛ™šYËœXÙZÛ\ˆÈÜ[Ûˆ˜[YOHˆ‰Ù\ØØ\R[
+ÛÛ™šYËœXÙZÛ\Š_OÛÜ[Û˜ˆˆŸIÜ›İÜßOÜÙ[XİÙ]˜ÃBˆCBƒBˆ[˜İ[Ûˆ][TÙ[XİšY[
+YX™[Ü[ÛœËÙ[XİYYË[\U^
+HÃBˆÛÛœİÚÚXÙ\ÈHÜ[ÛœË›[™İBˆÈÜ[ÛœË›X\
 
-  function ensureStage4() {
-    if (state.supportsStage4) return true;
-    const message = "Os cadastros novos da Etapa 4 aguardam a migraÃ§Ã£o 007 e a Edge Function operations-admin atualizada no Supabase.";
-    showStatus(message, true);
-    toast("Aplique a migraÃ§Ã£o 007 no Supabase para continuar.");
-    return false;
-  }
+][JHOˆÜ[Ûˆ˜[YOH‰Ù\ØØ\R[
+][KšY
+_Hˆ	ÊÙ[XİYYÈ×JKš[˜ÛY\Ê][KšY
+HÈœÙ[XİYˆˆˆŸO‰Ù\ØØ\R[
+][K˜ÛÙJ_H0­È	Ù\ØØ\R[
+][K›˜[YJ_OÛÜ[Û˜
+Kš›Ú[ŠˆŠCBˆˆÜ[Ûˆ\ØX›Y‰Ù\ØØ\R[
+[\U^
+_OÛÜ[Û˜ÃBˆ™]\›ˆ]ˆÛ\ÜÏH™šY[[X™[›ÜH‰ÚYH‰ÛX™[HÜ[İ›ĞÛY\˜HÙ[XÚ[Û˜\ˆXZ\ÈH[OÜÜ[ÛX™[Ù[XİÛ\ÜÏHœÙ[XİˆYH‰ÚYHˆ˜[YOH‰ÚYHˆ][\O‰ØÚÚXÙ\ßOÜÙ[XİÙ]˜ÃBˆCBƒBˆ[˜İ[Ûˆ^\™XQšY[
+YX™[˜[YHHˆ‹[HYJHÃBˆ™]\›ˆ]ˆÛ\ÜÏH™šY[	Ù[Èˆ[ˆˆˆŸHX™[›ÜH‰ÚYH‰ÛX™[HÜ[›ÜÚ[Û˜[ÜÜ[ÛX™[^\™XHÛ\ÜÏH^\™XHˆYH‰ÚYHˆ˜[YOH‰ÚYHˆX^[™İHŒL‰Ù\ØØ\R[
+˜[YJ_Oİ^\™XOÙ]˜ÃBˆCBƒBˆËÈØYH›Ü›][0è\š[È™\\˜H[HØ\ÛÈH\ÛÈH[™YØHH\œÚ\İ0ê›˜ÚXH[È™\ÜÚ]0ìÜš[ËƒBˆ[˜İ[ÛˆÜ[“™]Ê
+HÃBˆYˆ
+ÈœYXÙ\È‹›[ÛÈ‹œÜÚ][ÛœÈ—Kš[˜ÛY\Êİ]KXŠH	‰ˆY[œİ\™TİYÙM
 
-  function openWorkForm(work = null) {
-    const body = `<div class="ops-form-grid">
-      ${inputField("workNumber", "NÃºmero da obra", work?.work_number || "", "text", { optional: true })}
-      ${inputField("name", "Nome da obra", work?.name || "", "text", { required: true })}
-      ${inputField("clientName", "Cliente", work?.client_name || "", "text", { required: true, placeholder: "Nome do cliente" })}
-      ${inputField("responsibleName", "ResponsÃ¡vel", work?.responsible_name || "", "text", { optional: true })}
-      ${inputField("address", "EndereÃ§o da obra", work?.address || "", "text", { full: true, optional: true })}
-      ${inputField("startDate", "Data de inÃ­cio", work?.start_date || "", "date", { optional: true })}
-      ${inputField("requestedDueDate", "Prazo previsto", work?.requested_due_date || "", "date", { optional: true })}
-      ${selectField("status", "Status", work?.status || "planejamento", [["planejamento", "Planejamento"], ["ativa", "Ativa"], ["concluida", "ConcluÃ­da"], ["cancelada", "Cancelada"]])}
-      ${textareaField("observations", "ObservaÃ§Ãµes", work?.observations || "")}
-    </div>`;
-    openModal(work ? "Editar obra" : "Nova obra", "Cliente, endereÃ§o, responsÃ¡vel e datas para organizar os pedidos.", body, "work", work);
-  }
+JH™]\›ÃBˆYˆ
+İ]KXˆOOHÛÜšÜÈŠH™]\›ˆÜ[•ÛÜšÑ›Ü›J
+NÃBˆYˆ
+İ]KXˆOOH›Ü™\œÈŠH™]\›ˆÜ[“Ü™\‘›Ü›J
+NÃBˆYˆ
+İ]KXˆOOHœ›Ú™XİÈŠH™]\›ˆÜ[”›Ú™Xİ›Ü›J
+NÃBˆYˆ
+İ]KXˆOOHœYXÙ\ÈŠH™]\›ˆÜ[”YXÙQ›Ü›J
+NÃBˆYˆ
+İ]KXˆOOH›[ÛÈŠH™]\›ˆÜ[“[Û›Ü›J
+NÃBˆCBƒBˆ[˜İ[Ûˆ[œİ\™TİYÙM
 
-  function orderItemRow(item = {}) {
-    const typeOptions = state.data.pieceTypes.map((piece) => `<option value="${escapeHtml(piece.id)}" ${item.piece_type_id === piece.id ? "selected" : ""}>${escapeHtml(piece.code)} Â· ${escapeHtml(piece.name)} (${Number(piece.production_minutes_per_unit)} min/un.)</option>`).join("");
-    return `<div class="ops-item-row">
-      <select class="select" data-item-piece required><option value="">Selecione a peÃ§a</option>${typeOptions}</select>
-      <input class="input" data-item-quantity type="number" min="1" step="1" value="${escapeHtml(item.quantity || 1)}" required aria-label="Quantidade" />
-      <input class="input ops-item-observations" data-item-observations value="${escapeHtml(item.observations || "")}" maxlength="500" placeholder="ObservaÃ§Ã£o do item" aria-label="ObservaÃ§Ã£o do item" />
-      <button class="ops-item-remove" type="button" data-remove-order-item aria-label="Remover item">Ã—</button>
-    </div>`;
-  }
+HÃBˆYˆ
+İ]Kœİ\ÜÔİYÙM
+H™]\›ˆYNÃBˆÛÛœİY\ÜØYÙHH“ÜÈØY\İ›ÜÈ›İ›ÜÈH]\HYİX\™[HHZYÜ˜péğèÛÈÈHHYÙH[˜İ[ÛˆÜ\˜][ÛœËXYZ[ˆ]X[^˜YH›Èİ\X˜\ÙKˆÃBˆÚİÔİ]\ÊY\ÜØYÙKYJNÃBˆØ\İ
+\\]YHHZYÜ˜péğèÛÈÈ›Èİ\X˜\ÙH\˜HÛÛ[X\‹ˆŠNÃBˆ™]\›ˆ˜[ÙNÃBˆCBƒBˆ[˜İ[Ûˆ[œİ\™Q˜Xš[ÌŠ
+HÃBˆYˆ
+İ]Kœİ\ÜÑ˜Xš[ÌŠH™]\›ˆYNÃBˆÛÛœİY\ÜØYÙHH“È›^ÈH›Ú™]ÜËXØ\ÈH]\\ÈÛÛHÜ°è\š[ÜÈ^]ÜÈ\[™HHZYÜ˜][ÛˆHHHYÙH[˜İ[Ûˆ]X[^˜YKˆÃBˆÚİÔİ]\ÊY\ÜØYÙKYJNÃBˆØ\İ
+H]\HHZ[™H°èÛÈ\İ0èH[œİ[YH›Èİ\X˜\ÙKˆŠNÃBˆ™]\›ˆ˜[ÙNÃBˆCBƒBˆ[˜İ[ÛˆÜ[•ÛÜšÑ›Ü›JÛÜšÈH[
+HÃBˆÛÛœİ›ÙHH]ˆÛ\ÜÏH›ÜËY›Ü›KYÜšYƒBˆ	Ú[œ]šY[
+ÛÜšÓ[X™\ˆ‹“°î›Y\›ÈHØœ˜H‹ÛÜšÏËÛÜš×Û[X™\ˆˆ‹^‹ÈÜ[Û˜[ˆYHJ_CBˆ	Ú[œ]šY[
+›˜[YH‹“›ÛYHHØœ˜H‹ÛÜšÏË›˜[YHˆ‹^‹È™\]Z\™YˆYHJ_CBˆ	Ú[œ]šY[
+˜ÛY[˜[YH‹ÛY[H‹ÛÜšÏË˜ÛY[Û˜[YHˆ‹^‹È™\]Z\™YˆYKXÙZÛ\ˆ“›ÛYHÈÛY[HˆJ_CBˆ	Ú[œ]šY[
+œ™\ÜÛœÚX›S˜[YH‹”™\ÜÛœğè]™[‹ÛÜšÏËœ™\ÜÛœÚX›WÛ˜[YHˆ‹^‹ÈÜ[Û˜[ˆYHJ_CBˆ	Ú[œ]šY[
+˜Y™\ÜÈ‹‘[™\™péÛÈHØœ˜H‹ÛÜšÏË˜Y™\ÜÈˆ‹^‹È[ˆYKÜ[Û˜[ˆYHJ_CBˆ	Ú[œ]šY[
+œİ\]H‹‘]HH[°ëXÚ[È‹ÛÜšÏËœİ\Ù]Hˆ‹™]H‹ÈÜ[Û˜[ˆYHJ_CBˆ	Ú[œ]šY[
+œ™\]Y\İYYQ]H‹”˜^›È™]š\İÈ‹ÛÜšÏËœ™\]Y\İYÙYWÙ]Hˆ‹™]H‹ÈÜ[Û˜[ˆYHJ_CBˆ	ÜÙ[XİšY[
+œİ]\È‹”İ]\È‹ÛÜšÏËœİ]\Èœ[™Z˜[Y[È‹ÖÈœ[™Z˜[Y[È‹”[™Z˜[Y[È—KÈ˜]]˜H‹]]˜H—KÈ˜ÛÛ˜ÛZYH‹ÛÛ˜ÛpëYH—KÈ˜Ø[˜Ù[YH‹Ø[˜Ù[YH—WJ_CBˆ	İ^\™XQšY[
+›ØœÙ\˜][ÛœÈ‹“ØœÙ\˜péğíY\È‹ÛÜšÏË›ØœÙ\˜][ÛœÈˆŠ_CBˆÙ]˜ÃBˆÜ[“[Ù[
+ÛÜšÈÈ‘Y]\ˆØœ˜Hˆˆ“›İ˜HØœ˜H‹ÛY[K[™\™péÛË™\ÜÛœğè]™[H]\È\˜HÜ™Ø[š^˜\ˆÜÈYYÜËˆ‹›ÙKÛÜšÈ‹ÛÜšÊNÃBˆCBƒBˆ[˜İ[ÛˆÜ™\’][T›İÊ][HHßJHÃBˆÛÛœİ\SÜ[ÛœÈHİ]K™]KœYXÙU\\Ë›X\
 
-  function openOrderForm(order = null) {
-    const workOptions = state.data.works.map((work) => [work.id, `${work.work_number ? `${work.work_number} Â· ` : ""}${work.name}`]);
-    const statusOptions = [["orcamento", "OrÃ§amento"], ["aprovado", "Aprovado"], ["em_producao", "Em produÃ§Ã£o"], ["concluido", "ConcluÃ­do"], ["entregue", "Entregue"], ["atrasado", "Atrasado"], ["cancelado", "Cancelado"]];
-    const items = order?.items?.length ? order.items : [{}];
-    const body = `<div class="ops-form-grid">
-      ${inputField("orderNumber", "NÃºmero do pedido", order?.order_number || "", "text", { optional: true })}
-      ${selectField("orderWorkId", "Obra", order?.work_id || "", workOptions, { optional: true, placeholder: "Pedido sem obra vinculada" })}
-      ${inputField("clientName", "Cliente (quando nÃ£o houver obra)", order?.client_name || "", "text", { placeholder: "Cliente do pedido" })}
-      <div class="ops-form-hint full" id="orderClientHelp">Ao escolher uma obra, o pedido usa automaticamente o cliente cadastrado nela.</div>
-      ${inputField("startDate", "Data de inÃ­cio", order?.start_date || today(), "date", { required: true, readonly: Boolean(order?.work_id) })}
-      ${inputField("requestedDueDate", "Prazo solicitado", order?.requested_due_date || "", "date", { optional: true })}
-      ${selectField("status", "Status", order?.status || "orcamento", statusOptions)}
-      <div class="field full"><label>Itens do pedido <span>o tempo de produÃ§Ã£o Ã© copiado do catÃ¡logo no salvamento</span></label><div class="ops-items" id="orderItems">${items.map(orderItemRow).join("")}</div><div class="ops-inline-actions"><button class="btn" type="button" id="addOrderItem">Adicionar item</button></div></div>
-      ${textareaField("observations", "ObservaÃ§Ãµes", order?.observations || "")}
-    </div>`;
-    openModal(order ? "Editar pedido" : "Novo pedido", "O pedido serÃ¡ ligado Ã  obra escolhida e poderÃ¡ ser planejado no calendÃ¡rio.", body, "order", order);
-    syncOrderClientHelp();
-  }
+YXÙJHOˆÜ[Ûˆ˜[YOH‰Ù\ØØ\R[
+YXÙKšY
+_Hˆ	Ú][KœYXÙWİ\WÚYOOHYXÙKšYÈœÙ[XİYˆˆˆŸO‰Ù\ØØ\R[
+YXÙK˜ÛÙJ_H0­È	Ù\ØØ\R[
+YXÙK›˜[YJ_H
+	Ó[X™\ŠYXÙKœ›ÙXİ[Û—ÛZ[]\×Ü\—İ[š]
+_HZ[‹İ[‹ŠOÛÜ[Û˜
+Kš›Ú[ŠˆŠNÃBˆ™]\›ˆ]ˆÛ\ÜÏH›ÜËZ][K\›İÈƒBˆÙ[XİÛ\ÜÏHœÙ[Xİˆ]KZ][K\YXÙH™\]Z\™YÜ[Ûˆ˜[YOHˆ”Ù[XÚ[Û™HHpéØOÛÜ[Û‰İ\SÜ[ÛœßOÜÙ[XİƒBˆ[œ]Û\ÜÏHš[œ]ˆ]KZ][K\]X[]H\OH›[X™\ˆˆZ[HŒHˆİ\HŒHˆ˜[YOH‰Ù\ØØ\R[
+][Kœ]X[]HJ_Hˆ™\]Z\™Y\šXK[X™[H”]X[YYHˆÏƒBˆ[œ]Û\ÜÏHš[œ]ÜËZ][K[ØœÙ\˜][ÛœÈˆ]KZ][K[ØœÙ\˜][ÛœÈ˜[YOH‰Ù\ØØ\R[
+][K›ØœÙ\˜][ÛœÈˆŠ_HˆX^[™İHLˆXÙZÛ\H“ØœÙ\˜péğèÛÈÈ][Hˆ\šXK[X™[H“ØœÙ\˜péğèÛÈÈ][HˆÏƒBˆ]ÛˆÛ\ÜÏH›ÜËZ][K\™[[İ™Hˆ\OH˜]Ûˆˆ]K\™[[İ™K[Ü™\‹Z][H\šXK[X™[H”™[[İ™\ˆ][H°åÏØ]ÛƒBˆÙ]˜ÃBˆCBƒBˆ[˜İ[ÛˆÜ[“Ü™\‘›Ü›JÜ™\ˆH[
+HÃBˆÛÛœİÛÜšÓÜ[ÛœÈHİ]K™]KÛÜšÜË›X\
 
-  function addOrderItemRow() {
-    $("orderItems").insertAdjacentHTML("beforeend", orderItemRow());
-  }
+ÛÜšÊHOˆİÛÜšËšY	İÛÜšËÛÜš×Û[X™\ˆÈ	İÛÜšËÛÜš×Û[X™\ŸH0­ÈˆˆŸIİÛÜšË›˜[Y_XJNÃBˆÛÛœİİ]\ÓÜ[ÛœÈHÖÈ›Ü˜Ø[Y[È‹“Ü°éØ[Y[È—KÈ˜\›İ˜YÈ‹\›İ˜YÈ—KÈ™[WÜ›ÙXØ[È‹‘[H›ÙpéğèÛÈ—KÈ™[™YİYH‹‘[™YİYH—KÈ˜]˜\ØYÈ‹]˜\ØYÈ—KÈ˜Ø[˜Ù[YÈ‹Ø[˜Ù[YÈ—WNÃBˆÛÛœİ][\ÈHÜ™\Ëš][\ÏË›[™İÈÜ™\‹š][\ÈˆŞßWNÃBˆÛÛœİ›ÙHH]ˆÛ\ÜÏH›ÜËY›Ü›KYÜšYƒBˆ	Ú[œ]šY[
+›Ü™\“[X™\ˆ‹“°î›Y\›ÈÈYYÈ‹Ü™\Ë›Ü™\—Û[X™\ˆˆ‹^‹ÈÜ[Û˜[ˆYHJ_CBˆ	ÜÙ[XİšY[
+›Ü™\•ÛÜšÒY‹“Øœ˜H‹Ü™\ËÛÜš×ÚYˆ‹ÛÜšÓÜ[ÛœËÈÜ[Û˜[ˆYKXÙZÛ\ˆ”YYÈÙ[HØœ˜Hš[˜İ[YHˆJ_CBˆ	Ú[œ]šY[
+˜ÛY[˜[YH‹ÛY[H
+]X[™È°èÛÈİ]™\ˆØœ˜JH‹Ü™\Ë˜ÛY[Û˜[YHˆ‹^‹ÈXÙZÛ\ˆÛY[HÈYYÈˆJ_CBˆ]ˆÛ\ÜÏH›ÜËY›Ü›KZ[[ˆYH›Ü™\ÛY[[[È\ØÛÛ\ˆ[XHØœ˜KÈYYÈ\ØH]]ÛX]XØ[Y[HÈÛY[HØY\İ˜YÈ™[KÙ]ƒBˆ	Ú[œ]šY[
+œİ\]H‹‘]HH[°ëXÚ[È‹Ü™\Ëœİ\Ù]HÙ^J
+K™]H‹È™\]Z\™YˆYK™XYÛ›Nˆ›ÛÛX[ŠÜ™\ËÛÜš×ÚY
+HJ_CBˆ	Ú[œ]šY[
+œ™\]Y\İYYQ]H‹”˜^›ÈÛÛXÚ]YÈ‹Ü™\Ëœ™\]Y\İYÙYWÙ]Hˆ‹™]H‹ÈÜ[Û˜[ˆYHJ_CBˆ	ÜÙ[XİšY[
+œİ]\È‹”İ]\È‹Ü™\Ëœİ]\ÈOOH˜ÛÛ˜ÛZYÈˆÈˆˆˆÜ™\Ëœİ]\È›Ü˜Ø[Y[È‹İ]\ÓÜ[ÛœËÈ™\]Z\™YˆYKXÙZÛ\ˆÜ™\Ëœİ]\ÈOOH˜ÛÛ˜ÛZYÈˆÈ‘\ØÛÛH[Hİ]\ÈšYÙ[Hˆˆ”Ù[XÚ[Û™HÈİ]\ÈˆJ_CBˆ]ˆÛ\ÜÏH™šY[[X™[’][œÈÈYYÈÜ[›È[\ÈH›ÙpéğèÛÈ0êHÛÜXYÈÈØ]0è[ÙÛÈ›ÈØ[˜[Y[ÏÜÜ[ÛX™[]ˆÛ\ÜÏH›ÜËZ][\ÈˆYH›Ü™\’][\È‰Ú][\Ë›X\
+Ü™\’][T›İÊKš›Ú[ŠˆŠ_OÙ]]ˆÛ\ÜÏH›ÜËZ[›[™KXXİ[ÛœÈ]ÛˆÛ\ÜÏH˜ˆˆ\OH˜]ÛˆˆYH˜YÜ™\’][HYXÚ[Û˜\ˆ][OØ]ÛÙ]Ù]ƒBˆ	İ^\™XQšY[
+›ØœÙ\˜][ÛœÈ‹“ØœÙ\˜péğíY\È‹Ü™\Ë›ØœÙ\˜][ÛœÈˆŠ_CBˆÙ]˜ÃBˆÜ[“[Ù[
+Ü™\ˆÈ‘Y]\ˆYYÈˆˆ“›İ›ÈYYÈ‹“ÈYYÈÙ\°èHYØYÈ0èØœ˜H\ØÛÛYHHÙ\°èHÙ\ˆ[™Z˜YÈ›ÈØ[[™0è\š[Ëˆ‹›ÙK›Ü™\ˆ‹Ü™\ŠNÃBˆŞ[˜ÓÜ™\ÛY[[
 
-  function syncOrderClientHelp() {
-    const workSelect = $("orderWorkId");
-    const clientInput = $("clientName");
-    const startDateInput = $("startDate");
-    const help = $("orderClientHelp");
-    if (!workSelect || !clientInput || !startDateInput || !help) return;
-    const work = state.data.works.find((item) => item.id === workSelect.value);
-    clientInput.disabled = Boolean(work);
-    clientInput.required = !work;
-    startDateInput.readOnly = Boolean(work);
-    startDateInput.required = true;
-    if (work) {
-      clientInput.value = work.client_name || "";
-      startDateInput.value = work.start_date || "";
-      help.textContent = work.start_date
-        ? `Cliente e data de inÃ­cio herdados da obra (${dateBR(work.start_date)}).`
-        : "Cadastre a data de inÃ­cio da obra antes de vincular este pedido.";
-    } else {
-      help.textContent = "Sem obra vinculada, informe o cliente e a data de inÃ­cio do pedido.";
-    }
-  }
+NÃBˆCBƒBˆ[˜İ[ÛˆYÜ™\’][T›İÊ
+HÃBˆ	
+›Ü™\’][\ÈŠKš[œÙ\Y˜XÙ[S
+˜™Y›Ü™Y[™‹Ü™\’][T›İÊ
+JNÃBˆCBƒBˆ[˜İ[Ûˆ›Ú™Xİ][T›İÊÜ™\‹Ù[XİYHßJHÃBˆÛÛœİÚÚXÙ\ÈH
+Ü™\Ëš][\È×JK›X\
 
-  function openPieceForm(piece = null) {
-    if (!ensureStage4()) return;
-    const molds = piece?.mold_catalogs || {};
-    const typeOptions = [["braco", "BraÃ§o"], ["pilar", "Pilar"], ["viga", "Viga"]];
-    const armOptions = catalogChoices("BRACO");
-    const combinations = moldCombinationsFor(piece?.piece_kind || "pilar");
-    const selectedPair = molds.leito && molds.lateral ? `${molds.leito}|${molds.lateral}` : "";
-    const body = `<div class="ops-form-grid">
-      ${inputField("code", "CÃ³digo da peÃ§a", piece?.code || "", "text", { required: true })}
-      ${inputField("name", "Nome da peÃ§a", piece?.name || "", "text", { required: true })}
-      ${selectField("pieceKind", "Tipo fixo", piece?.piece_kind || "", typeOptions, { required: true, placeholder: "Selecione BraÃ§o, Pilar ou Viga" })}
-      ${inputField("dimensionXcm", "DimensÃ£o X (cm)", piece?.dimension_x_cm ?? "", "number", { min: 0.001, step: "0.001", required: true })}
-      ${inputField("dimensionYcm", "DimensÃ£o Y (cm)", piece?.dimension_y_cm ?? "", "number", { min: 0.001, step: "0.001", required: true })}
-      ${inputField("dimensionZcm", "DimensÃ£o Z (cm)", piece?.dimension_z_cm ?? "", "number", { min: 0.001, step: "0.001", required: true })}
-      <div class="ops-computed-metrics full" aria-live="polite">
-        <div><small>Volume</small><strong id="pieceVolumeCm3">â€”</strong><span>cmÂ³</span></div>
-        <div><small>Volume</small><strong id="pieceVolumeM3">â€”</strong><span>mÂ³</span></div>
-        <div><small>Peso estimado</small><strong id="pieceWeightKg">â€”</strong><span>kg</span></div>
-      </div>
-      ${inputField("productionMinutesPerUnit", "Tempo de produÃ§Ã£o (min/un.)", piece?.production_minutes_per_unit ?? "", "number", { min: 1, step: 1, required: true })}
-      <div class="ops-form-hint">O tempo fica registrado no cadastro e nÃ£o limita a capacidade do planejamento.</div>
-      ${selectField("pieceMoldBraco", "Molde BRAÃ‡O", molds.braco || "", armOptions, { required: true, placeholder: "Selecione uma medida" })}
-      ${selectField("pieceMoldPair", "CombinaÃ§Ã£o de moldes LEITO Ã— LATERAL", selectedPair, combinations, { required: true, placeholder: "Selecione uma combinaÃ§Ã£o" })}
-      <input type="hidden" id="pieceMoldLeito" name="pieceMoldLeito" value="${escapeHtml(molds.leito || "")}" />
-      <input type="hidden" id="pieceMoldLateral" name="pieceMoldLateral" value="${escapeHtml(molds.lateral || "")}" />
-      ${textareaField("observations", "ObservaÃ§Ãµes", piece?.observations || "")}
-    </div>`;
-    openModal(piece ? "Editar peÃ§a" : "Nova peÃ§a", "DimensÃµes em centÃ­metros; volume e peso sÃ£o calculados ao informar X, Y e Z.", body, "piece", piece);
-    updatePieceMoldFields();
-    updatePieceMetrics();
-  }
+][JHOƒBˆÜ[Ûˆ˜[YOH‰Ù\ØØ\R[
+][KšY
+_Hˆ	ÜÙ[XİY›Ü™\—Ú][WÚYOOH][KšYÈœÙ[XİYˆˆˆŸO‰Ù\ØØ\R[
+][KœYXÙWØÛÙH][KœYXÙWÛ˜[YH”péØHŠ_H0­È	Ó[X™\Š][Kœ]X[]J_HÛÛXÚ]Y\ÏÛÜ[Û˜Bˆ
+Kš›Ú[ŠˆŠNÃBˆ™]\›ˆ]ˆÛ\ÜÏH›ÜË\›Ú™XİZ][K\›İÈƒBˆÙ[XİÛ\ÜÏHœÙ[Xİˆ]K\›Ú™XİZ][H™\]Z\™YÜ[Ûˆ˜[YOHˆ”Ù[XÚ[Û™H[H][HÈYYÏÛÜ[Û‰ØÚÚXÙ\ßOÜÙ[XİƒBˆ[œ]Û\ÜÏHš[œ]ˆ]K\›Ú™Xİ\]X[]H\OH›[X™\ˆˆZ[HŒHˆİ\HŒHˆ˜[YOH‰Ù\ØØ\R[
+Ù[XİYœ]X[]HJ_Hˆ™\]Z\™Y\šXK[X™[H”]X[YYH\İHÙpéğèÛÈˆÏƒBˆ]ÛˆÛ\ÜÏH›ÜËZ][K\™[[İ™Hˆ\OH˜]Ûˆˆ]K\™[[İ™K\›Ú™XİZ][H\šXK[X™[H”™[[İ™\ˆ][HHÙpéğèÛÈ°åÏØ]ÛƒBˆÙ]˜ÃBˆCBƒBˆ[˜İ[Ûˆ›Ú™XİÙXİ[ÛØ\™
+Ü™\‹ÙXİ[ÛˆHßK[™^H
+HÃBˆÛÛœİÙXİ[Û“˜[YHHÙXİ[Û‹œÙXİ[Û—Û˜[YHÙXİ[Û‹œÙXİ[Û“˜[YHÙpéğèÛÈ	Ú[™^
+È_XÃBˆÛÛœİ][\ÈHÙXİ[Û‹š][\ÏË›[™İÈÙXİ[Û‹š][\ÈˆŞßWNÃBˆ™]\›ˆÙXİ[ÛˆÛ\ÜÏH›ÜË\›Ú™Xİ\ÙXİ[ÛˆƒBˆ]ˆÛ\ÜÏH›ÜË\›Ú™Xİ\ÙXİ[Û‹ZXYX™[“›ÛYHHÙpéğèÛÏ[œ]Û\ÜÏHš[œ]ˆ]K\›Ú™Xİ\ÙXİ[Û‹[˜[YHX^[™İHŒLŒˆ™\]Z\™Y˜[YOH‰Ù\ØØ\R[
+ÙXİ[Û“˜[YJ_HˆÏÛX™[]ÛˆÛ\ÜÏHšXÛÛ‹Xˆˆ\OH˜]Ûˆˆ]K\™[[İ™K\›Ú™Xİ\ÙXİ[Û”™[[İ™\ˆÙpéğèÛÏØ]ÛÙ]ƒBˆ]ˆÛ\ÜÏH›ÜË\›Ú™XİZ][\È‰Ú][\Ë›X\
 
-  function openMoldForm(mold = null) {
-    if (!ensureStage4()) return;
-    const moldOptions = (state.data.moldCatalog || []).map((item) => [item.code, `${item.mold_type === "BRACO" ? "BRAÃ‡O" : item.mold_type} ${item.measure_label} cm`]);
-    const body = `<div class="ops-form-grid">
-      ${selectField("catalogCode", "Molde do catÃ¡logo fixo", mold?.catalog_code || "", moldOptions, { required: true, placeholder: "Selecione tipo e medida" })}
-      ${inputField("cycleMinutesPerUnit", "Ciclo (min/un.)", mold?.cycle_minutes_per_unit ?? "", "number", { min: 1, step: 1, optional: true })}
-      ${selectField("status", "Status", mold?.status || "ativo", [["ativo", "Ativo"], ["manutencao", "ManutenÃ§Ã£o"], ["bloqueado", "Bloqueado"], ["retirado", "Retirado"]])}
-      <div class="ops-form-hint">A preparaÃ§Ã£o tem duraÃ§Ã£o fixa de sete dias corridos e precisa ser aprovada antes da produÃ§Ã£o.</div>
-      ${textareaField("observations", "ObservaÃ§Ãµes", mold?.observations || "")}
-    </div>`;
-    openModal(mold ? "Editar molde" : "Novo molde", "Tipo e medida vÃªm do catÃ¡logo fixo; o identificador Ã© gerado pelo sistema.", body, "mold", mold);
-  }
+][JHOˆ›Ú™Xİ][T›İÊÜ™\‹][JJKš›Ú[ŠˆŠ_OÙ]ƒBˆ]ÛˆÛ\ÜÏH˜ˆˆ\OH˜]Ûˆˆ]KXY\›Ú™XİZ][OYXÚ[Û˜\ˆ][H0èÙpéğèÛÏØ]ÛƒBˆÜÙXİ[Û˜ÃBˆCBƒBˆ[˜İ[Ûˆ™XY›Ú™XİÙXİ[ÛœÊ
+HÃBˆ™]\›ˆË‹‹™Øİ[Y[œ]Y\TÙ[XİÜ[
+‹›ÜË\›Ú™Xİ\ÙXİ[ÛˆŠWK›X\
 
-  function openPositionForm(position) {
-    if (!ensureStage4()) return;
-    const typeOptions = [["braco", "BraÃ§o"], ["pilar_viga", "Pilar / Viga"]];
-    const armOptions = catalogChoices("BRACO");
-    const bedOptions = catalogChoices("LEITO");
-    const sideOptions = catalogChoices("LATERAL");
-    const body = `<div class="ops-form-grid">
-      <input type="hidden" id="positionCode" name="positionCode" value="${escapeHtml(position.code)}" />
-      <div class="field"><label>PosiÃ§Ã£o fÃ­sica</label><input class="input" value="${escapeHtml(position.code)}" disabled /></div>
-      ${selectField("status", "Status", position.status || "disponivel", [["disponivel", "DisponÃ­vel"], ["em_preparacao", "Em preparaÃ§Ã£o"], ["em_producao", "Em produÃ§Ã£o"], ["em_manutencao", "Em manutenÃ§Ã£o"]])}
-      ${selectField("positionConfigurationKind", "ConfiguraÃ§Ã£o da posiÃ§Ã£o", position.configuration_kind || "", typeOptions, { required: true, placeholder: "Selecione a configuraÃ§Ã£o" })}
-      ${selectField("positionMoldBraco", "Molde BRAÃ‡O", position.braco_catalog_code || "", armOptions, { required: true, placeholder: "Selecione uma medida" })}
-      ${selectField("positionMoldLeito", "Molde LEITO", position.leito_catalog_code || "", bedOptions, { required: true, placeholder: "Selecione uma medida" })}
-      ${selectField("positionMoldLateral", "Molde LATERAL", position.lateral_catalog_code || "", sideOptions, { required: true, placeholder: "Selecione uma medida" })}
-      ${textareaField("positionNotes", "ObservaÃ§Ãµes", position.notes || "")}
-      <div class="ops-form-hint full">A configuraÃ§Ã£o vale para os pedidos compatÃ­veis e a fila de planejamento serÃ¡ recalculada ao salvar. Tempo de setup permanece sem valor informado.</div>
-    </div>`;
-    openModal(`Configurar posiÃ§Ã£o ${position.code}`, "Defina o conjunto fixo de moldes instalado nesta posiÃ§Ã£o.", body, "position", position);
-    updatePositionConfigFields();
-  }
+ÙXİ[ÛŠHOˆ
+ÃBˆÙXİ[Û“˜[YNˆÙXİ[Û‹œ]Y\TÙ[XİÜŠ–Ù]K\›Ú™Xİ\ÙXİ[Û‹[˜[YWHŠK˜[YKš[J
+KBˆ][\ÎˆË‹‹œÙXİ[Û‹œ]Y\TÙ[XİÜ[
+‹›ÜË\›Ú™XİZ][K\›İÈŠWK›X\
 
-  // Regras de moldes: catÃ¡logo fixo, combinaÃ§Ãµes e campos de posiÃ§Ã£o compatÃ­veis.
-  function catalogChoices(moldType) {
-    return (state.data?.moldCatalog || []).filter((item) => item.mold_type === moldType)
-      .map((item) => [item.code, `${moldType === "BRACO" ? "BRAÃ‡O" : moldType} ${item.measure_label} cm`]);
-  }
+›İÊHOˆ
+ÃBˆÜ™\’][RYˆ›İËœ]Y\TÙ[XİÜŠ–Ù]K\›Ú™XİZ][WHŠK˜[YKBˆ]X[]Nˆ[X™\Š›İËœ]Y\TÙ[XİÜŠ–Ù]K\›Ú™Xİ\]X[]WHŠK˜[YJKBˆJJKBˆJJNÃBˆCBƒBˆ[˜İ[ÛˆY›Ú™XİÙXİ[ÛŠÙXİ[ÛˆH[
+HÃBˆÛÛœİÛÛZ[™\ˆH	
+œ›Ú™XİÙXİ[ÛœÈŠNÃBˆÛÛœİÜ™\ˆHİ]K™]K›Ü™\œË™š[™
 
-  function moldCombinationsFor(pieceKind) {
-    // Strategy do domÃ­nio seleciona braÃ§o fixo ou combinaÃ§Ã£o variÃ¡vel adequada.
-    return global.PRELUX_DOMAIN.moldCompatibility.listPieceMoldOptions(pieceKind, {
-      catalog: state.data?.moldCatalog,
-      combinations: state.data?.moldCombinations,
-    });
-  }
+][JHOˆ][KšYOOH	
+œ›Ú™XİÜ™\’YŠOË˜[YJNÃBˆÛÛœİ[™^HÛÛZ[™\‹œ]Y\TÙ[XİÜ[
+‹›ÜË\›Ú™Xİ\ÙXİ[ÛˆŠK›[™İÃBˆÛÛZ[™\‹š[œÙ\Y˜XÙ[S
+˜™Y›Ü™Y[™‹›Ú™XİÙXİ[ÛØ\™
+Ü™\‹ÙXİ[ÛˆßK[™^
+JNÃBˆCBƒBˆ[˜İ[ÛˆY›Ú™Xİ][JÙXİ[ÛŠHÃBˆYˆ
+\ÙXİ[ÛŠH™]\›ÃBˆÛÛœİÜ™\ˆHİ]K™]K›Ü™\œË™š[™
 
-  function syncPieceMoldPair() {
-    const [bedCode = "", sideCode = ""] = String($("pieceMoldPair")?.value || "").split("|");
-    if ($("pieceMoldLeito")) $("pieceMoldLeito").value = bedCode;
-    if ($("pieceMoldLateral")) $("pieceMoldLateral").value = sideCode;
-  }
+][JHOˆ][KšYOOH	
+œ›Ú™XİÜ™\’YŠOË˜[YJNÃBˆÙXİ[Û‹œ]Y\TÙ[XİÜŠ‹›ÜË\›Ú™XİZ][\ÈŠKš[œÙ\Y˜XÙ[S
+˜™Y›Ü™Y[™‹›Ú™Xİ][T›İÊÜ™\ŠJNÃBˆCBƒBˆ[˜İ[Ûˆ™Yœ™\Ú›Ú™XİÙXİ[ÛœÑ›Ü“Ü™\Š
+HÃBˆÛÛœİÛÛZ[™\ˆH	
+œ›Ú™XİÙXİ[ÛœÈŠNÃBˆYˆ
+XÛÛZ[™\ŠH™]\›ÃBˆÛÛœİ™]š[İ\ÈH™XY›Ú™XİÙXİ[ÛœÊ
+NÃBˆÛÛœİÜ™\ˆHİ]K™]K›Ü™\œË™š[™
 
-  function updatePieceMoldFields() {
-    const kind = $("pieceKind")?.value;
-    const arm = $("pieceMoldBraco");
-    const pair = $("pieceMoldPair");
-    if (!arm || !pair) return;
-    const armField = arm.closest(".field");
-    const pairField = pair.closest(".field");
-    if (!kind) {
-      armField.hidden = true;
-      pairField.hidden = true;
-      arm.required = false;
-      pair.required = false;
-      return;
-    }
-    const selectedOption = pair.value;
-    const options = moldCombinationsFor(kind);
-    pair.innerHTML = `<option value="">Selecione uma combinaÃ§Ã£o</option>${options.map(([value, label]) =>
-      `<option value="${escapeHtml(value)}">${escapeHtml(label)}</option>`).join("")}`;
-    pair.value = options.some(([value]) => value === selectedOption) ? selectedOption : "";
-    const isArm = kind === "braco";
-    armField.hidden = !isArm;
-    pairField.hidden = isArm;
-    arm.required = isArm;
-    pair.required = !isArm;
-    if (isArm) pair.value = "";
-    else arm.value = "";
-    syncPieceMoldPair();
-  }
+][JHOˆ][KšYOOH	
+œ›Ú™XİÜ™\’YŠOË˜[YJNÃBˆÛÛZ[™\‹š[›™\’SH™]š[İ\Ë›X\
 
-  function updatePositionConfigFields() {
-    const kind = $("positionConfigurationKind")?.value;
-    const arm = $("positionMoldBraco");
-    const bed = $("positionMoldLeito");
-    const side = $("positionMoldLateral");
-    if (!arm || !bed || !side) return;
-    if (!kind) {
-      [arm, bed, side].forEach((select) => { select.closest(".field").hidden = true; select.required = false; });
-      return;
-    }
-    const isArm = kind === "braco";
-    arm.closest(".field").hidden = !isArm;
-    bed.closest(".field").hidden = isArm;
-    side.closest(".field").hidden = isArm;
-    arm.required = isArm;
-    bed.required = !isArm;
-    side.required = !isArm;
-  }
+ÙXİ[Û‹[™^
+HOˆ›Ú™XİÙXİ[ÛØ\™
+Ü™\‹ÃBˆÙXİ[Û—Û˜[YNˆÙXİ[Û‹œÙXİ[Û“˜[YKBˆ][\ÎˆÙXİ[Û‹š][\Ë›X\
 
-  function updatePieceMetrics() {
-    const x = Number(String($("dimensionXcm")?.value || "").replace(",", "."));
-    const y = Number(String($("dimensionYcm")?.value || "").replace(",", "."));
-    const z = Number(String($("dimensionZcm")?.value || "").replace(",", "."));
-    const valid = [x, y, z].every((value) => Number.isFinite(value) && value > 0);
-    const volumeCm3 = valid ? x * y * z : null;
-    const volumeM3 = valid ? volumeCm3 / 1_000_000 : null;
-    const weightKg = valid ? volumeCm3 * 2.5 / 1000 : null;
-    $("pieceVolumeCm3").textContent = valid ? formatNumber(volumeCm3, 3) : "â€”";
-    $("pieceVolumeM3").textContent = valid ? formatNumber(volumeM3, 6) : "â€”";
-    $("pieceWeightKg").textContent = valid ? formatNumber(weightKg, 3) : "â€”";
-  }
+][JHOˆ
+È‹‹š][KÜ™\—Ú][WÚYˆˆˆJJKBˆK[™^
+JKš›Ú[ŠˆŠNÃBˆCBƒBˆ[˜İ[ÛˆÜ[”›Ú™Xİ›Ü›J›Ú™XİH[
+HÃBˆYˆ
+Y[œİ\™Q˜Xš[ÌŠ
+JH™]\›ÃBˆÛÛœİ^\İ[™Ô›Ú™XİÈH™]ÈÙ]
 
-  // PreparaÃ§Ã£o e alocaÃ§Ã£o de recursos ligados a moldes e pedidos.
-  function openPreparationForm(mold, preparation = null) {
-    const moldOptions = state.data.molds.filter((item) => item.status !== "retirado").map((item) => [item.id, `${item.code} Â· ${item.name}`]);
-    const checklist = preparation?.checklist || {};
-    const startDate = preparation?.start_date || today();
-    const statuses = [["planejada", "Planejada"], ["em_andamento", "Em andamento"], ["aguardando_aprovacao", "Aguardando aprovaÃ§Ã£o"], ["aprovada", "Aprovada"], ["reprovada", "Reprovada"], ["cancelada", "Cancelada"]];
-    const body = `<div class="ops-form-grid">
-      ${selectField("preparationMoldId", "Molde", preparation?.mold_id || mold?.id || "", moldOptions, { required: true })}
-      ${inputField("preparationStartDate", "InÃ­cio da preparaÃ§Ã£o", startDate, "date", { required: true })}
-      ${inputField("preparationEndDate", "ConclusÃ£o prevista", addDays(startDate, 6), "date", { disabled: true })}
-      ${selectField("status", "Status", preparation?.status || "planejada", statuses)}
-      <div class="field full"><label>Checklist obrigatÃ³rio</label><div class="ops-checklist">
-        <label><input type="checkbox" name="limpeza" ${checklist.limpeza ? "checked" : ""}> Limpeza</label>
-        <label><input type="checkbox" name="desmoldante" ${checklist.desmoldante ? "checked" : ""}> Desmoldante</label>
-        <label><input type="checkbox" name="montagem" ${checklist.montagem ? "checked" : ""}> Montagem</label>
-      </div></div>
-      ${inputField("approvedBy", "Aprovado por", preparation?.approved_by || "", "text", { optional: true })}
-      ${textareaField("observations", "ObservaÃ§Ãµes", preparation?.observations || "")}
-    </div>`;
-    openModal(preparation ? "Editar preparaÃ§Ã£o" : "Preparar molde", "A data final Ã© calculada como o sÃ©timo dia corrido, contando o primeiro dia.", body, "preparation", preparation);
-    updatePreparationEnd();
-  }
+İ]K™]K™[™Ú[™Y\š[™Ô›Ú™XİÈ×JK›X\
 
-  function updatePreparationEnd() {
-    const start = $("preparationStartDate");
-    const end = $("preparationEndDate");
-    if (start && end) end.value = addDays(start.value, 6);
-  }
+][JHOˆ][K›Ü™\—ÚY
+JNÃBˆÛÛœİÜ™\œÈHİ]K™]K›Ü™\œË™š[\Š
+Ü™\ŠHOƒBˆVÈ˜ÛÛ˜ÛZYÈ‹™[™YİYH‹˜Ø[˜Ù[YÈ—Kš[˜ÛY\ÊÜ™\‹œİ]\ÊH	‰ˆ
+›Ú™XİË›Ü™\—ÚYOOHÜ™\‹šYY^\İ[™Ô›Ú™XİËš\ÊÜ™\‹šY
+JCBˆ
+NÃBˆÛÛœİÜ™\“Ü[ÛœÈHÜ™\œË›X\
 
-  function openAllocationForm(mold = null, allocation = null) {
-    const moldOptions = state.data.molds.filter((item) => item.status === "ativo").map((item) => [item.id, `${item.code} Â· ${item.name}`]);
-    const orderItemOptions = [];
-    for (const order of state.data.orders.filter((item) => !["concluido", "entregue", "cancelado"].includes(item.status))) {
-      for (const item of order.items) orderItemOptions.push([item.id, `${order.order_number || "Pedido"} Â· ${item.piece_code || item.piece_name} Ã— ${item.quantity}`]);
-    }
-    const resourceKind = allocation?.resource_kind || (mold ? "mold" : "mold");
-    const body = `<div class="ops-form-grid">
-      ${selectField("allocationResourceKind", "Tipo de recurso", resourceKind, [["mold", "Molde"], ["other", "Outro recurso"]])}
-      ${selectField("allocationMoldId", "Molde", allocation?.mold_id || mold?.id || "", moldOptions, { required: true, placeholder: "Selecione" })}
-      <div class="field full" id="allocationOtherResourceField" hidden><label for="allocationResourceName">Nome do recurso</label><input class="input" id="allocationResourceName" name="allocationResourceName" value="${escapeHtml(allocation?.resource_kind === "other" ? allocation.resource_name : "")}" placeholder="Ex.: equipamento, equipe, linha"></div>
-      ${selectField("allocationOrderItemId", "Pedido / peÃ§a", allocation?.order_item_id || "", orderItemOptions, { required: true, placeholder: "Selecione o item que serÃ¡ produzido" })}
-      ${inputField("startDate", "InÃ­cio", allocation?.start_date || today(), "date", { required: true })}
-      ${inputField("endDate", "Fim", allocation?.end_date || today(), "date", { required: true })}
-      ${selectField("status", "Status", allocation?.status || "planned", [["planned", "Planejada"], ["in_progress", "Em andamento"], ["done", "ConcluÃ­da"], ["cancelled", "Cancelada"]])}
-      <div class="field full ops-conflict-fields" id="allocationConflictFields" hidden><label>Conflito de outro recurso <span>obrigatÃ³rio quando houver sobreposiÃ§Ã£o</span></label><div class="ops-form-grid">
-        ${inputField("conflictResponsible", "ResponsÃ¡vel pela exceÃ§Ã£o", allocation?.conflict_responsible || "", "text", { optional: true })}
-        ${inputField("conflictReason", "Justificativa", allocation?.conflict_reason || "", "text", { optional: true })}
-      </div></div>
-      ${textareaField("observations", "ObservaÃ§Ãµes", allocation?.observations || "")}
-    </div>`;
-    openModal(allocation ? "Editar alocaÃ§Ã£o" : "Alocar produÃ§Ã£o", "Associe um molde e um item do pedido Ã s datas de produÃ§Ã£o.", body, "allocation", allocation);
-    updateAllocationFields();
-  }
+Ü™\ŠHOˆÛÜ™\‹šY	ÛÜ™\‹›Ü™\—Û[X™\ˆ”YYÈÙ[H°î›Y\›ÈŸH0­È	ÛÜ™\‹˜ÛY[Û˜[YHÛY[HŸXJNÃBˆÛÛœİ›Ú™XİÙXİ[ÛœÈH›Ú™XİËœÙXİ[ÛœÏË›[™İÈ›Ú™XİœÙXİ[ÛœÈˆŞÈÙXİ[Û—Û˜[YNˆ”ÙpéğèÛÈH‹][\ÎˆŞßWHWNÃBˆÛÛœİ›ÙHH]ˆÛ\ÜÏH›ÜËY›Ü›KYÜšYƒBˆ	ÜÙ[XİšY[
+œ›Ú™XİÜ™\’Y‹”YYÈ‹›Ú™XİË›Ü™\—ÚYˆ‹Ü™\“Ü[ÛœËÈ™\]Z\™YˆYKXÙZÛ\ˆ”Ù[XÚ[Û™H[HYYÈ]]›ÈˆJ_CBˆÛ\ÜÏH›ÜËY›Ü›KZ[[“È›Ú™]È\[˜ÙHH[HYYËˆ\İšXXHÜÈ][œÈ[\ÈÙpéğíY\ÎÈÈ˜[˜ÛÈ[\YH]YHH]X[YYHİ[[˜\\ÜÙHÈYYËÜƒBˆ]ˆÛ\ÜÏH›ÜË\›Ú™Xİ\ÙXİ[ÛœÈ[ˆYHœ›Ú™XİÙXİ[ÛœÈ‰Ü›Ú™XİÙXİ[ÛœË›X\
 
-  function updateAllocationFields() {
-    const kind = $("allocationResourceKind")?.value;
-    const moldField = $("allocationMoldId")?.closest(".field");
-    const otherField = $("allocationOtherResourceField");
-    const conflictField = $("allocationConflictFields");
-    const moldSelect = $("allocationMoldId");
-    const otherName = $("allocationResourceName");
-    if (!kind || !moldField || !otherField || !conflictField) return;
-    const isMold = kind === "mold";
-    moldField.hidden = !isMold;
-    if (moldSelect) moldSelect.required = isMold;
-    otherField.hidden = isMold;
-    if (otherName) otherName.required = !isMold;
-    conflictField.hidden = isMold;
-  }
+ÙXİ[Û‹[™^
+HOˆ›Ú™XİÙXİ[ÛØ\™
+İ]K™]K›Ü™\œË™š[™
 
-  // Eventos da tabela e do modal: encaminham cada aÃ§Ã£o para seu mÃ©todo de domÃ­nio.
-  async function handleTableClick(event) {
-    const button = event.target.closest("[data-ops-action]");
-    if (!button) return;
-    const { opsAction: action, id } = button.dataset;
-    const data = state.data;
-    if (action === "new-preparation") return openPreparationForm(null);
-    if (action === "new-allocation") return openAllocationForm();
-    if (action === "edit") {
-      if (state.tab === "works") return openWorkForm(data.works.find((item) => item.id === id));
-      if (state.tab === "orders") return openOrderForm(data.orders.find((item) => item.id === id));
-      if (state.tab === "pieces") {
-        if (!ensureStage4()) return;
-        return openPieceForm(data.pieceTypes.find((item) => item.id === id));
-      }
-      if (state.tab === "positions") return openPositionForm(data.positions.find((item) => item.id === id));
-      if (state.tab === "molds" && !ensureStage4()) return;
-      return openMoldForm(data.molds.find((item) => item.id === id));
-    }
-    if (action === "edit-position") return openPositionForm(data.positions.find((item) => item.id === id));
-    if (action === "prepare") return openPreparationForm(data.molds.find((item) => item.id === id));
-    if (action === "allocate") return openAllocationForm(data.molds.find((item) => item.id === id));
-    if (action === "edit-preparation") return openPreparationForm(null, data.preparations.find((item) => item.id === id));
-    if (action === "edit-allocation") return openAllocationForm(null, data.allocations.find((item) => item.id === id));
-    if (action === "cancel-allocation") {
-      const allocation = data.allocations.find((item) => item.id === id);
-      if (!allocation || !confirm("Cancelar esta alocaÃ§Ã£o de recurso?")) return;
-      try {
-        await global.PRELUX_REPOSITORIES.operations.saveResourceAllocation({
-          id: allocation.id,
-          resourceKind: allocation.resource_kind,
-          moldId: allocation.mold_id,
-          resourceName: allocation.resource_name,
-          orderItemId: allocation.order_item_id,
-          startDate: allocation.start_date,
-          endDate: allocation.end_date,
-          status: "cancelled",
-          conflictReason: allocation.conflict_reason,
-          conflictResponsible: allocation.conflict_responsible,
-          observations: allocation.observations,
-        });
-        toast("AlocaÃ§Ã£o cancelada.");
-        await refreshData(true);
-      } catch (error) { showStatus(error.message || "NÃ£o foi possÃ­vel cancelar a alocaÃ§Ã£o.", true); }
-      return;
-    }
-    if (action === "archive") {
-      const labels = { works: "obra", pieces: "tipo de peÃ§a", molds: "molde" };
-      if (!confirm(`Arquivar este ${labels[state.tab] || "cadastro"}?`)) return;
-      const kind = state.tab === "works" ? "work" : state.tab === "pieces" ? "piece_type" : "mold";
-      try {
-        await global.PRELUX_REPOSITORIES.operations.archiveOperationRecord(kind, id);
-        toast("Cadastro arquivado.");
-        await refreshData(true);
-      } catch (error) { showStatus(error.message || "NÃ£o foi possÃ­vel arquivar o cadastro.", true); }
-    }
-  }
+Ü™\ŠHOˆÜ™\‹šYOOH
+›Ú™XİË›Ü™\—ÚYÜ™\“Ü[ÛœÖÌOË–ÌJJKÙXİ[Û‹[™^
+JKš›Ú[ŠˆŠ_OÙ]ƒBˆ]ˆÛ\ÜÏH›ÜËZ[›[™KXXİ[ÛœÈ[]ÛˆÛ\ÜÏH˜ˆˆ\OH˜]ÛˆˆYH˜Y›Ú™XİÙXİ[ÛˆYXÚ[Û˜\ˆÙpéğèÛÏØ]ÛÙ]ƒBˆÙ]˜ÃBˆÜ[“[Ù[
+›Ú™XİÈ‘Y]\ˆ›Ú™]ÈH[™Ù[š\šXHˆˆ“›İ›È›Ú™]ÈH[™Ù[š\šXH‹“Ü™Ø[š^™HH˜XœšXØpéğèÛÈÈYYÈ[HÙpéğíY\ÈH]X[YY\Ëˆ‹›ÙKœ›Ú™Xİ‹›Ú™Xİ
+NÃBˆYˆ
+›Ú™Xİ
+HÃBˆ	
+œ›Ú™XİÜ™\’YŠK™\ØX›YHYNÃBˆÛÛœİY[“Ü™\’YHØİ[Y[˜Ü™X]Q[[Y[
+š[œ]ŠNÃBˆY[“Ü™\’Y\HHšY[ˆÃBˆY[“Ü™\’Y›˜[YHHœ›Ú™XİÜ™\’YÃBˆY[“Ü™\’Y˜[YHH›Ú™Xİ›Ü™\—ÚYÃBˆ	
+›Ü\˜][ÛœÑ›Ü›HŠK˜\[™
+Y[“Ü™\’Y
+NÃBˆCBˆCBƒBˆ[˜İ[ÛˆŞ[˜ÓÜ™\ÛY[[
 
-  function formValue(form, name) {
-    const value = new FormData(form).get(name);
-    return value == null ? "" : String(value).trim();
-  }
+HÃBˆÛÛœİÛÜšÔÙ[XİH	
+›Ü™\•ÛÜšÒYŠNÃBˆÛÛœİÛY[[œ]H	
+˜ÛY[˜[YHŠNÃBˆÛÛœİİ\]R[œ]H	
+œİ\]HŠNÃBˆÛÛœİ[H	
+›Ü™\ÛY[[ŠNÃBˆYˆ
+]ÛÜšÔÙ[XİXÛY[[œ]\İ\]R[œ]Z[
+H™]\›ÃBˆÛÛœİÛÜšÈHİ]K™]KÛÜšÜË™š[™
 
-  function showModalError(message) {
-    const element = $("operationsModalStatus");
-    element.textContent = message;
-    element.classList.add("show");
-  }
+][JHOˆ][KšYOOHÛÜšÔÙ[Xİ˜[YJNÃBˆÛY[[œ]™\ØX›YH›ÛÛX[ŠÛÜšÊNÃBˆÛY[[œ]œ™\]Z\™YH]ÛÜšÎÃBˆİ\]R[œ]œ™XYÛ›HH›ÛÛX[ŠÛÜšÊNÃBˆİ\]R[œ]œ™\]Z\™YHYNÃBˆYˆ
+ÛÜšÊHÃBˆÛY[[œ]˜[YHHÛÜšË˜ÛY[Û˜[YHˆÃBˆİ\]R[œ]˜[YHHÛÜšËœİ\Ù]HˆÃBˆ[^ÛÛ[HÛÜšËœİ\Ù]CBˆÈÛY[HH]HH[°ëXÚ[È\™YÜÈHØœ˜H
+	Ù]P”ŠÛÜšËœİ\Ù]J_JK˜BˆˆØY\İ™HH]HH[°ëXÚ[ÈHØœ˜H[\ÈHš[˜İ[\ˆ\İHYYËˆÃBˆH[ÙHÃBˆ[^ÛÛ[H”Ù[HØœ˜Hš[˜İ[YK[™›Ü›YHÈÛY[HHH]HH[°ëXÚ[ÈÈYYËˆÃBˆCBˆCBƒBˆ[˜İ[ÛˆÜ[”YXÙQ›Ü›JYXÙHH[
+HÃBˆYˆ
+Y[œİ\™TİYÙM
 
-  async function submitForm(event) {
-    event.preventDefault();
-    const form = event.currentTarget;
-    if (!form.reportValidity()) return;
-    const kind = form.dataset.kind;
-    const id = form.dataset.recordId || "";
-    const save = $("operationsModalSave");
-    let savedNotice = "Cadastro salvo.";
-    save.disabled = true;
-    save.textContent = "Salvandoâ€¦";
-    try {
-      if (kind === "work") {
-        const response = await global.PRELUX_REPOSITORIES.operations.saveWork({
-          id,
-          workNumber: formValue(form, "workNumber"),
-          name: formValue(form, "name"),
-          clientName: formValue(form, "clientName"),
-          address: formValue(form, "address"),
-          responsibleName: formValue(form, "responsibleName"),
-          startDate: formValue(form, "startDate"),
-          requestedDueDate: formValue(form, "requestedDueDate"),
-          status: formValue(form, "status"),
-          observations: formValue(form, "observations"),
-        });
-        if (response?.planning?.warning) savedNotice = `Obra salva. ${response.planning.warning}`;
-        else if (response?.planning?.committed) savedNotice = "Obra salva e pedidos vinculados replanejados.";
-      } else if (kind === "order") {
-        const workId = formValue(form, "orderWorkId");
-        const clientName = formValue(form, "clientName");
-        if (!workId && !clientName) throw new Error("Informe o cliente ou vincule o pedido a uma obra.");
-        const work = workId ? state.data.works.find((item) => item.id === workId) : null;
-        if (workId && !work?.start_date) throw new Error("Cadastre a data de inÃ­cio da obra antes de vincular este pedido.");
-        const startDate = work?.start_date || formValue(form, "startDate");
-        const items = [...form.querySelectorAll(".ops-item-row")].map((row) => ({
-          pieceTypeId: row.querySelector("[data-item-piece]").value,
-          quantity: Number(row.querySelector("[data-item-quantity]").value),
-          observations: row.querySelector("[data-item-observations]").value.trim(),
-        }));
-        if (items.some((item) => !item.pieceTypeId || !Number.isInteger(item.quantity) || item.quantity < 1)) throw new Error("Confira o tipo e a quantidade de cada item do pedido.");
-        const response = await global.PRELUX_REPOSITORIES.operations.saveOrder({
-          id,
-          orderNumber: formValue(form, "orderNumber"),
-          workId,
-          clientName,
-          startDate,
-          requestedDueDate: formValue(form, "requestedDueDate"),
-          status: formValue(form, "status"),
-          observations: formValue(form, "observations"),
-          items,
-        });
-        if (response?.planning?.warning) {
-          savedNotice = `Pedido salvo. ${response.planning.warning}`;
-        } else if (response?.planning?.removedFromPlan) {
-          savedNotice = "Pedido atualizado e fila de produÃ§Ã£o recalculada.";
-        } else if (response?.planning?.committed) {
-          savedNotice = "Pedido salvo e incluÃ­do automaticamente no planejamento.";
-        }
-      } else if (kind === "piece") {
-        const response = await global.PRELUX_REPOSITORIES.operations.savePieceType({
-          id,
-          code: formValue(form, "code"),
-          name: formValue(form, "name"),
-          pieceKind: formValue(form, "pieceKind"),
-          dimensionXcm: formValue(form, "dimensionXcm"),
-          dimensionYcm: formValue(form, "dimensionYcm"),
-          dimensionZcm: formValue(form, "dimensionZcm"),
-          productionMinutesPerUnit: Number(formValue(form, "productionMinutesPerUnit")),
-          observations: formValue(form, "observations"),
-          moldCatalogs: formValue(form, "pieceKind") === "braco"
-            ? { braco: formValue(form, "pieceMoldBraco") }
-            : { leito: formValue(form, "pieceMoldLeito"), lateral: formValue(form, "pieceMoldLateral") },
-        });
-        if (response?.planning?.warning) savedNotice = `PeÃ§a salva. ${response.planning.warning}`;
-        else if (response?.planning?.committed) savedNotice = "PeÃ§a salva e planejamento recalculado.";
-      } else if (kind === "mold") {
-        await global.PRELUX_REPOSITORIES.operations.saveMold({
-          id,
-          catalogCode: formValue(form, "catalogCode"),
-          cycleMinutesPerUnit: formValue(form, "cycleMinutesPerUnit"),
-          status: formValue(form, "status"),
-          observations: formValue(form, "observations"),
-        });
-      } else if (kind === "position") {
-        const response = await global.PRELUX_REPOSITORIES.operations.saveMoldPosition({
-          code: formValue(form, "positionCode"),
-          status: formValue(form, "status"),
-          configurationKind: formValue(form, "positionConfigurationKind"),
-          bracoCatalogCode: formValue(form, "positionConfigurationKind") === "braco" ? formValue(form, "positionMoldBraco") : "",
-          leitoCatalogCode: formValue(form, "positionConfigurationKind") === "pilar_viga" ? formValue(form, "positionMoldLeito") : "",
-          lateralCatalogCode: formValue(form, "positionConfigurationKind") === "pilar_viga" ? formValue(form, "positionMoldLateral") : "",
-          notes: formValue(form, "positionNotes"),
-        });
-        if (response?.planning?.warning) savedNotice = `PosiÃ§Ã£o salva. ${response.planning.warning}`;
-        else if (response?.planning?.committed) savedNotice = "PosiÃ§Ã£o salva e planejamento recalculado.";
-      } else if (kind === "preparation") {
-        await global.PRELUX_REPOSITORIES.operations.saveMoldPreparation({
-          id,
-          moldId: formValue(form, "preparationMoldId"),
-          startDate: formValue(form, "preparationStartDate"),
-          status: formValue(form, "status"),
-          checklist: {
-            limpeza: form.querySelector('[name="limpeza"]').checked,
-            desmoldante: form.querySelector('[name="desmoldante"]').checked,
-            montagem: form.querySelector('[name="montagem"]').checked,
-          },
-          approvedBy: formValue(form, "approvedBy"),
-          observations: formValue(form, "observations"),
-        });
-      } else if (kind === "allocation") {
-        const resourceKind = formValue(form, "allocationResourceKind");
-        await global.PRELUX_REPOSITORIES.operations.saveResourceAllocation({
-          id,
-          resourceKind,
-          moldId: resourceKind === "mold" ? formValue(form, "allocationMoldId") : "",
-          resourceName: resourceKind === "other" ? formValue(form, "allocationResourceName") : "",
-          orderItemId: formValue(form, "allocationOrderItemId"),
-          startDate: formValue(form, "startDate"),
-          endDate: formValue(form, "endDate"),
-          status: formValue(form, "status"),
-          conflictResponsible: formValue(form, "conflictResponsible"),
-          conflictReason: formValue(form, "conflictReason"),
-          observations: formValue(form, "observations"),
-        });
-      }
-      closeModal();
-      toast(savedNotice);
-      if (kind === "work" || kind === "order" || kind === "position" || kind === "piece") {
-        global.dispatchEvent(new CustomEvent("prelux:operations:changed", { detail: { kind, id } }));
-      }
-      await refreshData(true);
-    } catch (error) {
-      showModalError(error.message || "NÃ£o foi possÃ­vel salvar o cadastro.");
-      save.disabled = false;
-      save.textContent = id ? "Salvar alteraÃ§Ãµes" : "Salvar cadastro";
-    }
-  }
+JH™]\›ÃBˆYˆ
+YXÙOËœYXÙWÚÚ[™OOHœXØHˆ	‰ˆY[œİ\™Q˜Xš[ÌŠ
+JH™]\›ÃBˆÛÛœİ[ÛÈHYXÙOË›[ÛØØ][ÙÜÈßNÃBˆÛÛœİ\SÜ[ÛœÈHÖÈ˜œ˜XÛÈ‹œ˜péÛÈ—KÈœ[\ˆ‹”[\ˆ—KÈšYØH‹•šYØH—K‹‹Šİ]Kœİ\ÜÑ˜Xš[ÌˆÈÖÈœXØH‹”XØH—WHˆ×JWNÃBˆÛÛœİ\›SÜ[ÛœÈHØ][ÙĞÚÚXÙ\Ê”PÓÈŠNÃBˆÛÛœİÛÛXš[˜][ÛœÈH[ÛÛÛXš[˜][ÛœÑ›ÜŠYXÙOËœYXÙWÚÚ[™œ[\ˆŠNÃBˆÛÛœİÙ[XİYZ\ˆH[ÛË›Z]È	‰ˆ[ÛË›]\˜[È	Û[ÛË›Z]ß_	Û[ÛË›]\˜[XˆˆÃBˆÛÛœİ›ÙHH]ˆÛ\ÜÏH›ÜËY›Ü›KYÜšYƒBˆ	Ú[œ]šY[
+˜ÛÙH‹ğìÙYÛÈHpéØH‹YXÙOË˜ÛÙHˆ‹^‹È™\]Z\™YˆYHJ_CBˆ	Ú[œ]šY[
+›˜[YH‹“›ÛYHHpéØH‹YXÙOË›˜[YHˆ‹^‹È™\]Z\™YˆYHJ_CBˆ	ÜÙ[XİšY[
+œYXÙRÚ[™‹•\ÈHpéØH‹YXÙOËœYXÙWÚÚ[™ˆ‹\SÜ[ÛœËÈ™\]Z\™YˆYKXÙZÛ\ˆ”Ù[XÚ[Û™Hœ˜péÛË[\‹šYØHİHXØHˆJ_CBˆ	Ú[œ]šY[
+™[Y[œÚ[Û–ÛH‹‘[Y[œğèÛÈ
+ÛJH‹YXÙOË™[Y[œÚ[Û—ŞØÛHÏÈˆ‹›[X™\ˆ‹ÈZ[ˆŒKİ\ˆŒŒH‹™\]Z\™YˆYHJ_CBˆ	Ú[œ]šY[
+™[Y[œÚ[Û–XÛH‹‘[Y[œğèÛÈH
+ÛJH‹YXÙOË™[Y[œÚ[Û—ŞWØÛHÏÈˆ‹›[X™\ˆ‹ÈZ[ˆŒKİ\ˆŒŒH‹™\]Z\™YˆYHJ_CBˆ	Ú[œ]šY[
+™[Y[œÚ[Û–˜ÛH‹YXÙOËœYXÙWÚÚ[™OOHœXØHˆÈ‘\Ü\Üİ\˜Hˆ
+ÛJHˆˆ‘[Y[œğèÛÈˆ
+ÛJH‹YXÙOË™[Y[œÚ[Û—Ş—ØÛHÏÈˆ‹›[X™\ˆ‹ÈZ[ˆŒKİ\ˆŒŒH‹™\]Z\™YˆYHJ_CBˆ]ˆÛ\ÜÏH›ÜËXÛÛ\]Y[Y]šXÜÈ[ˆ\šXK[]™OHœÛ]HƒBˆ]ÛX[•›Û[YOÜÛX[İ›Û™ÈYHœYXÙU›Û[YPÛLÈ¸ %Üİ›Û™ÏÜ[˜Ûp¬ÏÜÜ[Ù]ƒBˆ]ÛX[•›Û[YOÜÛX[İ›Û™ÈYHœYXÙU›Û[YSLÈ¸ %Üİ›Û™ÏÜ[›p¬ÏÜÜ[Ù]ƒBˆ]ÛX[”\ÛÈ\İ[XYÏÜÛX[İ›Û™ÈYHœYXÙUÙZYÚÙÈ¸ %Üİ›Û™ÏÜ[šÙÏÜÜ[Ù]ƒBˆÙ]ƒBˆ	Ú[œ]šY[
+œ›ÙXİ[Û“Z[]\Ô\•[š]‹•[\ÈH›ÙpéğèÛÈ
+Z[‹İ[‹ŠH‹YXÙOËœ›ÙXİ[Û—ÛZ[]\×Ü\—İ[š]ÏÈˆ‹›[X™\ˆ‹ÈZ[ˆKİ\ˆK™\]Z\™YˆYHJ_CBˆ]ˆÛ\ÜÏH›ÜËY›Ü›KZ[“È[\ÈšXØH™YÚ\İ˜YÈ›ÈØY\İ›ÈH°èÛÈ[Z]HHØ\XÚYYHÈ[™Z˜[Y[ËÙ]ƒBˆ	ÜÙ[XİšY[
+œYXÙS[Ûœ˜XÛÈ‹‘›Ü›XH”páÓÈ‹[ÛË˜œ˜XÛÈˆ‹\›SÜ[ÛœËÈ™\]Z\™YˆYKXÙZÛ\ˆ”Ù[XÚ[Û™H[XHYYYHˆJ_CBˆ	ÜÙ[XİšY[
+œYXÙS[ÛZ\ˆ‹ÛÛXš[˜péğèÛÈH›Ü›X\ÈRUÈ0åÈUTS‹Ù[XİYZ\‹ÛÛXš[˜][ÛœËÈ™\]Z\™YˆYKXÙZÛ\ˆ”Ù[XÚ[Û™H[XHÛÛXš[˜péğèÛÈˆJ_CBˆ[œ]\OHšY[ˆˆYHœYXÙS[ÛZ]Èˆ˜[YOHœYXÙS[ÛZ]Èˆ˜[YOH‰Ù\ØØ\R[
+[ÛË›Z]ÈˆŠ_HˆÏƒBˆ[œ]\OHšY[ˆˆYHœYXÙS[Û]\˜[ˆ˜[YOHœYXÙS[Û]\˜[ˆ˜[YOH‰Ù\ØØ\R[
+[ÛË›]\˜[ˆŠ_HˆÏƒBˆ	İ^\™XQšY[
+›ØœÙ\˜][ÛœÈ‹“ØœÙ\˜péğíY\È‹YXÙOË›ØœÙ\˜][ÛœÈˆŠ_CBˆÙ]˜ÃBˆÜ[“[Ù[
+YXÙHÈ‘Y]\ˆpéØHˆˆ“›İ˜HpéØH‹‘[Y[œğíY\È[HÙ[0ë[Y]›ÜÎÈ\˜HXØK0åÈH0êH0è\™XHHˆ0êH\Ü\Üİ\˜Kˆ‹›ÙKœYXÙH‹YXÙJNÃBˆ\]TYXÙS[ÛšY[Ê
+NÃBˆ\]TYXÙSY]šXÜÊ
+NÃBˆCBƒBˆ[˜İ[ÛˆÜ[“[Û›Ü›J[ÛH[
+HÃBˆYˆ
+Y[œİ\™TİYÙM
 
-  // InicializaÃ§Ã£o e atualizaÃ§Ã£o: busca o conjunto de dados pelo repositÃ³rio.
-  async function refreshData(silent = false) {
-    if (state.loading) return;
-    state.loading = true;
-    if (!silent) showStatus("Atualizando cadastrosâ€¦");
-    try {
-      const response = await global.PRELUX_REPOSITORIES.operations.getOperationsData();
-      state.data = response;
-      state.supportsStage4 = Number(response?.schemaVersion || 0) >= 4 &&
-        Array.isArray(response?.moldCatalog) && Array.isArray(response?.positions);
-      renderMetrics();
-      state.query = $("operationsSearch")?.value || state.query;
-      renderTable(state.query);
-      showStatus(state.supportsStage4
-        ? "Cadastros de obras, pedidos, peÃ§as, moldes e posiÃ§Ãµes conectados ao banco PRELUX."
-        : "Obras e pedidos conectados. Os cadastros de peÃ§as, moldes e posiÃ§Ãµes aguardam a migraÃ§Ã£o 007 e a Edge Function da Etapa 4.");
-    } catch (error) {
-      const rawMessage = error.message || "NÃ£o foi possÃ­vel carregar os cadastros.";
-      const message = /posi[cÃ§][aÃ£]o|cat[aÃ¡]logo fixo|moldes das pe[cÃ§]as/i.test(rawMessage)
-        ? `O banco ainda precisa da migraÃ§Ã£o 007 da Etapa 4. ${rawMessage}`
-        : rawMessage;
-      showStatus(message, true);
-      if (!state.data) $("operationsTable").innerHTML = `<div class="calendar-placeholder"><div><strong>Cadastros indisponÃ­veis</strong><p>${escapeHtml(message)}</p></div></div>`;
-    } finally {
-      state.loading = false;
-    }
-  }
+JH™]\›ÃBˆÛÛœİ[ÛÜ[ÛœÈH
+İ]K™]K›[ÛØ][ÙÈ×JK›X\
 
-  shell();
-  global.addEventListener("prelux:operations:open", () => refreshData());
-})(window);
+][JHOˆÚ][K˜ÛÙK	Ú][K›[Ûİ\HOOH”PÓÈˆÈ”páÓÈˆˆ][K›[Ûİ\_H	Ú][K›YX\İ\™WÛX™[HÛXJNÃBˆÛÛœİ›ÙHH]ˆÛ\ÜÏH›ÜËY›Ü›KYÜšYƒBˆ	ÜÙ[XİšY[
+˜Ø][ÙĞÛÙH‹‘›Ü›XHÈØ]0è[ÙÛÈš^È‹[ÛË˜Ø][Ù×ØÛÙHˆ‹[ÛÜ[ÛœËÈ™\]Z\™YˆYKXÙZÛ\ˆ”Ù[XÚ[Û™H\ÈHYYYHˆJ_CBˆ	Ú[œ]šY[
+˜ŞXÛSZ[]\Ô\•[š]‹ÚXÛÈ
+Z[‹İ[‹ŠH‹[ÛË˜ŞXÛWÛZ[]\×Ü\—İ[š]ÏÈˆ‹›[X™\ˆ‹ÈZ[ˆKİ\ˆKÜ[Û˜[ˆYHJ_CBˆ	ÜÙ[XİšY[
+œİ]\È‹”İ]\È‹[ÛËœİ]\È˜]]›È‹ÖÈ˜]]›È‹]]›È—KÈ›X[][˜Ø[È‹“X[][°éğèÛÈ—KÈ˜›Ü]YXYÈ‹›Ü]YXYÈ—KÈœ™]\˜YÈ‹”™]\˜YÈ—WJ_CBˆ]ˆÛ\ÜÏH›ÜËY›Ü›KZ[H™\\˜péğèÛÈ\˜H	Üİ]Kœİ\ÜÑ˜Xš[ÌˆÈ˜Ú[˜ÛÈX\È0îZ\ÈˆˆœÙ]HX\ÈÛÜœšYÜÈŸHH™XÚ\ØHÙ\ˆ\›İ˜YH[\ÈH›ÙpéğèÛËÙ]ƒBˆ	İ^\™XQšY[
+›ØœÙ\˜][ÛœÈ‹“ØœÙ\˜péğíY\È‹[ÛË›ØœÙ\˜][ÛœÈˆŠ_CBˆÙ]˜ÃBˆÜ[“[Ù[
+[ÛÈ‘Y]\ˆ›Ü›XHˆˆ“›İ˜H›Ü›XH‹•\ÈHYYYH°ê›HÈØ]0è[ÙÛÈš^ÎÈÈY[YšXØYÜˆ0êHÙ\˜YÈ[ÈÚ\İ[XKˆ‹›ÙK›[Û‹[Û
+NÃBˆCBƒBˆ[˜İ[ÛˆÜ[”ÜÚ][Û‘›Ü›JÜÚ][ÛŠHÃBˆYˆ
+Y[œİ\™TİYÙM
+
+JH™]\›ÃBˆÛÛœİ\SÜ[ÛœÈHÖÈ˜œ˜XÛÈ‹œ˜péÛÈ—KÈœ[\—İšYØH‹”[\ˆÈšYØH—K‹‹Šİ]Kœİ\ÜÑ˜Xš[ÌˆÈÖÈœXØH‹”XØH0­È˜[˜ØYH[˜H—WHˆ×JWNÃBˆÛÛœİ\›SÜ[ÛœÈHØ][ÙĞÚÚXÙ\Ê”PÓÈŠNÃBˆÛÛœİ™YÜ[ÛœÈHØ][ÙĞÚÚXÙ\Ê“RUÈŠNÃBˆÛÛœİÚYSÜ[ÛœÈHØ][ÙĞÚÚXÙ\Ê“UTSŠNÃBˆÛÛœİ›ÙHH]ˆÛ\ÜÏH›ÜËY›Ü›KYÜšYƒBˆ[œ]\OHšY[ˆˆYHœÜÚ][ÛÛÙHˆ˜[YOHœÜÚ][ÛÛÙHˆ˜[YOH‰Ù\ØØ\R[
+ÜÚ][Û‹˜ÛÙJ_HˆÏƒBˆ]ˆÛ\ÜÏH™šY[X™[”ÜÚpéğèÛÈ°ë\ÚXØOÛX™[[œ]Û\ÜÏHš[œ]ˆ˜[YOH‰Ù\ØØ\R[
+ÜÚ][Û‹˜ÛÙJ_Hˆ\ØX›YÏÙ]ƒBˆ	ÜÙ[XİšY[
+œİ]\È‹”İ]\È‹ÜÚ][Û‹œİ]\È™\ÜÛš]™[‹ÖÈ™\ÜÛš]™[‹‘\ÜÛ°ë]™[—KÈ™[WÜ™\\˜XØ[È‹‘[H™\\˜péğèÛÈ—KÈ™[WÜ›ÙXØ[È‹‘[H›ÙpéğèÛÈ—KÈ™[WÛX[][˜Ø[È‹‘[HX[][°éğèÛÈ—WJ_CBˆ	ÜÙ[XİšY[
+œÜÚ][ÛÛÛ™šYİ\˜][Û’Ú[™‹ÛÛ™šYİ\˜péğèÛÈHÜÚpéğèÛÈ‹ÜÚ][Û‹˜ÛÛ™šYİ\˜][Û—ÚÚ[™ˆ‹\SÜ[ÛœËÈ™\]Z\™YˆYKXÙZÛ\ˆ”Ù[XÚ[Û™HHÛÛ™šYİ\˜péğèÛÈˆJ_CBˆ	ÜÙ[XİšY[
+œÜÚ][Û“[Ûœ˜XÛÈ‹‘›Ü›XH”páÓÈ‹ÜÚ][Û‹˜œ˜XÛ×ØØ][Ù×ØÛÙHˆ‹\›SÜ[ÛœËÈ™\]Z\™YˆYKXÙZÛ\ˆ”Ù[XÚ[Û™H[XHYYYHˆJ_CBˆ	ÜÙ[XİšY[
+œÜÚ][Û“[ÛZ]È‹‘›Ü›XHRUÈ‹ÜÚ][Û‹›Z]×ØØ][Ù×ØÛÙHˆ‹™YÜ[ÛœËÈ™\]Z\™YˆYKXÙZÛ\ˆ”Ù[XÚ[Û™H[XHYYYHˆJ_CBˆ	ÜÙ[XİšY[
+œÜÚ][Û“[Û]\˜[‹‘›Ü›XHUTS‹ÜÚ][Û‹›]\˜[ØØ][Ù×ØÛÙHˆ‹ÚYSÜ[ÛœËÈ™\]Z\™YˆYKXÙZÛ\ˆ”Ù[XÚ[Û™H[XHYYYHˆJ_CBˆ	İ^\™XQšY[
+œÜÚ][Û“›İ\È‹“ØœÙ\˜péğíY\È‹ÜÚ][Û‹››İ\ÈˆŠ_CBˆ]ˆÛ\ÜÏH›ÜËY›Ü›KZ[[œ˜péÛÈ\ØHH›Ü›XH”páÓÎÈ[\ˆHšYØH\Ø[HRUÈ0åÈUTSÈXØH\ØH[XH˜[˜ØYH[˜HÙ[H›Ü›XKˆHš[HÙ\°èH™XØ[İ[YH[ÈØ[˜\‹Ù]ƒBˆÙ]˜ÃBˆÜ[“[Ù[
+ÛÛ™šYİ\˜\ˆÜÚpéğèÛÈ	ÜÜÚ][Û‹˜ÛÙ_X‘Yš[˜H\È›Ü›X\È[œİ[Y\ÈİHÙ[XÚ[Û™HH˜[˜ØYH[˜H\˜HXØ\Ëˆ‹›ÙKœÜÚ][Ûˆ‹ÜÚ][ÛŠNÃBˆ\]TÜÚ][ÛÛÛ™šYÑšY[Ê
+NÃBˆCBƒBˆËÈ™YÜ˜\ÈH[Û\ÎˆØ]0è[ÙÛÈš^ËÛÛXš[˜péğíY\ÈHØ[\ÜÈHÜÚpéğèÛÈÛÛ\]0ë]™Z\ËƒBˆ[˜İ[ÛˆØ][ÙĞÚÚXÙ\Ê[Û\JHÃBˆ™]\›ˆ
+İ]K™]OË›[ÛØ][ÙÈ×JK™š[\Š
+][JHOˆ][K›[Ûİ\HOOH[Û\JCBˆ›X\
+
+][JHOˆÚ][K˜ÛÙK	Û[Û\HOOH”PÓÈˆÈ”páÓÈˆˆ[Û\_H	Ú][K›YX\İ\™WÛX™[HÛXJNÃBˆCBƒBˆ[˜İ[Ûˆ[ÛÛÛXš[˜][ÛœÑ›ÜŠYXÙRÚ[™
+HÃBˆËÈİ˜]YŞHÈÛpë[š[ÈÙ[XÚ[Û˜Hœ˜péÛÈš^ÈİHÛÛXš[˜péğèÛÈ˜\špè]™[Y\]XYKƒBˆ™]\›ˆÛØ˜[”‘SVÑÓPRS‹›[ÛÛÛ\]Xš[]K›\İYXÙS[ÛÜ[ÛœÊYXÙRÚ[™ÃBˆØ][ÙÎˆİ]K™]OË›[ÛØ][ÙËBˆÛÛXš[˜][ÛœÎˆİ]K™]OË›[ÛÛÛXš[˜][ÛœËBˆJNÃBˆCBƒBˆ[˜İ[ÛˆŞ[˜ÔYXÙS[ÛZ\Š
+HÃBˆÛÛœİØ™YÛÙHHˆ‹ÚYPÛÙHHˆ—HHİš[™Ê	
+œYXÙS[ÛZ\ˆŠOË˜[YHˆŠKœÜ]
+ŸŠNÃBˆYˆ
+	
+œYXÙS[ÛZ]ÈŠJH	
+œYXÙS[ÛZ]ÈŠK˜[YHH™YÛÙNÃBˆYˆ
+	
+œYXÙS[Û]\˜[ŠJH	
+œYXÙS[Û]\˜[ŠK˜[YHHÚYPÛÙNÃBˆCBƒBˆ[˜İ[Ûˆ\]TYXÙS[ÛšY[Ê
+HÃBˆÛÛœİÚ[™H	
+œYXÙRÚ[™ŠOË˜[YNÃBˆÛÛœİ[Y[œÚ[Û–“X™[HØİ[Y[œ]Y\TÙ[XİÜŠ	ÛX™[Ù›ÜH™[Y[œÚ[Û–˜ÛH—IÊNÃBˆYˆ
+[Y[œÚ[Û–“X™[
+H[Y[œÚ[Û–“X™[™š\œİÚ[^ÛÛ[HÚ[™OOHœXØHˆÈ‘\Ü\Üİ\˜Hˆ
+ÛJHˆˆ‘[Y[œğèÛÈˆ
+ÛJHÃBˆÛÛœİ\›HH	
+œYXÙS[Ûœ˜XÛÈŠNÃBˆÛÛœİZ\ˆH	
+œYXÙS[ÛZ\ˆŠNÃBˆYˆ
+X\›H\Z\ŠH™]\›ÃBˆÛÛœİ\›QšY[H\›K˜ÛÜÙ\İ
+‹™šY[ŠNÃBˆÛÛœİZ\‘šY[HZ\‹˜ÛÜÙ\İ
+‹™šY[ŠNÃBˆYˆ
+ZÚ[™
+HÃBˆ\›QšY[šY[ˆHYNÃBˆZ\‘šY[šY[ˆHYNÃBˆ\›Kœ™\]Z\™YH˜[ÙNÃBˆZ\‹œ™\]Z\™YH˜[ÙNÃBˆ™]\›ÃBˆCBˆÛÛœİÙ[XİYÜ[ÛˆHZ\‹˜[YNÃBˆÛÛœİÜ[ÛœÈH[ÛÛÛXš[˜][ÛœÑ›ÜŠÚ[™
+NÃBˆZ\‹š[›™\’SHÜ[Ûˆ˜[YOHˆ”Ù[XÚ[Û™H[XHÛÛXš[˜péğèÛÏÛÜ[Û‰ÛÜ[ÛœË›X\
+
+İ˜[YKX™[JHOƒBˆÜ[Ûˆ˜[YOH‰Ù\ØØ\R[
+˜[YJ_H‰Ù\ØØ\R[
+X™[
+_OÛÜ[Û˜
+Kš›Ú[ŠˆŠ_XÃBˆZ\‹˜[YHHÜ[ÛœËœÛÛYJ
+İ˜[YWJHOˆ˜[YHOOHÙ[XİYÜ[ÛŠHÈÙ[XİYÜ[ÛˆˆˆÃBˆÛÛœİ\Ğ\›HHÚ[™OOH˜œ˜XÛÈÃBˆÛÛœİ\Ô]HHÚ[™OOHœXØHÃBˆ\›QšY[šY[ˆHZ\Ğ\›H\Ô]NÃBˆZ\‘šY[šY[ˆH\Ğ\›H\Ô]NÃBˆ\›Kœ™\]Z\™YH\Ğ\›NÃBˆZ\‹œ™\]Z\™YHZ\Ğ\›H	‰ˆZ\Ô]NÃBˆYˆ
+\Ğ\›H\Ô]JHZ\‹˜[YHHˆÃBˆYˆ
+Z\Ğ\›H\Ô]JH\›K˜[YHHˆÃBˆŞ[˜ÔYXÙS[ÛZ\Š
+NÃBˆCBƒBˆ[˜İ[Ûˆ\]TÜÚ][ÛÛÛ™šYÑšY[Ê
+HÃBˆÛÛœİÚ[™H	
+œÜÚ][ÛÛÛ™šYİ\˜][Û’Ú[™ŠOË˜[YNÃBˆÛÛœİ\›HH	
+œÜÚ][Û“[Ûœ˜XÛÈŠNÃBˆÛÛœİ™YH	
+œÜÚ][Û“[ÛZ]ÈŠNÃBˆÛÛœİÚYHH	
+œÜÚ][Û“[Û]\˜[ŠNÃBˆYˆ
+X\›HX™Y\ÚYJH™]\›ÃBˆYˆ
+ZÚ[™
+HÃBˆØ\›K™YÚYWK™›Ü‘XXÚ
+
+Ù[Xİ
+HOˆÈÙ[Xİ˜ÛÜÙ\İ
+‹™šY[ŠKšY[ˆHYNÈÙ[Xİœ™\]Z\™YH˜[ÙNÈJNÃBˆ™]\›ÃBˆCBˆÛÛœİ\Ğ\›HHÚ[™OOH˜œ˜XÛÈÃBˆÛÛœİ\Ô]HHÚ[™OOHœXØHÃBˆ\›K˜ÛÜÙ\İ
+‹™šY[ŠKšY[ˆHZ\Ğ\›H\Ô]NÃBˆ™Y˜ÛÜÙ\İ
+‹™šY[ŠKšY[ˆH\Ğ\›H\Ô]NÃBˆÚYK˜ÛÜÙ\İ
+‹™šY[ŠKšY[ˆH\Ğ\›H\Ô]NÃBˆ\›Kœ™\]Z\™YH\Ğ\›NÃBˆ™Yœ™\]Z\™YHZ\Ğ\›H	‰ˆZ\Ô]NÃBˆÚYKœ™\]Z\™YHZ\Ğ\›H	‰ˆZ\Ô]NÃBˆCBƒBˆ[˜İ[Ûˆ\]TYXÙSY]šXÜÊ
+HÃBˆÛÛœİH[X™\Šİš[™Ê	
+™[Y[œÚ[Û–ÛHŠOË˜[YHˆŠKœ™\XÙJ‹‹‹ˆŠJNÃBˆÛÛœİHH[X™\Šİš[™Ê	
+™[Y[œÚ[Û–XÛHŠOË˜[YHˆŠKœ™\XÙJ‹‹‹ˆŠJNÃBˆÛÛœİˆH[X™\Šİš[™Ê	
+™[Y[œÚ[Û–˜ÛHŠOË˜[YHˆŠKœ™\XÙJ‹‹‹ˆŠJNÃBˆÛÛœİ˜[YHŞK—K™]™\J
+˜[YJHOˆ[X™\‹š\Ñš[š]J˜[YJH	‰ˆ˜[YHˆ
+NÃBˆÛÛœİ›Û[YPÛLÈH˜[YÈ
+ˆH
+ˆˆˆ[ÃBˆÛÛœİ›Û[YSLÈH˜[YÈ›Û[YPÛLÈÈWÌÌˆ[ÃBˆÛÛœİÙZYÚÙÈH˜[YÈ›Û[YPÛLÈ
+ˆ‹HÈLˆ[ÃBˆ	
+œYXÙU›Û[YPÛLÈŠK^ÛÛ[H˜[YÈ›Ü›X][X™\Š›Û[YPÛLËÊHˆ¸ %ÃBˆ	
+œYXÙU›Û[YSLÈŠK^ÛÛ[H˜[YÈ›Ü›X][X™\Š›Û[YSLËŠHˆ¸ %ÃBˆ	
+œYXÙUÙZYÚÙÈŠK^ÛÛ[H˜[YÈ›Ü›X][X™\ŠÙZYÚÙËÊHˆ¸ %ÃBˆCBƒBˆËÈ™\\˜péğèÛÈH[ØØpéğèÛÈH™Xİ\œÛÜÈYØYÜÈH[Û\ÈHYYÜËƒBˆ[˜İ[ÛˆÜ[”™\\˜][Û‘›Ü›J[Û™\\˜][ÛˆH[
+HÃBˆÛÛœİ[ÛÜ[ÛœÈHİ]K™]K›[ÛË™š[\Š
+][JHOˆ][Kœİ]\ÈOOHœ™]\˜YÈŠK›X\
+
+][JHOˆÚ][KšY	Ú][K˜ÛÙ_H0­È	Ú][K›˜[Y_XJNÃBˆÛÛœİÚXÚÛ\İH™\\˜][ÛË˜ÚXÚÛ\İßNÃBˆÛÛœİİ\]HH™\\˜][ÛËœİ\Ù]HÙ^J
+NÃBˆÛÛœİİ]\Ù\ÈHÖÈœ[™Z˜YH‹”[™Z˜YH—KÈ™[WØ[™[Y[È‹‘[H[™[Y[È—KÈ˜YİX\™[™×Ø\›İ˜XØ[È‹YİX\™[™È\›İ˜péğèÛÈ—KÈ˜\›İ˜YH‹\›İ˜YH—KÈœ™\›İ˜YH‹”™\›İ˜YH—KÈ˜Ø[˜Ù[YH‹Ø[˜Ù[YH—WNÃBˆÛÛœİ›ÙHH]ˆÛ\ÜÏH›ÜËY›Ü›KYÜšYƒBˆ	ÜÙ[XİšY[
+œ™\\˜][Û“[ÛY‹‘›Ü›XH‹™\\˜][ÛË›[ÛÚY[ÛËšYˆ‹[ÛÜ[ÛœËÈ™\]Z\™YˆYHJ_CBˆ	Ú[œ]šY[
+œ™\\˜][Û”İ\]H‹’[°ëXÚ[ÈH™\\˜péğèÛÈ‹İ\]K™]H‹È™\]Z\™YˆYHJ_CBˆ	Ú[œ]šY[
+œ™\\˜][Û‘[™]H‹ÛÛ˜Û\ğèÛÈ™]š\İH‹ˆ‹™]H‹È\ØX›YˆYHJ_CBˆ]ˆÛ\ÜÏH›ÜËY›Ü›KZ[[ˆYHœ™\\˜][Û‘[™[HÛÛ˜Û\ğèÛÈÙ\°èHØ[İ[YH[ÈØ[[™0è\š[ÈHX\È0îZ\ËÙ]ƒBˆ	ÜÙ[XİšY[
+œİ]\È‹”İ]\È‹™\\˜][ÛËœİ]\Èœ[™Z˜YH‹İ]\Ù\Ê_CBˆ]ˆÛ\ÜÏH™šY[[X™[ÚXÚÛ\İØœšYØ]0ìÜš[ÏÛX™[]ˆÛ\ÜÏH›ÜËXÚXÚÛ\İƒBˆX™[[œ]\OH˜ÚXÚØ›Şˆ˜[YOH›[\^˜Hˆ	ØÚXÚÛ\İ›[\^˜HÈ˜ÚXÚÙYˆˆˆŸOˆ[\^˜OÛX™[ƒBˆX™[[œ]\OH˜ÚXÚØ›Şˆ˜[YOH™\Û[Û[Hˆ	ØÚXÚÛ\İ™\Û[Û[HÈ˜ÚXÚÙYˆˆˆŸOˆ\Û[Û[OÛX™[ƒBˆX™[[œ]\OH˜ÚXÚØ›Şˆ˜[YOH›[ÛYÙ[Hˆ	ØÚXÚÛ\İ›[ÛYÙ[HÈ˜ÚXÚÙYˆˆˆŸOˆ[ÛYÙ[OÛX™[ƒBˆÙ]Ù]ƒBˆ	Ú[œ]šY[
+˜\›İ™YH‹\›İ˜YÈÜˆ‹™\\˜][ÛË˜\›İ™YØHˆ‹^‹ÈÜ[Û˜[ˆYHJ_CBˆ	İ^\™XQšY[
+›ØœÙ\˜][ÛœÈ‹“ØœÙ\˜péğíY\È‹™\\˜][ÛË›ØœÙ\˜][ÛœÈˆŠ_CBˆÙ]˜ÃBˆÜ[“[Ù[
+™\\˜][ÛˆÈ‘Y]\ˆ™\\˜péğèÛÈˆˆ”™\\˜\ˆ›Ü›XH‹H\˜péğèÛÈÛÛ™šYİ\˜YHH›Ü›XH]\›Z[˜HÈğè[İ[ÈHÛÛ˜Û\ğèÛËˆ‹›ÙKœ™\\˜][Ûˆ‹™\\˜][ÛŠNÃBˆ\]T™\\˜][Û‘[™
+
+NÃBˆCBƒBˆ\Ş[˜È[˜İ[Ûˆ\]T™\\˜][Û‘[™
+
+HÃBˆÛÛœİİ\H	
+œ™\\˜][Û”İ\]HŠNÃBˆÛÛœİ[™H	
+œ™\\˜][Û‘[™]HŠNÃBˆÛÛœİ[ÛYH	
+œ™\\˜][Û“[ÛYŠOË˜[YNÃBˆÛÛœİ[H	
+œ™\\˜][Û‘[™[ŠNÃBˆYˆ
+\İ\Y[™
+H™]\›ÃBˆ[™˜[YHHˆÃBˆYˆ
+\İ\˜[YH[[ÛY
+H™]\›ÃBˆÛÛœİ™\]Y\İYİ\Hİ\˜[YNÃBˆYˆ
+[
+H[^ÛÛ[HØ[İ[[™ÈH]HÛÛHÈØ[[™0è\š[ÈH°èXœšXØx )ˆÃBˆHÃBˆÛÛœİ™\İ[H]ØZ]ÛØ˜[”‘SVÔ‘TÔÒUÔ’QTË›Ü\˜][ÛœË˜Ø[İ[]S[Û™\\˜][Û‘[™
+È[ÛYİ\]Nˆ™\]Y\İYİ\JNÃBˆYˆ
+İ\˜[YHOOH™\]Y\İYİ\	
+œ™\\˜][Û“[ÛYŠOË˜[YHOOH[ÛY
+H™]\›ÃBˆ[™˜[YHH™\İ[™[™]HˆÃBˆYˆ
+[
+H[^ÛÛ[Hİ]Kœİ\ÜÑ˜Xš[ÌƒBˆÈHÛÛ˜Û\ğèÛÈÛÛœÚY\˜HÚ[˜ÛÈX\È0îZ\ÈH\È^ÙpéğíY\ÈÈØ[[™0è\š[ËˆƒBˆˆHÛÛ˜Û\ğèÛÈÛÛœÚY\˜HÙ]HX\ÈÛÜœšYÜÈ›È›^È]X[ˆÃBˆHØ]Ú
+\œ›ÜŠHÃBˆYˆ
+[
+H[^ÛÛ[H\œ›Ü‹›Y\ÜØYÙH“°èÛÈ›ÚHÜÜğë]™[Ø[İ[\ˆHÛÛ˜Û\ğèÛËˆ]X[^™HÈØ[[™0è\š[ÈH[H›İ˜[Y[KˆÃBˆCBˆCBƒBˆ[˜İ[ÛˆÜ[[ØØ][Û‘›Ü›J[ÛH[[ØØ][ÛˆH[
+HÃBˆÛÛœİ[ÛÜ[ÛœÈHİ]K™]K›[ÛË™š[\Š
+][JHOˆ][Kœİ]\ÈOOH˜]]›ÈŠK›X\
+
+][JHOˆÚ][KšY	Ú][K˜ÛÙ_H0­È	Ú][K›˜[Y_XJNÃBˆÛÛœİÜ™\’][SÜ[ÛœÈH×NÃBˆ›Üˆ
+ÛÛœİÜ™\ˆÙˆİ]K™]K›Ü™\œË™š[\Š
+][JHOˆVÈ˜ÛÛ˜ÛZYÈ‹™[™YİYH‹˜Ø[˜Ù[YÈ—Kš[˜ÛY\Ê][Kœİ]\ÊJJHÃBˆ›Üˆ
+ÛÛœİ][HÙˆÜ™\‹š][\ÊHÜ™\’][SÜ[ÛœËœ\Ú
+Ú][KšY	ÛÜ™\‹›Ü™\—Û[X™\ˆ”YYÈŸH0­È	Ú][KœYXÙWØÛÙH][KœYXÙWÛ˜[Y_H0åÈ	Ú][Kœ]X[]_XJNÃBˆCBˆÛÛœİ™\Ûİ\˜ÙRÚ[™H[ØØ][ÛËœ™\Ûİ\˜ÙWÚÚ[™
+[ÛÈ›[Ûˆˆ›[ÛŠNÃBˆÛÛœİ›ÙHH]ˆÛ\ÜÏH›ÜËY›Ü›KYÜšYƒBˆ	ÜÙ[XİšY[
+˜[ØØ][Û”™\Ûİ\˜ÙRÚ[™‹•\ÈH™Xİ\œÛÈ‹™\Ûİ\˜ÙRÚ[™ÖÈ›[Û‹‘›Ü›XH—KÈ›İ\ˆ‹“İ]›È™Xİ\œÛÈ—WJ_CBˆ	ÜÙ[XİšY[
+˜[ØØ][Û“[ÛY‹‘›Ü›XH‹[ØØ][ÛË›[ÛÚY[ÛËšYˆ‹[ÛÜ[ÛœËÈ™\]Z\™YˆYKXÙZÛ\ˆ”Ù[XÚ[Û™HˆJ_CBˆ]ˆÛ\ÜÏH™šY[[ˆYH˜[ØØ][Û“İ\”™\Ûİ\˜ÙQšY[ˆY[X™[›ÜH˜[ØØ][Û”™\Ûİ\˜ÙS˜[YH“›ÛYHÈ™Xİ\œÛÏÛX™[[œ]Û\ÜÏHš[œ]ˆYH˜[ØØ][Û”™\Ûİ\˜ÙS˜[YHˆ˜[YOH˜[ØØ][Û”™\Ûİ\˜ÙS˜[YHˆ˜[YOH‰Ù\ØØ\R[
+[ØØ][ÛËœ™\Ûİ\˜ÙWÚÚ[™OOH›İ\ˆˆÈ[ØØ][Û‹œ™\Ûİ\˜ÙWÛ˜[YHˆˆŠ_HˆXÙZÛ\H‘^ˆ\]Z\[Y[Ë\]Z\K[šHÙ]ƒBˆ	ÜÙ[XİšY[
+˜[ØØ][Û“Ü™\’][RY‹”YYÈÈpéØH‹[ØØ][ÛË›Ü™\—Ú][WÚYˆ‹Ü™\’][SÜ[ÛœËÈ™\]Z\™YˆYKXÙZÛ\ˆ”Ù[XÚ[Û™HÈ][H]YHÙ\°èH›Ù^šYÈˆJ_CBˆ	Ú[œ]šY[
+œİ\]H‹’[°ëXÚ[È‹[ØØ][ÛËœİ\Ù]HÙ^J
+K™]H‹È™\]Z\™YˆYHJ_CBˆ	Ú[œ]šY[
+™[™]H‹‘š[H‹[ØØ][ÛË™[™Ù]HÙ^J
+K™]H‹È™\]Z\™YˆYHJ_CBˆ	ÜÙ[XİšY[
+œİ]\È‹”İ]\È‹[ØØ][ÛËœİ]\Èœ[›™Y‹ÖÈœ[›™Y‹”[™Z˜YH—KÈš[—Ü›ÙÜ™\ÜÈ‹‘[H[™[Y[È—KÈ™Û™H‹ÛÛ˜ÛpëYH—KÈ˜Ø[˜Ù[Y‹Ø[˜Ù[YH—WJ_CBˆ]ˆÛ\ÜÏH™šY[[ÜËXÛÛ™›XİYšY[ÈˆYH˜[ØØ][ÛÛÛ™›XİšY[ÈˆY[X™[ÛÛ™›]ÈHİ]›È™Xİ\œÛÈÜ[›ØœšYØ]0ìÜš[È]X[™Èİ]™\ˆÛØœ™\ÜÚpéğèÛÏÜÜ[ÛX™[]ˆÛ\ÜÏH›ÜËY›Ü›KYÜšYƒBˆ	Ú[œ]šY[
+˜ÛÛ™›Xİ™\ÜÛœÚX›H‹”™\ÜÛœğè]™[[H^ÙpéğèÛÈ‹[ØØ][ÛË˜ÛÛ™›XİÜ™\ÜÛœÚX›Hˆ‹^‹ÈÜ[Û˜[ˆYHJ_CBˆ	Ú[œ]šY[
+˜ÛÛ™›Xİ™X\ÛÛˆ‹’\İYšXØ]]˜H‹[ØØ][ÛË˜ÛÛ™›XİÜ™X\ÛÛˆˆ‹^‹ÈÜ[Û˜[ˆYHJ_CBˆÙ]Ù]ƒBˆ	İ^\™XQšY[
+›ØœÙ\˜][ÛœÈ‹“ØœÙ\˜péğíY\È‹[ØØ][ÛË›ØœÙ\˜][ÛœÈˆŠ_CBˆÙ]˜ÃBˆÜ[“[Ù[
+[ØØ][ÛˆÈ‘Y]\ˆ[ØØpéğèÛÈˆˆ[ØØ\ˆ›ÙpéğèÛÈ‹\ÜÛØÚYH[XH›Ü›XHH[H][HÈYYÈ0èÈ]\ÈH›ÙpéğèÛËˆ‹›ÙK˜[ØØ][Ûˆ‹[ØØ][ÛŠNÃBˆ\]P[ØØ][Û‘šY[Ê
+NÃBˆCBƒBˆ[˜İ[Ûˆ\]P[ØØ][Û‘šY[Ê
+HÃBˆÛÛœİÚ[™H	
+˜[ØØ][Û”™\Ûİ\˜ÙRÚ[™ŠOË˜[YNÃBˆÛÛœİ[ÛšY[H	
+˜[ØØ][Û“[ÛYŠOË˜ÛÜÙ\İ
+‹™šY[ŠNÃBˆÛÛœİİ\‘šY[H	
+˜[ØØ][Û“İ\”™\Ûİ\˜ÙQšY[ŠNÃBˆÛÛœİÛÛ™›XİšY[H	
+˜[ØØ][ÛÛÛ™›XİšY[ÈŠNÃBˆÛÛœİ[ÛÙ[XİH	
+˜[ØØ][Û“[ÛYŠNÃBˆÛÛœİİ\“˜[YHH	
+˜[ØØ][Û”™\Ûİ\˜ÙS˜[YHŠNÃBˆYˆ
+ZÚ[™[[ÛšY[[İ\‘šY[XÛÛ™›XİšY[
+H™]\›ÃBˆÛÛœİ\Ó[ÛHÚ[™OOH›[ÛÃBˆ[ÛšY[šY[ˆHZ\Ó[ÛÃBˆYˆ
+[ÛÙ[Xİ
+H[ÛÙ[Xİœ™\]Z\™YH\Ó[ÛÃBˆİ\‘šY[šY[ˆH\Ó[ÛÃBˆYˆ
+İ\“˜[YJHİ\“˜[YKœ™\]Z\™YHZ\Ó[ÛÃBˆÛÛ™›XİšY[šY[ˆH\Ó[ÛÃBˆCBƒBˆËÈ]™[ÜÈHX™[HHÈ[Ù[ˆ[˜Ø[Z[š[HØYHpéğèÛÈ\˜HÙ]Hpê]ÙÈHÛpë[š[ËƒBˆ\Ş[˜È[˜İ[Ûˆ[™UX›PÛXÚÊ]™[
+HÃBˆÛÛœİ]ÛˆH]™[\™Ù]˜ÛÜÙ\İ
+–Ù]K[ÜËXXİ[Û—HŠNÃBˆYˆ
+X]ÛŠH™]\›ÃBˆÛÛœİÈÜĞXİ[ÛˆXİ[Û‹YHH]Û‹™]\Ù]ÃBˆÛÛœİ]HHİ]K™]NÃBˆYˆ
+Xİ[ÛˆOOH›™]Ë\™\\˜][ÛˆŠH™]\›ˆÜ[”™\\˜][Û‘›Ü›J[
+NÃBˆYˆ
+Xİ[ÛˆOOH›™]ËX[ØØ][ÛˆŠH™]\›ˆÜ[[ØØ][Û‘›Ü›J
+NÃBˆYˆ
+Xİ[ÛˆOOH™Y]ŠHÃBˆYˆ
+İ]KXˆOOHÛÜšÜÈŠH™]\›ˆÜ[•ÛÜšÑ›Ü›J]KÛÜšÜË™š[™
+
+][JHOˆ][KšYOOHY
+JNÃBˆYˆ
+İ]KXˆOOH›Ü™\œÈŠH™]\›ˆÜ[“Ü™\‘›Ü›J]K›Ü™\œË™š[™
+
+][JHOˆ][KšYOOHY
+JNÃBˆYˆ
+İ]KXˆOOHœYXÙ\ÈŠHÃBˆYˆ
+Y[œİ\™TİYÙM
+
+JH™]\›ÃBˆ™]\›ˆÜ[”YXÙQ›Ü›J]KœYXÙU\\Ë™š[™
+
+][JHOˆ][KšYOOHY
+JNÃBˆCBˆYˆ
+İ]KXˆOOHœÜÚ][ÛœÈŠH™]\›ˆÜ[”ÜÚ][Û‘›Ü›J]KœÜÚ][ÛœË™š[™
+
+][JHOˆ][KšYOOHY
+JNÃBˆYˆ
+İ]KXˆOOH›[ÛÈˆ	‰ˆY[œİ\™TİYÙM
+
+JH™]\›ÃBˆ™]\›ˆÜ[“[Û›Ü›J]K›[ÛË™š[™
+
+][JHOˆ][KšYOOHY
+JNÃBˆCBˆYˆ
+Xİ[ÛˆOOH™Y]\›Ú™XİŠHÃBˆYˆ
+Y[œİ\™Q˜Xš[ÌŠ
+JH™]\›ÃBˆ™]\›ˆÜ[”›Ú™Xİ›Ü›J]K™[™Ú[™Y\š[™Ô›Ú™XİË™š[™
+
+][JHOˆ][KšYOOHY
+JNÃBˆCBˆYˆ
+Xİ[ÛˆOOH™Y]\ÜÚ][ÛˆŠH™]\›ˆÜ[”ÜÚ][Û‘›Ü›J]KœÜÚ][ÛœË™š[™
+
+][JHOˆ][KšYOOHY
+JNÃBˆYˆ
+Xİ[ÛˆOOHœ™\\™HŠH™]\›ˆÜ[”™\\˜][Û‘›Ü›J]K›[ÛË™š[™
+
+][JHOˆ][KšYOOHY
+JNÃBˆYˆ
+Xİ[ÛˆOOH˜[ØØ]HŠH™]\›ˆÜ[[ØØ][Û‘›Ü›J]K›[ÛË™š[™
+
+][JHOˆ][KšYOOHY
+JNÃBˆYˆ
+Xİ[ÛˆOOH™Y]\™\\˜][ÛˆŠH™]\›ˆÜ[”™\\˜][Û‘›Ü›J[]Kœ™\\˜][ÛœË™š[™
+
+][JHOˆ][KšYOOHY
+JNÃBˆYˆ
+Xİ[ÛˆOOH™Y]X[ØØ][ÛˆŠH™]\›ˆÜ[[ØØ][Û‘›Ü›J[]K˜[ØØ][ÛœË™š[™
+
+][JHOˆ][KšYOOHY
+JNÃBˆYˆ
+Xİ[ÛˆOOH˜Ø[˜Ù[X[ØØ][ÛˆŠHÃBˆÛÛœİ[ØØ][ÛˆH]K˜[ØØ][ÛœË™š[™
+
+][JHOˆ][KšYOOHY
+NÃBˆYˆ
+X[ØØ][ÛˆXÛÛ™š\›JØ[˜Ù[\ˆ\İH[ØØpéğèÛÈH™Xİ\œÛÏÈŠJH™]\›ÃBˆHÃBˆ]ØZ]ÛØ˜[”‘SVÔ‘TÔÒUÔ’QTË›Ü\˜][ÛœËœØ]™T™\Ûİ\˜ÙP[ØØ][ÛŠÃBˆYˆ[ØØ][Û‹šYBˆ™\Ûİ\˜ÙRÚ[™ˆ[ØØ][Û‹œ™\Ûİ\˜ÙWÚÚ[™Bˆ[ÛYˆ[ØØ][Û‹›[ÛÚYBˆ™\Ûİ\˜ÙS˜[YNˆ[ØØ][Û‹œ™\Ûİ\˜ÙWÛ˜[YKBˆÜ™\’][RYˆ[ØØ][Û‹›Ü™\—Ú][WÚYBˆİ\]Nˆ[ØØ][Û‹œİ\Ù]KBˆ[™]Nˆ[ØØ][Û‹™[™Ù]KBˆİ]\Îˆ˜Ø[˜Ù[Y‹BˆÛÛ™›Xİ™X\ÛÛˆ[ØØ][Û‹˜ÛÛ™›XİÜ™X\ÛÛ‹BˆÛÛ™›Xİ™\ÜÛœÚX›Nˆ[ØØ][Û‹˜ÛÛ™›XİÜ™\ÜÛœÚX›KBˆØœÙ\˜][ÛœÎˆ[ØØ][Û‹›ØœÙ\˜][ÛœËBˆJNÃBˆØ\İ
+[ØØpéğèÛÈØ[˜Ù[YKˆŠNÃBˆ]ØZ]™Yœ™\Ú]JYJNÃBˆHØ]Ú
+\œ›ÜŠHÈÚİÔİ]\Ê\œ›Ü‹›Y\ÜØYÙH“°èÛÈ›ÚHÜÜğë]™[Ø[˜Ù[\ˆH[ØØpéğèÛËˆ‹YJNÈCBˆ™]\›ÃBˆCBˆYˆ
+Xİ[ÛˆOOH˜\˜Ú]™HŠHÃBˆÛÛœİX™[ÈHÈÛÜšÜÎˆ›Øœ˜H‹YXÙ\Îˆ\ÈHpéØH‹[ÛÎˆ›[ÛHˆNÃBˆYˆ
+XÛÛ™š\›J\œ]Z]˜\ˆ\İH	ÛX™[ÖÜİ]KX—H˜ØY\İ›ÈŸOØ
+JH™]\›ÃBˆÛÛœİÚ[™Hİ]KXˆOOHÛÜšÜÈˆÈÛÜšÈˆˆİ]KXˆOOHœYXÙ\ÈˆÈœYXÙWİ\Hˆˆ›[ÛÃBˆHÃBˆ]ØZ]ÛØ˜[”‘SVÔ‘TÔÒUÔ’QTË›Ü\˜][ÛœË˜\˜Ú]™SÜ\˜][Û”™XÛÜ™
+Ú[™Y
+NÃBˆØ\İ
+ØY\İ›È\œ]Z]˜YËˆŠNÃBˆ]ØZ]™Yœ™\Ú]JYJNÃBˆHØ]Ú
+\œ›ÜŠHÈÚİÔİ]\Ê\œ›Ü‹›Y\ÜØYÙH“°èÛÈ›ÚHÜÜğë]™[\œ]Z]˜\ˆÈØY\İ›Ëˆ‹YJNÈCBˆCBˆCBƒBˆ[˜İ[Ûˆ›Ü›U˜[YJ›Ü›K˜[YJHÃBˆÛÛœİ˜[YHH™]È›Ü›Q]J›Ü›JK™Ù]
+˜[YJNÃBˆ™]\›ˆ˜[YHOH[Èˆˆˆİš[™Ê˜[YJKš[J
+NÃBˆCBƒBˆ[˜İ[ÛˆÚİÓ[Ù[\œ›ÜŠY\ÜØYÙJHÃBˆÛÛœİ[[Y[H	
+›Ü\˜][ÛœÓ[Ù[İ]\ÈŠNÃBˆ[[Y[^ÛÛ[HY\ÜØYÙNÃBˆ[[Y[˜Û\ÜÓ\İ˜Y
+œÚİÈŠNÃBˆCBƒBˆ\Ş[˜È[˜İ[ÛˆİX›Z]›Ü›J]™[
+HÃBˆ]™[œ™]™[Y˜][
+
+NÃBˆÛÛœİ›Ü›HH]™[˜İ\œ™[\™Ù]ÃBˆYˆ
+Y›Ü›Kœ™\Ü˜[Y]J
+JH™]\›ÃBˆÛÛœİÚ[™H›Ü›K™]\Ù]šÚ[™ÃBˆÛÛœİYH›Ü›K™]\Ù]œ™XÛÜ™YˆÃBˆÛÛœİØ]™HH	
+›Ü\˜][ÛœÓ[Ù[Ø]™HŠNÃBˆ]Ø]™Y›İXÙHHØY\İ›ÈØ[›ËˆÃBˆØ]™K™\ØX›YHYNÃBˆØ]™K^ÛÛ[H”Ø[˜[™ø )ˆÃBˆHÃBˆYˆ
+Ú[™OOHÛÜšÈŠHÃBˆÛÛœİ™\ÜÛœÙHH]ØZ]ÛØ˜[”‘SVÔ‘TÔÒUÔ’QTË›Ü\˜][ÛœËœØ]™UÛÜšÊÃBˆYBˆÛÜšÓ[X™\ˆ›Ü›U˜[YJ›Ü›KÛÜšÓ[X™\ˆŠKBˆ˜[YNˆ›Ü›U˜[YJ›Ü›K›˜[YHŠKBˆÛY[˜[YNˆ›Ü›U˜[YJ›Ü›K˜ÛY[˜[YHŠKBˆY™\ÜÎˆ›Ü›U˜[YJ›Ü›K˜Y™\ÜÈŠKBˆ™\ÜÛœÚX›S˜[YNˆ›Ü›U˜[YJ›Ü›Kœ™\ÜÛœÚX›S˜[YHŠKBˆİ\]Nˆ›Ü›U˜[YJ›Ü›Kœİ\]HŠKBˆ™\]Y\İYYQ]Nˆ›Ü›U˜[YJ›Ü›Kœ™\]Y\İYYQ]HŠKBˆİ]\Îˆ›Ü›U˜[YJ›Ü›Kœİ]\ÈŠKBˆØœÙ\˜][ÛœÎˆ›Ü›U˜[YJ›Ü›K›ØœÙ\˜][ÛœÈŠKBˆJNÃBˆYˆ
+™\ÜÛœÙOËœ[›š[™ÏËØ\›š[™ÊHØ]™Y›İXÙHHØœ˜HØ[˜Kˆ	Ü™\ÜÛœÙKœ[›š[™ËØ\›š[™ßXÃBˆ[ÙHYˆ
+™\ÜÛœÙOËœ[›š[™ÏË˜ÛÛ[Z]Y
+HØ]™Y›İXÙHH“Øœ˜HØ[˜HHYYÜÈš[˜İ[YÜÈ™\[™Z˜YÜËˆÃBˆH[ÙHYˆ
+Ú[™OOH›Ü™\ˆŠHÃBˆÛÛœİÛÜšÒYH›Ü›U˜[YJ›Ü›K›Ü™\•ÛÜšÒYŠNÃBˆÛÛœİÛY[˜[YHH›Ü›U˜[YJ›Ü›K˜ÛY[˜[YHŠNÃBˆYˆ
+]ÛÜšÒY	‰ˆXÛY[˜[YJH›İÈ™]È\œ›ÜŠ’[™›Ü›YHÈÛY[HİHš[˜İ[HÈYYÈH[XHØœ˜KˆŠNÃBˆÛÛœİÛÜšÈHÛÜšÒYÈİ]K™]KÛÜšÜË™š[™
+
+][JHOˆ][KšYOOHÛÜšÒY
+Hˆ[ÃBˆYˆ
+ÛÜšÒY	‰ˆ]ÛÜšÏËœİ\Ù]JH›İÈ™]È\œ›ÜŠØY\İ™HH]HH[°ëXÚ[ÈHØœ˜H[\ÈHš[˜İ[\ˆ\İHYYËˆŠNÃBˆÛÛœİİ\]HHÛÜšÏËœİ\Ù]H›Ü›U˜[YJ›Ü›Kœİ\]HŠNÃBˆÛÛœİ][\ÈHË‹‹™›Ü›Kœ]Y\TÙ[XİÜ[
+‹›ÜËZ][K\›İÈŠWK›X\
+
+›İÊHOˆ
+ÃBˆYXÙU\RYˆ›İËœ]Y\TÙ[XİÜŠ–Ù]KZ][K\YXÙWHŠK˜[YKBˆ]X[]Nˆ[X™\Š›İËœ]Y\TÙ[XİÜŠ–Ù]KZ][K\]X[]WHŠK˜[YJKBˆØœÙ\˜][ÛœÎˆ›İËœ]Y\TÙ[XİÜŠ–Ù]KZ][K[ØœÙ\˜][Ûœ×HŠK˜[YKš[J
+KBˆJJNÃBˆYˆ
+][\ËœÛÛYJ
+][JHOˆZ][KœYXÙU\RYS[X™\‹š\Ò[YÙ\Š][Kœ]X[]JH][Kœ]X[]HJJH›İÈ™]È\œ›ÜŠÛÛ™š\˜HÈ\ÈHH]X[YYHHØYH][HÈYYËˆŠNÃBˆÛÛœİ™\ÜÛœÙHH]ØZ]ÛØ˜[”‘SVÔ‘TÔÒUÔ’QTË›Ü\˜][ÛœËœØ]™SÜ™\ŠÃBˆYBˆÜ™\“[X™\ˆ›Ü›U˜[YJ›Ü›K›Ü™\“[X™\ˆŠKBˆÛÜšÒYBˆÛY[˜[YKBˆİ\]KBˆ™\]Y\İYYQ]Nˆ›Ü›U˜[YJ›Ü›Kœ™\]Y\İYYQ]HŠKBˆİ]\Îˆ›Ü›U˜[YJ›Ü›Kœİ]\ÈŠKBˆØœÙ\˜][ÛœÎˆ›Ü›U˜[YJ›Ü›K›ØœÙ\˜][ÛœÈŠKBˆ][\ËBˆJNÃBˆYˆ
+™\ÜÛœÙOËœ[›š[™ÏËØ\›š[™ÊHÃBˆØ]™Y›İXÙHHYYÈØ[›Ëˆ	Ü™\ÜÛœÙKœ[›š[™ËØ\›š[™ßXÃBˆH[ÙHYˆ
+™\ÜÛœÙOËœ[›š[™ÏËœ™[[İ™Yœ›ÛT[ŠHÃBˆØ]™Y›İXÙHH”YYÈ]X[^˜YÈHš[HH›ÙpéğèÛÈ™XØ[İ[YKˆÃBˆH[ÙHYˆ
+™\ÜÛœÙOËœ[›š[™ÏË˜ÛÛ[Z]Y
+HÃBˆØ]™Y›İXÙHH”YYÈØ[›ÈH[˜ÛpëYÈ]]ÛX]XØ[Y[H›È[™Z˜[Y[ËˆÃBˆCBˆH[ÙHYˆ
+Ú[™OOHœ›Ú™XİŠHÃBˆYˆ
+Y[œİ\™Q˜Xš[ÌŠ
+JH›İÈ™]È\œ›ÜŠ“È›Ú™]ÈH[™Ù[š\šXHYİX\™HH]\HKˆŠNÃBˆÛÛœİÙXİ[ÛœÈH™XY›Ú™XİÙXİ[ÛœÊ
+K›X\
+
+ÙXİ[Û‹[™^
+HOˆ
+ÃBˆ‹‹œÙXİ[Û‹BˆÛÜÜ™\ˆ[™^
+ÈKBˆJJNÃBˆYˆ
+\ÙXİ[ÛœË›[™İÙXİ[ÛœËœÛÛYJ
+ÙXİ[ÛŠHOˆ\ÙXİ[Û‹œÙXİ[Û“˜[YH\ÙXİ[Û‹š][\Ë›[™İÙXİ[Û‹š][\ËœÛÛYJ
+][JHOˆZ][K›Ü™\’][RYS[X™\‹š\Ò[YÙ\Š][Kœ]X[]JH][Kœ]X[]HJJJHÃBˆ›İÈ™]È\œ›ÜŠØYHÙpéğèÛÈ™XÚ\ØHH[H›ÛYHH[ÈY[›ÜÈ[H][HÛÛH]X[YYH°è[YKˆŠNÃBˆCBˆÛÛœİ›Ü›X[^™Y˜[Y\ÈHÙXİ[ÛœË›X\
+
+ÙXİ[ÛŠHOˆÙXİ[Û‹œÙXİ[Û“˜[YKÓØØ[SİÙ\Ø\ÙJ
+JNÃBˆYˆ
+™]ÈÙ]
+›Ü›X[^™Y˜[Y\ÊKœÚ^™HOOH›Ü›X[^™Y˜[Y\Ë›[™İ
+H›İÈ™]È\œ›ÜŠ•\ÙH[H›ÛYHY™\™[H\˜HØYHÙpéğèÛËˆŠNÃBˆ]ØZ]ÛØ˜[”‘SVÔ‘TÔÒUÔ’QTË›Ü\˜][ÛœËœØ]™Q[™Ú[™Y\š[™Ô›Ú™Xİ
+ÃBˆÜ™\’Yˆ›Ü›U˜[YJ›Ü›Kœ›Ú™XİÜ™\’YŠKBˆÙXİ[ÛœËBˆJNÃBˆØ]™Y›İXÙHH”›Ú™]ÈH]š\ğèÛÈÜÈ][œÈØ[›ÜËˆÃBˆH[ÙHYˆ
+Ú[™OOHœYXÙHŠHÃBˆÛÛœİYXÙRÚ[™H›Ü›U˜[YJ›Ü›KœYXÙRÚ[™ŠNÃBˆÛÛœİYXÙT™XÛÜ™HÃBˆYBˆÛÙNˆ›Ü›U˜[YJ›Ü›K˜ÛÙHŠKBˆ˜[YNˆ›Ü›U˜[YJ›Ü›K›˜[YHŠKBˆ[Y[œÚ[Û–ÛNˆ›Ü›U˜[YJ›Ü›K™[Y[œÚ[Û–ÛHŠKBˆ[Y[œÚ[Û–XÛNˆ›Ü›U˜[YJ›Ü›K™[Y[œÚ[Û–XÛHŠKBˆ[Y[œÚ[Û–˜ÛNˆ›Ü›U˜[YJ›Ü›K™[Y[œÚ[Û–˜ÛHŠKBˆ›ÙXİ[Û“Z[]\Ô\•[š]ˆ[X™\Š›Ü›U˜[YJ›Ü›Kœ›ÙXİ[Û“Z[]\Ô\•[š]ŠJKBˆØœÙ\˜][ÛœÎˆ›Ü›U˜[YJ›Ü›K›ØœÙ\˜][ÛœÈŠKBˆNÃBˆÛÛœİ™\ÜÛœÙHHYXÙRÚ[™OOHœXØHƒBˆÈ]ØZ]ÛØ˜[”‘SVÔ‘TÔÒUÔ’QTË›Ü\˜][ÛœËœØ]™T]U\JYXÙT™XÛÜ™
+CBˆˆ]ØZ]ÛØ˜[”‘SVÔ‘TÔÒUÔ’QTË›Ü\˜][ÛœËœØ]™TYXÙU\JÃBˆ‹‹œYXÙT™XÛÜ™BˆYXÙRÚ[™Bˆ[ÛØ][ÙÜÎˆ›Ü›U˜[YJ›Ü›KœYXÙRÚ[™ŠHOOH˜œ˜XÛÈƒBˆÈÈœ˜XÛÎˆ›Ü›U˜[YJ›Ü›KœYXÙS[Ûœ˜XÛÈŠHCBˆˆÈZ]Îˆ›Ü›U˜[YJ›Ü›KœYXÙS[ÛZ]ÈŠK]\˜[ˆ›Ü›U˜[YJ›Ü›KœYXÙS[Û]\˜[ŠHKBˆJNÃBˆYˆ
+™\ÜÛœÙOËœ[›š[™ÏËØ\›š[™ÊHØ]™Y›İXÙHH	ÜYXÙRÚ[™OOHœXØHˆÈ”XØHˆˆ”péØHŸHØ[˜Kˆ	Ü™\ÜÛœÙKœ[›š[™ËØ\›š[™ßXÃBˆ[ÙHYˆ
+™\ÜÛœÙOËœ[›š[™ÏË˜ÛÛ[Z]Y
+HØ]™Y›İXÙHH	ÜYXÙRÚ[™OOHœXØHˆÈ”XØHˆˆ”péØHŸHØ[˜HH[™Z˜[Y[È™XØ[İ[YË˜ÃBˆH[ÙHYˆ
+Ú[™OOH›[ÛŠHÃBˆ]ØZ]ÛØ˜[”‘SVÔ‘TÔÒUÔ’QTË›Ü\˜][ÛœËœØ]™S[Û
+ÃBˆYBˆØ][ÙĞÛÙNˆ›Ü›U˜[YJ›Ü›K˜Ø][ÙĞÛÙHŠKBˆŞXÛSZ[]\Ô\•[š]ˆ›Ü›U˜[YJ›Ü›K˜ŞXÛSZ[]\Ô\•[š]ŠKBˆİ]\Îˆ›Ü›U˜[YJ›Ü›Kœİ]\ÈŠKBˆØœÙ\˜][ÛœÎˆ›Ü›U˜[YJ›Ü›K›ØœÙ\˜][ÛœÈŠKBˆJNÃBˆH[ÙHYˆ
+Ú[™OOHœÜÚ][ÛˆŠHÃBˆÛÛœİ™\ÜÛœÙHH]ØZ]ÛØ˜[”‘SVÔ‘TÔÒUÔ’QTË›Ü\˜][ÛœËœØ]™S[ÛÜÚ][ÛŠÃBˆÛÙNˆ›Ü›U˜[YJ›Ü›KœÜÚ][ÛÛÙHŠKBˆİ]\Îˆ›Ü›U˜[YJ›Ü›Kœİ]\ÈŠKBˆÛÛ™šYİ\˜][Û’Ú[™ˆ›Ü›U˜[YJ›Ü›KœÜÚ][ÛÛÛ™šYİ\˜][Û’Ú[™ŠKBˆœ˜XÛĞØ][ÙĞÛÙNˆ›Ü›U˜[YJ›Ü›KœÜÚ][ÛÛÛ™šYİ\˜][Û’Ú[™ŠHOOH˜œ˜XÛÈˆÈ›Ü›U˜[YJ›Ü›KœÜÚ][Û“[Ûœ˜XÛÈŠHˆˆ‹BˆZ]ĞØ][ÙĞÛÙNˆ›Ü›U˜[YJ›Ü›KœÜÚ][ÛÛÛ™šYİ\˜][Û’Ú[™ŠHOOHœ[\—İšYØHˆÈ›Ü›U˜[YJ›Ü›KœÜÚ][Û“[ÛZ]ÈŠHˆˆ‹Bˆ]\˜[Ø][ÙĞÛÙNˆ›Ü›U˜[YJ›Ü›KœÜÚ][ÛÛÛ™šYİ\˜][Û’Ú[™ŠHOOHœ[\—İšYØHˆÈ›Ü›U˜[YJ›Ü›KœÜÚ][Û“[Û]\˜[ŠHˆˆ‹Bˆ›İ\Îˆ›Ü›U˜[YJ›Ü›KœÜÚ][Û“›İ\ÈŠKBˆJNÃBˆYˆ
+™\ÜÛœÙOËœ[›š[™ÏËØ\›š[™ÊHØ]™Y›İXÙHHÜÚpéğèÛÈØ[˜Kˆ	Ü™\ÜÛœÙKœ[›š[™ËØ\›š[™ßXÃBˆ[ÙHYˆ
+™\ÜÛœÙOËœ[›š[™ÏË˜ÛÛ[Z]Y
+HØ]™Y›İXÙHH”ÜÚpéğèÛÈØ[˜HH[™Z˜[Y[È™XØ[İ[YËˆÃBˆH[ÙHYˆ
+Ú[™OOHœ™\\˜][ÛˆŠHÃBˆ]ØZ]ÛØ˜[”‘SVÔ‘TÔÒUÔ’QTË›Ü\˜][ÛœËœØ]™S[Û™\\˜][ÛŠÃBˆYBˆ[ÛYˆ›Ü›U˜[YJ›Ü›Kœ™\\˜][Û“[ÛYŠKBˆİ\]Nˆ›Ü›U˜[YJ›Ü›Kœ™\\˜][Û”İ\]HŠKBˆİ]\Îˆ›Ü›U˜[YJ›Ü›Kœİ]\ÈŠKBˆÚXÚÛ\İˆÃBˆ[\^˜Nˆ›Ü›Kœ]Y\TÙ[XİÜŠ	ÖÛ˜[YOH›[\^˜H—IÊK˜ÚXÚÙYBˆ\Û[Û[Nˆ›Ü›Kœ]Y\TÙ[XİÜŠ	ÖÛ˜[YOH™\Û[Û[H—IÊK˜ÚXÚÙYBˆ[ÛYÙ[Nˆ›Ü›Kœ]Y\TÙ[XİÜŠ	ÖÛ˜[YOH›[ÛYÙ[H—IÊK˜ÚXÚÙYBˆKBˆ\›İ™YNˆ›Ü›U˜[YJ›Ü›K˜\›İ™YHŠKBˆØœÙ\˜][ÛœÎˆ›Ü›U˜[YJ›Ü›K›ØœÙ\˜][ÛœÈŠKBˆJNÃBˆH[ÙHYˆ
+Ú[™OOH˜[ØØ][ÛˆŠHÃBˆÛÛœİ™\Ûİ\˜ÙRÚ[™H›Ü›U˜[YJ›Ü›K˜[ØØ][Û”™\Ûİ\˜ÙRÚ[™ŠNÃBˆ]ØZ]ÛØ˜[”‘SVÔ‘TÔÒUÔ’QTË›Ü\˜][ÛœËœØ]™T™\Ûİ\˜ÙP[ØØ][ÛŠÃBˆYBˆ™\Ûİ\˜ÙRÚ[™Bˆ[ÛYˆ™\Ûİ\˜ÙRÚ[™OOH›[ÛˆÈ›Ü›U˜[YJ›Ü›K˜[ØØ][Û“[ÛYŠHˆˆ‹Bˆ™\Ûİ\˜ÙS˜[YNˆ™\Ûİ\˜ÙRÚ[™OOH›İ\ˆˆÈ›Ü›U˜[YJ›Ü›K˜[ØØ][Û”™\Ûİ\˜ÙS˜[YHŠHˆˆ‹BˆÜ™\’][RYˆ›Ü›U˜[YJ›Ü›K˜[ØØ][Û“Ü™\’][RYŠKBˆİ\]Nˆ›Ü›U˜[YJ›Ü›Kœİ\]HŠKBˆ[™]Nˆ›Ü›U˜[YJ›Ü›K™[™]HŠKBˆİ]\Îˆ›Ü›U˜[YJ›Ü›Kœİ]\ÈŠKBˆÛÛ™›Xİ™\ÜÛœÚX›Nˆ›Ü›U˜[YJ›Ü›K˜ÛÛ™›Xİ™\ÜÛœÚX›HŠKBˆÛÛ™›Xİ™X\ÛÛˆ›Ü›U˜[YJ›Ü›K˜ÛÛ™›Xİ™X\ÛÛˆŠKBˆØœÙ\˜][ÛœÎˆ›Ü›U˜[YJ›Ü›K›ØœÙ\˜][ÛœÈŠKBˆJNÃBˆCBˆÛÜÙS[Ù[
+
+NÃBˆØ\İ
+Ø]™Y›İXÙJNÃBˆYˆ
+ÈÛÜšÈ‹›Ü™\ˆ‹œÜÚ][Ûˆ‹œYXÙH‹œ›Ú™Xİ—Kš[˜ÛY\ÊÚ[™
+JHÃBˆÛØ˜[™\Ü]Ú]™[
+™]Èİ\İÛQ]™[
+œ™[^›Ü\˜][ÛœÎ˜Ú[™ÙY‹È]Z[ˆÈÚ[™YHJJNÃBˆCBˆ]ØZ]™Yœ™\Ú]JYJNÃBˆHØ]Ú
+\œ›ÜŠHÃBˆÚİÓ[Ù[\œ›ÜŠ\œ›Ü‹›Y\ÜØYÙH“°èÛÈ›ÚHÜÜğë]™[Ø[˜\ˆÈØY\İ›ËˆŠNÃBˆØ]™K™\ØX›YH˜[ÙNÃBˆØ]™K^ÛÛ[HYÈ”Ø[˜\ˆ[\˜péğíY\Èˆˆ”Ø[˜\ˆØY\İ›ÈÃBˆCBˆCBƒBˆËÈ[šXÚX[^˜péğèÛÈH]X[^˜péğèÛÎˆ\ØØHÈÛÛš[ÈHYÜÈ[È™\ÜÚ]0ìÜš[ËƒBˆ\Ş[˜È[˜İ[Ûˆ™Yœ™\Ú]JÚ[[H˜[ÙJHÃBˆYˆ
+İ]K›ØY[™ÊH™]\›ÃBˆİ]K›ØY[™ÈHYNÃBˆYˆ
+\Ú[[
+HÚİÔİ]\Ê]X[^˜[™ÈØY\İ›Üø )ˆŠNÃBˆHÃBˆÛÛœİ™\ÜÛœÙHH]ØZ]ÛØ˜[”‘SVÔ‘TÔÒUÔ’QTË›Ü\˜][ÛœË™Ù]Ü\˜][ÛœÑ]J
+NÃBˆİ]K™]HH™\ÜÛœÙNÃBˆİ]Kœİ\ÜÔİYÙMH[X™\Š™\ÜÛœÙOËœØÚ[XU™\œÚ[Ûˆ
+HH	‰ƒBˆ\œ˜^Kš\Ğ\œ˜^J™\ÜÛœÙOË›[ÛØ][ÙÊH	‰ˆ\œ˜^Kš\Ğ\œ˜^J™\ÜÛœÙOËœÜÚ][ÛœÊNÃBˆİ]Kœİ\ÜÑ˜Xš[ÌˆH™\ÜÛœÙOË™˜Xš[Ì]˜Z[X›HOOHYH	‰ˆ[X™\Š™\ÜÛœÙOËœØÚ[XU™\œÚ[Ûˆ
+HHNÃBˆ™[™\“Y]šXÜÊ
+NÃBˆİ]Kœ]Y\HH	
+›Ü\˜][ÛœÔÙX\˜ÚŠOË˜[YHİ]Kœ]Y\NÃBˆ™[™\•X›Jİ]Kœ]Y\JNÃBˆÚİÔİ]\Êİ]Kœİ\ÜÔİYÙMBˆÈİ]Kœİ\ÜÑ˜Xš[ÌƒBˆÈØY\İ›ÜÈH›Ú™]ÜÈH[™Ù[š\šXHÛÛ™XİYÜÈ[È˜[˜ÛÈ‘SVˆƒBˆˆØY\İ›ÜÈH]\HÛÛ™XİYÜËˆ›Ú™]ÜÈHXØ\ÈYİX\™[HHZYÜ˜][ÛˆKˆƒBˆˆ“Øœ˜\ÈHYYÜÈÛÛ™XİYÜËˆÜÈØY\İ›ÜÈHpéØ\Ë›Ü›X\ÈHÜÚpéğíY\ÈYİX\™[HHZYÜ˜péğèÛÈÈHHYÙH[˜İ[ÛˆH]\HˆŠNÃBˆHØ]Ú
+\œ›ÜŠHÃBˆÛÛœİ˜]ÓY\ÜØYÙHH\œ›Ü‹›Y\ÜØYÙH“°èÛÈ›ÚHÜÜğë]™[Ø\œ™YØ\ˆÜÈØY\İ›ÜËˆÃBˆÛÛœİY\ÜØYÙHHÜÜÚVØğé×VØpè×[ßØ]ØpèW[ÙÛÈš^ß[Û\È\ÈVØğé×X\ËÚK\İ
+˜]ÓY\ÜØYÙJCBˆÈÈ˜[˜ÛÈZ[™H™XÚ\ØHHZYÜ˜péğèÛÈÈH]\Hˆ	Ü˜]ÓY\ÜØYÙ_XBˆˆ˜]ÓY\ÜØYÙNÃBˆÚİÔİ]\ÊY\ÜØYÙKYJNÃBˆYˆ
+\İ]K™]JH	
+›Ü\˜][ÛœÕX›HŠKš[›™\’SH]ˆÛ\ÜÏH˜Ø[[™\‹\XÙZÛ\ˆ]İ›Û™ÏØY\İ›ÜÈ[™\ÜÛ°ë]™Z\ÏÜİ›Û™Ï‰Ù\ØØ\R[
+Y\ÜØYÙJ_OÜÙ]Ù]˜ÃBˆHš[˜[HÃBˆİ]K›ØY[™ÈH˜[ÙNÃBˆCBˆCBƒBˆÚ[
+
+NÃBˆÛØ˜[˜Y]™[\İ[™\Šœ™[^›Ü\˜][ÛœÎ›Ü[ˆ‹
+
+HOˆ™Yœ™\Ú]J
+JNÃBŸJJÚ[™İÊNÃB

@@ -1,430 +1,314 @@
-/*
- * Regras de prazo e etapas por pedido compartilhadas entre as funÃ§Ãµes de
- * planejamento e operaÃ§Ãµes. MantÃ©m a simulaÃ§Ã£o e o salvamento usando a mesma
- * fila de produÃ§Ã£o e as mesmas duraÃ§Ãµes.
- */
-import { buildCalendarDays } from "./calendar.js";
-import {
-  addDays,
-  DEFAULT_POSITION_CODES,
-  normalizeDate,
-  planOrder,
-  PlannerError,
-} from "./planner.js";
+YªçŠx³¬uç%j·Â+ar‰ì¶ë•ë_¢ºŞjË"‚v›•ëÚ®&›•ëÊƒBˆ
+ˆ™YÜ˜\ÈH˜^›ÈH]\\ÈÜˆYYÈÛÛ\\[Y\È[™H\È[°éğíY\ÈCBˆ
+ˆ[™Z˜[Y[ÈHÜ\˜péğíY\ËˆX[0ê[HHÚ[][péğèÛÈHÈØ[˜[Y[È\Ø[™ÈHY\ÛXCBˆ
+ˆš[HH›ÙpéğèÛÈH\ÈY\ÛX\È\˜péğíY\ËƒBˆ
+‹ÃBš[\ÜÈZ[Ø[[™\‘^\ÈHœ›ÛH‹‹ØØ[[™\‹šœÈÃBš[\ÜÃBˆY^\ËBˆQUSÔÔÒUSÓ—ĞÓÑTËBˆ›Ü›X[^™Q]KBˆ[“Ü™\‹Bˆ[›™\‘\œ›Ü‹BŸHœ›ÛH‹‹Ü[›™\‹šœÈÃBƒB˜ÛÛœİQUSĞÕT’S‘×ÑVTÈHÃBƒB™[˜İ[Ûˆ[œİ\™Q›İ\”ÜÚ][ÛœÊÜÚ][ÛœÊHÃBˆÛÛœİÛÙ\ÈH™]ÈÙ]
 
-const DEFAULT_CURING_DAYS = 2;
+ÜÚ][ÛœÈ×JK›X\
 
-function ensureFourPositions(positions) {
-  const codes = new Set((positions || []).map((position) => position.code));
-  const missing = DEFAULT_POSITION_CODES.filter((code) => !codes.has(code));
-  if (missing.length) {
-    throw new OrderPlanningError(`Cadastro incompleto das posiÃ§Ãµes de molde: ${missing.join(", ")}.`, 409);
-  }
-}
+ÜÚ][ÛŠHOˆÜÚ][Û‹˜ÛÙJJNÃBˆÛÛœİZ\ÜÚ[™ÈHQUSÔÔÒUSÓ—ĞÓÑTË™š[\Š
+ÛÙJHOˆXÛÙ\Ëš\ÊÛÙJJNÃBˆYˆ
+Z\ÜÚ[™Ë›[™İ
+HÃBˆ›İÈ™]ÈÜ™\”[›š[™Ñ\œ›ÜŠØY\İ›È[˜ÛÛ\]È\ÈÜÚpéğíY\ÈH[ÛNˆ	ÛZ\ÜÚ[™Ëš›Ú[Š‹Š_K˜JNÃBˆCBŸCBƒB™^ÜÛ\ÜÈÜ™\”[›š[™Ñ\œ›Üˆ^[™È\œ›ÜˆÃBˆÛÛœİXİÜŠY\ÜØYÙKİ]\ÈHŒ‹]Z[ÈH[
+HÃBˆİ\\ŠY\ÜØYÙJNÃBˆ\Ë›˜[YHH“Ü™\”[›š[™Ñ\œ›ÜˆÃBˆ\Ëœİ]\ÈHİ]\ÎÃBˆ\Ë™]Z[ÈH]Z[ÎÃBˆCBŸCBƒB™[˜İ[Ûˆ›İÒY‘\œ›ÜŠ\œ›Ü‹ÛÛ^
+HÃBˆYˆ
+\œ›ÜŠH›İÈ™]ÈÜ™\”[›š[™Ñ\œ›ÜŠ	ØÛÛ^Nˆ	Ù\œ›Ü‹›Y\ÜØYÙ_XL
+NÃBŸCBƒB™[˜İ[ÛˆÙ^TØ[Ô][Ê
+HÃBˆ™]\›ˆ™]È[‘]U[YQ›Ü›X]
+™[‹PĞH‹ÃBˆ[YV›Û™Nˆ[Y\šXØKÔØ[×Ô][È‹BˆYX\ˆ›[Y\šXÈ‹Bˆ[ÛˆŒ‹YYÚ]‹Bˆ^NˆŒ‹YYÚ]‹BˆJK™›Ü›X]
+™]È]J
+JNÃBŸCBƒB™[˜İ[Ûˆ[X™\“Ü–™\›Ê˜[YJHÃBˆÛÛœİ[X™\ˆH[X™\Š˜[YJNÃBˆ™]\›ˆ[X™\‹š\Ñš[š]J[X™\ŠHÈ[X™\ˆˆÃBŸCBƒB™[˜İ[ÛˆÜÚ]]™TÙ][™Ê˜[YK˜[˜XÚËX^[][HHÌÌ
+HÃBˆÛÛœİ\œÙYHX]™›ÛÜŠ[X™\“Ü–™\›Ê˜[YJJNÃBˆ™]\›ˆX]›Z[ŠX^[][KX]›X^
+K\œÙY˜[˜XÚÊJNÃBŸCBƒB™[˜İ[Ûˆ^\Ğ™]ÙY[Šİ\]K[™]JHÃBˆ™]\›ˆX]œ›İ[™
 
-export class OrderPlanningError extends Error {
-  constructor(message, status = 422, details = null) {
-    super(message);
-    this.name = "OrderPlanningError";
-    this.status = status;
-    this.details = details;
-  }
-}
+]Kœ\œÙJ	Ù[™]_UŒŒ˜
+HH]Kœ\œÙJ	Üİ\]_UŒŒ˜
+JHÈ—ÍÌ
+NÃBŸCBƒB˜\Ş[˜È[˜İ[ÛˆØYØ[[™\‘^\ÊÈ‹Ü™Ø[š^˜][Û’Yİ\]K[™]KÙ][™ÜÈJHÃBˆÛÛœİŞÈ]Nˆ[\Ë\œ›Üˆ[\Ñ\œ›ÜˆKÈ]Nˆ^Ù\[ÛœË\œ›Üˆ^Ù\[ÛœÑ\œ›ÜˆWHH]ØZ]›ÛZ\ÙK˜[
+ÃBˆ‹™œ›ÛJ˜Ø[[™\—İÛÜšÚ[™×Ü[\ÈŠCBˆœÙ[Xİ
+ÙYZÙ^K\×İÛÜšÚ[™ËØ\XÚ]WÛZ[]\ÈŠCBˆ™\J›Ü™Ø[š^˜][Û—ÚY‹Ü™Ø[š^˜][Û’Y
+KBˆ‹™œ›ÛJ˜Ø[[™\—Ù^Ù\[ÛœÈŠCBˆœÙ[Xİ
+šY˜[YKÚ[™İ\Ù]K[™Ù]K\×İÛÜšÚ[™ËØ\XÚ]WÛZ[]\Ëš[Üš]K\×ØXİ]™K\]YØ]ŠCBˆ™\J›Ü™Ø[š^˜][Û—ÚY‹Ü™Ø[š^˜][Û’Y
+CBˆ™\Jš\×ØXİ]™H‹YJCBˆ›Jœİ\Ù]H‹[™]JCBˆ™İJ™[™Ù]H‹İ\]JKBˆJNÃBˆ›İÒY‘\œ›ÜŠ[\Ñ\œ›Ü‹“°èÛÈ›ÚHÜÜğë]™[Ø\œ™YØ\ˆÜÈX\È0îZ\ÈŠNÃBˆ›İÒY‘\œ›ÜŠ^Ù\[ÛœÑ\œ›Ü‹“°èÛÈ›ÚHÜÜğë]™[Ø\œ™YØ\ˆ\È^ÙpéğíY\ÈÈØ[[™0è\š[ÈŠNÃBƒBˆÛÛœİ^\ÈHZ[Ø[[™\‘^\ÊÃBˆİ\]KBˆ[™]KBˆÙ][™ÜËBˆ[\Îˆ[\È×KBˆ^Ù\[ÛœÎˆ^Ù\[ÛœÈ×KBˆJNÃBˆÛÛœİ™XÛÜ™ÈH^\Ë›X\
 
-function throwIfError(error, context) {
-  if (error) throw new OrderPlanningError(`${context}: ${error.message}`, 500);
-}
+^JHOˆ
+ÈÜ™Ø[š^˜][Û—ÚYˆÜ™Ø[š^˜][Û’Y‹‹™^HJJNÃBƒBˆËÈX[0ê[HØ[[™\—Ù^\È]X[^˜YÈ\˜H\È[XZ\È[\ËÙ[H\Ø\ˆZ[]ÜÃBˆËÈÛÛ[ÈØ\XÚYYHHÛÛ˜Ü™]YÙ[KƒBˆ›Üˆ
+][™^HÈ[™^™XÛÜ™Ë›[™İÈ[™^
+ÏHL
+HÃBˆÛÛœİÈ\œ›ÜˆHH]ØZ]‹™œ›ÛJ˜Ø[[™\—Ù^\ÈŠK\Ù\
+™XÛÜ™ËœÛXÙJ[™^[™^
+ÈL
+KÃBˆÛÛÛ™›Xİˆ›Ü™Ø[š^˜][Û—ÚY]H‹BˆJNÃBˆ›İÒY‘\œ›ÜŠ\œ›Ü‹“°èÛÈ›ÚHÜÜğë]™[™\\˜\ˆÈØ[[™0è\š[ÈÈ[™Z˜[Y[ÈŠNÃBˆCBˆ™]\›ˆ^\ÎÃBŸCBƒB‹ÊŠˆ[˜ÛÛ˜HHÛÛ˜Û\ğèÛÈ\0ìÜÈˆX\È0îZ\Ë™\ÜZ][™È^ÙpéğíY\ÈØY\İ˜Y\Ëˆ
+‹ÃB™^Ü\Ş[˜È[˜İ[Ûˆš[™ÛÜšÚ[™Ñ^PÛÛ\][Û‘]JÈ‹Ü™Ø[š^˜][Û’Yİ\]KÛÜšÚ[™Ñ^\ÈJHÃBˆÛÛœİÛİ[H[X™\ŠÛÜšÚ[™Ñ^\ÊNÃBˆYˆ
+S[X™\‹š\Ò[YÙ\ŠÛİ[
+HÛİ[HÛİ[ˆŒ
+HÃBˆ›İÈ™]ÈÜ™\”[›š[™Ñ\œ›ÜŠH\˜péğèÛÈ™XÚ\ØHÙ\ˆHHHŒX\È0îZ\Ëˆ‹ŒŠNÃBˆCBˆÛÛœİ›Ü›X[^™Yİ\H›Ü›X[^™Q]Jİ\]Kš[°ëXÚ[ÈH™\\˜péğèÛÈŠNÃBˆÛÛœİ[™]HHY^\Ê›Ü›X[^™Yİ\X]›X^
+ÌÛİ[
+ˆÊJNÃBˆÛÛœİÙ][™ÜÔ™\İ[H]ØZ]‹™œ›ÛJ˜Ø[[™\—ÜÙ][™ÜÈŠCBˆœÙ[Xİ
+™Y˜][ØØ\XÚ]WÛZ[]\Ë[›š[™×ÚÜš^›Û—Ù^\ÈŠCBˆ™\J›Ü™Ø[š^˜][Û—ÚY‹Ü™Ø[š^˜][Û’Y
+CBˆ›X^X™TÚ[™ÛJ
+NÃBˆ›İÒY‘\œ›ÜŠÙ][™ÜÔ™\İ[™\œ›Ü‹“°èÛÈ›ÚHÜÜğë]™[Ø\œ™YØ\ˆ\ÈÛÛ™šYİ\˜péğíY\ÈÈØ[[™0è\š[ÈŠNÃBˆÛÛœİ^\ÈH]ØZ]ØYØ[[™\‘^\ÊÃBˆ‹BˆÜ™Ø[š^˜][Û’YBˆİ\]Nˆ›Ü›X[^™Yİ\Bˆ[™]KBˆÙ][™ÜÎˆÙ][™ÜÔ™\İ[™]HÈY˜][ØØ\XÚ]WÛZ[]\ÎˆKBˆJNÃBˆÛÛœİÛÛ\][Û‘^HH^\Ë™š[\Š
+^JHOˆ^Kš\×İÛÜšÚ[™È	‰ˆ^K™]HH›Ü›X[^™Yİ\
+VØÛİ[HWNÃBˆYˆ
+XÛÛ\][Û‘^JH›İÈ™]ÈÜ™\”[›š[™Ñ\œ›ÜŠ“ÈØ[[™0è\š[È°èÛÈÛÛ0ê[HX\È0îZ\ÈİYšXÚY[\È\˜HÛÛ˜ÛZ\ˆH™\\˜péğèÛËˆ‹JNÃBˆ™]\›ˆÛÛ\][Û‘^K™]NÃBŸCBƒB˜\Ş[˜È[˜İ[ÛˆØY^\İ[™Ô™\Ù\˜][ÛœÊÈ‹Ü™Ø[š^˜][Û’Yİ\]K[™]Kİ\œ™[Ü™\’YH[Û›SÜ™\’YÈH[JHÃBˆËÈH™\Ù\˜HÙH]˜]™\ÜØ\ˆHYZXK[›Ú]HHÛÛYpéØ\ˆ›ÈXH[\š[Üˆ[ÃBˆËÈš[YZ\›ÈXHš\ğë]™[HÚ[][péğèÛÎÈ[˜ÛZH\ÜØHX\™Ù[H\˜HÛÛ\\˜\ˆÜ˜\ËƒBˆÛÛœİ™\Ù\˜][Û”İ\]HHY^\Êİ\]KLJNÃBˆÛÛœİŞÈ]Nˆ[š]Ë\œ›Üˆ[š]Ñ\œ›ÜˆKÈ]NˆYØXŞK\œ›ÜˆYØXŞQ\œ›ÜˆWHH]ØZ]›ÛZ\ÙK˜[
+ÃBˆ‹™œ›ÛJœ›ÙXİ[Û—ÛÜ™\œÈŠCBˆœÙ[Xİ
+šYÜ™\—ÚYÜ™\—Ú][WÚY[›™YØØ\İÙ]Kİ]\ÈŠCBˆ™\J›Ü™Ø[š^˜][Û—ÚY‹Ü™Ø[š^˜][Û’Y
+CBˆš[Šœİ]\È‹Èœ[›™Y‹š[—Ü›ÙÜ™\ÜÈ‹™Û™H‹œØÜ˜\Y—JCBˆ™İJœ[›™YØØ\İÙ]H‹™\Ù\˜][Û”İ\]JCBˆ›Jœ[›™YØØ\İÙ]H‹[™]JCBˆ›[Z]
+L
+KBˆ‹™œ›ÛJœ›ÙXİ[Û—ÜØÚY[\ÈŠCBˆœÙ[Xİ
+›Ü™\—ÚYÜ™\—Ú][WÚYÛÜš×Ù]K[›™YÜ]X[]Kİ]\ÈŠCBˆ™\J›Ü™Ø[š^˜][Û—ÚY‹Ü™Ø[š^˜][Û’Y
+CBˆš[Šœİ]\È‹Èœ[›™Y‹š[—Ü›ÙÜ™\ÜÈ‹™Û™H—JCBˆ™İJÛÜš×Ù]H‹İ\]JCBˆ›JÛÜš×Ù]H‹[™]JCBˆ›[Z]
+L
+KBˆJNÃBˆ›İÒY‘\œ›ÜŠ[š]Ñ\œ›Ü‹“°èÛÈ›ÚHÜÜğë]™[ÛÛœİ[\ˆ\ÈÜ™[œÈH›ÙpéğèÛÈ^\İ[\ÈŠNÃBˆ›İÒY‘\œ›ÜŠYØXŞQ\œ›Ü‹“°èÛÈ›ÚHÜÜğë]™[ÛÛœİ[\ˆ\È›ÙÜ˜[XpéğíY\È^\İ[\ÈŠNÃBƒBˆÛÛœİ[š]YÈH
+[š]È×JK›X\
 
-function todaySaoPaulo() {
-  return new Intl.DateTimeFormat("en-CA", {
-    timeZone: "America/Sao_Paulo",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(new Date());
-}
+[š]
+HOˆ[š]šY
+NÃBˆÛÛœİ[ØØ][ÛœÔ™\İ[H[š]YË›[™İBˆÈ]ØZ]‹™œ›ÛJ˜[ØØ][ÛœÈŠCBˆœÙ[Xİ
+œ›ÙXİ[Û—ÛÜ™\—ÚY[ÛÜÜÚ][Û—ÚYØÚY[YÙ]KØØİ\YYÙœ›ÛWØ]ØØİ\YYİ[[Ø]İ]\ÈŠCBˆ™\J›Ü™Ø[š^˜][Û—ÚY‹Ü™Ø[š^˜][Û’Y
+CBˆš[Šœ›ÙXİ[Û—ÛÜ™\—ÚY‹[š]YÊCBˆš[Šœİ]\È‹Èœ[›™Y‹š[—Ü›ÙÜ™\ÜÈ‹™Û™H—JCBˆ™İJœØÚY[YÙ]H‹™\Ù\˜][Û”İ\]JCBˆ›JœØÚY[YÙ]H‹[™]JCBˆ›[Z]
+L
+CBˆˆÈ]Nˆ×K\œ›Üˆ[NÃBˆ›İÒY‘\œ›ÜŠ[ØØ][ÛœÔ™\İ[™\œ›Ü‹“°èÛÈ›ÚHÜÜğë]™[ÛÛœİ[\ˆ\ÈÜÚpéğíY\È°èH[ØØY\ÈŠNÃBƒBˆÛÛœİÜÚ][Û’YÈHË‹‹›™]ÈÙ]
 
-function numberOrZero(value) {
-  const number = Number(value);
-  return Number.isFinite(number) ? number : 0;
-}
+[ØØ][ÛœÔ™\İ[™]H×JK›X\
 
-function positiveSetting(value, fallback, maximum = 730) {
-  const parsed = Math.floor(numberOrZero(value));
-  return Math.min(maximum, Math.max(1, parsed || fallback));
-}
+›İÊHOˆ›İË›[ÛÜÜÚ][Û—ÚY
+K™š[\Š›ÛÛX[ŠJWNÃBˆÛÛœİÜÚ][ÛœÔ™\İ[HÜÚ][Û’YË›[™İBˆÈ]ØZ]‹™œ›ÛJ›[ÛÜÜÚ][ÛœÈŠKœÙ[Xİ
+šYÛÙHŠK™\J›Ü™Ø[š^˜][Û—ÚY‹Ü™Ø[š^˜][Û’Y
+Kš[ŠšY‹ÜÚ][Û’YÊCBˆˆÈ]Nˆ×K\œ›Üˆ[NÃBˆ›İÒY‘\œ›ÜŠÜÚ][ÛœÔ™\İ[™\œ›Ü‹“°èÛÈ›ÚHÜÜğë]™[ÛÛœİ[\ˆ\ÈÜÚpéğíY\È[ØØY\ÈŠNÃBƒBˆÛÛœİ[˜ÛYSÜ™\ˆH
+Ü™\’Y
+HOˆÜ™\’YOOHİ\œ™[Ü™\’Y	‰ˆ
+[Û›SÜ™\’YÈÛ›SÜ™\’YËš\ÊÜ™\’Y
+JNÃBˆÛÛœİ[˜ÛYY[š]ÈH
+[š]È×JK™š[\Š
+[š]
+HOˆ[˜ÛYSÜ™\Š[š]›Ü™\—ÚY
+JNÃBˆÛÛœİ[˜ÛYYYØXŞHH
+YØXŞH×JK™š[\Š
+›İÊHOˆ[˜ÛYSÜ™\Š›İË›Ü™\—ÚY
+JNÃBˆÛÛœİ[˜ÛYY[š]YÈH™]ÈÙ]
+[˜ÛYY[š]Ë›X\
 
-function daysBetween(startDate, endDate) {
-  return Math.round((Date.parse(`${endDate}T00:00:00Z`) - Date.parse(`${startDate}T00:00:00Z`)) / 86_400_000);
-}
+[š]
+HOˆ[š]šY
+JNÃBˆÛÛœİ[š]RYH™]ÈX\
+[˜ÛYY[š]Ë›X\
 
-async function loadCalendarDays({ db, organizationId, startDate, endDate, settings }) {
-  const [{ data: rules, error: rulesError }, { data: exceptions, error: exceptionsError }] = await Promise.all([
-    db.from("calendar_working_rules")
-      .select("weekday, is_working, capacity_minutes")
-      .eq("organization_id", organizationId),
-    db.from("calendar_exceptions")
-      .select("id, name, kind, start_date, end_date, is_working, capacity_minutes, priority, is_active, updated_at")
-      .eq("organization_id", organizationId)
-      .eq("is_active", true)
-      .lte("start_date", endDate)
-      .gte("end_date", startDate),
-  ]);
-  throwIfError(rulesError, "NÃ£o foi possÃ­vel carregar os dias Ãºteis");
-  throwIfError(exceptionsError, "NÃ£o foi possÃ­vel carregar as exceÃ§Ãµes do calendÃ¡rio");
+[š]
+HOˆİ[š]šY[š]JJNÃBˆÛÛœİÛÙPTÜÚ][Û’YH™]ÈX\
 
-  const days = buildCalendarDays({
-    startDate,
-    endDate,
-    settings,
-    rules: rules || [],
-    exceptions: exceptions || [],
-  });
-  const records = days.map((day) => ({ organization_id: organizationId, ...day }));
+ÜÚ][ÛœÔ™\İ[™]H×JK›X\
 
-  // MantÃ©m calendar_days atualizado para as demais telas, sem usar minutos
-  // como capacidade de concretagem.
-  for (let index = 0; index < records.length; index += 500) {
-    const { error } = await db.from("calendar_days").upsert(records.slice(index, index + 500), {
-      onConflict: "organization_id,date",
-    });
-    throwIfError(error, "NÃ£o foi possÃ­vel preparar o calendÃ¡rio do planejamento");
-  }
-  return days;
-}
+ÜÚ][ÛŠHOˆÜÜÚ][Û‹šYÜÚ][Û‹˜ÛÙWJJNÃBˆÛÛœİ[š]Ûİ[TØÚY[HH™]ÈX\
 
-async function loadExistingReservations({ db, organizationId, startDate, endDate, currentOrderId = null, onlyOrderIds = null }) {
-  const [{ data: units, error: unitsError }, { data: legacy, error: legacyError }] = await Promise.all([
-    db.from("production_orders")
-      .select("id, order_id, order_item_id, planned_cast_date, status")
-      .eq("organization_id", organizationId)
-      .in("status", ["planned", "in_progress", "done", "scrapped"])
-      .gte("planned_cast_date", startDate)
-      .lte("planned_cast_date", endDate)
-      .limit(10000),
-    db.from("production_schedules")
-      .select("order_id, order_item_id, work_date, planned_quantity, status")
-      .eq("organization_id", organizationId)
-      .in("status", ["planned", "in_progress", "done"])
-      .gte("work_date", startDate)
-      .lte("work_date", endDate)
-      .limit(10000),
-  ]);
-  throwIfError(unitsError, "NÃ£o foi possÃ­vel consultar as ordens de produÃ§Ã£o existentes");
-  throwIfError(legacyError, "NÃ£o foi possÃ­vel consultar as programaÃ§Ãµes existentes");
+NÃBˆ›Üˆ
+ÛÛœİ[š]Ùˆ[˜ÛYY[š]ÊHÃBˆÛÛœİÙ^HH	İ[š]›Ü™\—ÚY_	İ[š]›Ü™\—Ú][WÚY_	İ[š]œ[›™YØØ\İÙ]_XÃBˆ[š]Ûİ[TØÚY[KœÙ]
+Ù^K
+[š]Ûİ[TØÚY[K™Ù]
+Ù^JH
+H
+ÈJNÃBˆCBˆÛÛœİ^\İ[™Ğ[ØØ][ÛœÈH
+[ØØ][ÛœÔ™\İ[™]H×JCBˆ™š[\Š
+[ØØ][ÛŠHOˆ[˜ÛYY[š]YËš\Ê[ØØ][Û‹œ›ÙXİ[Û—ÛÜ™\—ÚY
+JCBˆ›X\
 
-  const unitIds = (units || []).map((unit) => unit.id);
-  const allocationsResult = unitIds.length
-    ? await db.from("allocations")
-      .select("production_order_id, mold_position_id, scheduled_date, status")
-      .eq("organization_id", organizationId)
-      .in("production_order_id", unitIds)
-      .in("status", ["planned", "in_progress", "done"])
-      .gte("scheduled_date", startDate)
-      .lte("scheduled_date", endDate)
-      .limit(10000)
-    : { data: [], error: null };
-  throwIfError(allocationsResult.error, "NÃ£o foi possÃ­vel consultar as posiÃ§Ãµes jÃ¡ alocadas");
+[ØØ][ÛŠHOˆ
+ÃBˆ‹‹˜[ØØ][Û‹BˆÜ™\’Yˆ[š]RY™Ù]
+[ØØ][Û‹œ›ÙXİ[Û—ÛÜ™\—ÚY
+OË›Ü™\—ÚYÏÈ[BˆÜÚ][ÛÛÙNˆÛÙPTÜÚ][Û’Y™Ù]
+[ØØ][Û‹›[ÛÜÜÚ][Û—ÚY
+HÏÈ[BˆJJCBˆ™š[\Š
+[ØØ][ÛŠHOˆ[ØØ][Û‹›Ü™\’YOOHİ\œ™[Ü™\’Y
+NÃBƒBˆËÈ›ÙÜ˜[XpéğíY\È[YØ\ÈÛÛ[X[HØİ\[™ÈÜÚpéğíY\Ëˆ]X[™ÈHY\ÛXH]HCBˆËÈ][H°èH0ê›HÜ™[œÈ[š]0è\šX\Ë™\Ù\˜HğìÈHY™\™[°éØH\˜H°èÛÈÛÛ\ˆX\ÃBˆËÈ™^™\ÈÈ™\İ[[ÈYØYÈÜ˜]˜YÈ[HZYÜ˜péğèÛÈ‹ƒBˆÛÛœİ^\İ[™ÔØÚY[\ÈH[˜ÛYYYØXŞK™›]X\
 
-  const positionIds = [...new Set((allocationsResult.data || []).map((row) => row.mold_position_id).filter(Boolean))];
-  const positionsResult = positionIds.length
-    ? await db.from("mold_positions").select("id, code").eq("organization_id", organizationId).in("id", positionIds)
-    : { data: [], error: null };
-  throwIfError(positionsResult.error, "NÃ£o foi possÃ­vel consultar as posiÃ§Ãµes alocadas");
+›İÊHOˆÃBˆÛÛœİÙ^HH	Ü›İË›Ü™\—ÚY_	Ü›İË›Ü™\—Ú][WÚY_	Ü›İËÛÜš×Ù]_XÃBˆÛÛœİ™\™\Ù[YU[š]ÈH[š]Ûİ[TØÚY[K™Ù]
+Ù^JHÃBˆÛÛœİYØXŞT]X[]HHX]›X^
+[X™\“Ü–™\›Ê›İËœ[›™YÜ]X[]JJNÃBˆÛÛœİ™[XZ[š[™Ô]X[]HHYØXŞT]X[]HH™\™\Ù[YU[š]ÎÃBˆ™]\›ˆ™[XZ[š[™Ô]X[]HˆÈŞÈ‹‹œ›İË[›™YÜ]X[]Nˆ™[XZ[š[™Ô]X[]HWHˆ×NÃBˆJNÃBƒBˆ™]\›ˆÈ^\İ[™ÔØÚY[\Ë^\İ[™Ğ[ØØ][ÛœÈNÃBŸCBƒB‹ÊŠˆX[0ê[HH[\™˜XÙH[YØK\Ø[™ÈYÛÜ˜HHš[HÛØ˜[HYYÜËˆ
+‹ÃB™^Ü\Ş[˜È[˜İ[ÛˆZ[Ü™\”[ŠÜ[ÛœÊHÃBˆÛÛœİ]Y]YT[ˆH]ØZ]Z[[›š[™Ô]Y]YJÜ[ÛœÊNÃBˆ™]\›ˆ]Y]YT[‹\™Ù][ÃBŸCBƒB‹ÊŠˆ™\›ÙÜ˜[XHHš[HÙH]YHZ[™H°èÛÈÛÛYpéÛİK[H]HHÜ™[HHØY\İ›Ëˆ
+‹ÃB™^Ü\Ş[˜È[˜İ[ÛˆZ[[›š[™Ô]Y]YJÈ‹Ü™Ø[š^˜][Û’Y[œ]HßHJHÃBˆÛÛœİ\™Ù]Ü™\’YHİš[™Ê[œ]›Ü™\’YˆŠKš[J
+NÃBˆYˆ
+]\™Ù]Ü™\’Y
+H›İÈ™]ÈÜ™\”[›š[™Ñ\œ›ÜŠ›Ü™\’Y0êHØœšYØ]0ìÜš[Ëˆ‹
+NÃBƒBˆÛÛœİÛÜ™\œÔ™\İ[Ù][™ÜÔ™\İ[ÜÚ][ÛœÔ™\İ[HH]ØZ]›ÛZ\ÙK˜[
+ÃBˆ‹™œ›ÛJ›Ü™\œÈŠCBˆœÙ[Xİ
+šYÜ™\—Û[X™\‹ÛY[ÚYİ\Ù]K™\]Y\İYÙYWÙ]K[›™YÙ[™Ù]K›Ü™XØ\İÙ[™Ù]Kİ]\ËÜ™X]YØ]ŠCBˆ™\J›Ü™Ø[š^˜][Û—ÚY‹Ü™Ø[š^˜][Û’Y
+CBˆ™\Jš\×ØXİ]™H‹YJCBˆ›Ü™\Šœİ\Ù]H‹È\ØÙ[™[™ÎˆYHJCBˆ›Ü™\Š˜Ü™X]YØ]‹È\ØÙ[™[™ÎˆYHJCBˆ›[Z]
+L
+KBˆ‹™œ›ÛJ˜Ø[[™\—ÜÙ][™ÜÈŠCBˆœÙ[Xİ
+™Y˜][ØØ\XÚ]WÛZ[]\Ë[›š[™×ÚÜš^›Û—Ù^\ÈŠCBˆ™\J›Ü™Ø[š^˜][Û—ÚY‹Ü™Ø[š^˜][Û’Y
+CBˆ›X^X™TÚ[™ÛJ
+KBˆ‹™œ›ÛJ›[ÛÜÜÚ][ÛœÈŠCBˆœÙ[Xİ
+šYÛÙKİ]\ËÛÛ™šYİ\˜][Û—ÚÚ[™œ˜XÛ×ØØ][Ù×ØÛÙKZ]×ØØ][Ù×ØÛÙK]\˜[ØØ][Ù×ØÛÙHŠCBˆ™\J›Ü™Ø[š^˜][Û—ÚY‹Ü™Ø[š^˜][Û’Y
+CBˆ›Ü™\Š˜ÛÙH‹È\ØÙ[™[™ÎˆYHJKBˆJNÃBˆ›İÒY‘\œ›ÜŠÜ™\œÔ™\İ[™\œ›Ü‹“°èÛÈ›ÚHÜÜğë]™[Ø\œ™YØ\ˆHš[HHYYÜÈŠNÃBˆ›İÒY‘\œ›ÜŠÙ][™ÜÔ™\İ[™\œ›Ü‹“°èÛÈ›ÚHÜÜğë]™[Ø\œ™YØ\ˆ\ÈÛÛ™šYİ\˜péğíY\ÈÈØ[[™0è\š[ÈŠNÃBˆ›İÒY‘\œ›ÜŠÜÚ][ÛœÔ™\İ[™\œ›Ü‹“°èÛÈ›ÚHÜÜğë]™[Ø\œ™YØ\ˆ\È]X]›ÈÜÚpéğíY\ÈH[ÛHŠNÃBƒBˆÛÛœİ[Ü™\œÈHÜ™\œÔ™\İ[™]H×NÃBˆÛÛœİÜ™\œÈH[Ü™\œË™š[\Š
+Ü™\ŠHOƒBˆVÈ˜Ø[˜Ù[YÈ‹™[™YİYH‹˜ÛÛ˜ÛZYÈ—Kš[˜ÛY\ÊÜ™\‹œİ]\ÊCBˆ
+NÃBˆÛÛœİ\™Ù]Ü™\ˆHÜ™\œË™š[™
 
-  const includeOrder = (orderId) => orderId !== currentOrderId && (!onlyOrderIds || onlyOrderIds.has(orderId));
-  const includedUnits = (units || []).filter((unit) => includeOrder(unit.order_id));
-  const includedLegacy = (legacy || []).filter((row) => includeOrder(row.order_id));
-  const includedUnitIds = new Set(includedUnits.map((unit) => unit.id));
-  const unitById = new Map(includedUnits.map((unit) => [unit.id, unit]));
-  const codeByPositionId = new Map((positionsResult.data || []).map((position) => [position.id, position.code]));
-  const unitCountBySchedule = new Map();
-  for (const unit of includedUnits) {
-    const key = `${unit.order_id}|${unit.order_item_id}|${unit.planned_cast_date}`;
-    unitCountBySchedule.set(key, (unitCountBySchedule.get(key) || 0) + 1);
-  }
-  const existingAllocations = (allocationsResult.data || [])
-    .filter((allocation) => includedUnitIds.has(allocation.production_order_id))
-    .map((allocation) => ({
-      ...allocation,
-      orderId: unitById.get(allocation.production_order_id)?.order_id ?? null,
-      positionCode: codeByPositionId.get(allocation.mold_position_id) ?? null,
-    }))
-    .filter((allocation) => allocation.orderId !== currentOrderId);
+Ü™\ŠHOˆÜ™\‹šYOOH\™Ù]Ü™\’Y
+NÃBˆÛÛœİÛÜÙY\™Ù]^\İÈH[œ]˜[İĞÛÜÙY\™Ù]OOHYH	‰ˆ[Ü™\œËœÛÛYJ
+Ü™\ŠHOˆÜ™\‹šYOOH\™Ù]Ü™\’Y
+NÃBˆYˆ
+]\™Ù]Ü™\ˆ	‰ˆXÛÜÙY\™Ù]^\İÊH›İÈ™]ÈÜ™\”[›š[™Ñ\œ›ÜŠ”YYÈ°èÛÈ[˜ÛÛ˜YÈİH[˜Ù\œ˜YËˆ‹
+NÃBˆYˆ
+\ÜÚ][ÛœÔ™\İ[™]OË›[™İ
+HÃBˆ›İÈ™]ÈÜ™\”[›š[™Ñ\œ›ÜŠ\È]X]›ÈÜÚpéğíY\ÈH[ÛHZ[™H°èÛÈ›Ü˜[HØY\İ˜Y\È›È˜[˜ÛËˆ‹JNÃBˆCBˆ[œİ\™Q›İ\”ÜÚ][ÛœÊÜÚ][ÛœÔ™\İ[™]JNÃBƒBˆËÈHZYÜ˜][ÛˆHXš[]H]\\ÈÛÛHÜ°è\š[ÜÈHØİ\péğèÛÈÜˆ[\˜[ËƒBˆËÈÙHH™\œğèÛÈZ[™H°èÛÈ\İ]™\ˆ[œİ[YKHš[HÛÛœÙ\˜HÈÛÛ\Ü[Y[ÃBˆËÈH]\ÈYØYËˆ]X[™È[œİ[YKÜÈ˜[Ü™\È°ê›H\ÈÛÛœİ[\ÈÈ˜[˜ÛËƒBˆÛÛœİØÛÛœİ[Ô™\İ[Ü™Ø[š^˜][Û”™\İ[HH]ØZ]›ÛZ\ÙK˜[
+ÃBˆ‹™œ›ÛJ˜Ø[İ[][Û—ØÛÛœİ[ÈŠCBˆœÙ[Xİ
+˜ÛÛœİ[ÚÙ^K[Y\šX×İ˜[YK[š]ŠCBˆ™\J›Ü™Ø[š^˜][Û—ÚY‹Ü™Ø[š^˜][Û’Y
+CBˆš[Š˜ÛÛœİ[ÚÙ^H‹È˜Ø\İ[™×Üİ\Úİ\ˆ‹˜Ø\İ[™×Ù\˜][Û—ÛZ[]\È‹˜İ\š[™×Ù\˜][Û—Úİ\œÈ—JKBˆ‹™œ›ÛJ›Ü™Ø[š^˜][ÛœÈŠKœÙ[Xİ
+[Y^›Û™HŠK™\JšY‹Ü™Ø[š^˜][Û’Y
+K›X^X™TÚ[™ÛJ
+KBˆJNÃBˆ]›ÙXİ[Û•[Z[™ÈH[ÃBˆYˆ
+XÛÛœİ[Ô™\İ[™\œ›Üˆ	‰ˆ
+ÛÛœİ[Ô™\İ[™]H×JK›[™İ
+HÃBˆÛÛœİÛÛœİ[ÈH™]ÈX\
 
-  // ProgramaÃ§Ãµes antigas continuam ocupando posiÃ§Ãµes. Quando a mesma data e
-  // item jÃ¡ tÃªm ordens unitÃ¡rias, reserva sÃ³ a diferenÃ§a para nÃ£o contar duas
-  // vezes o resumo legado gravado pela migraÃ§Ã£o 006.
-  const existingSchedules = includedLegacy.flatMap((row) => {
-    const key = `${row.order_id}|${row.order_item_id}|${row.work_date}`;
-    const representedByUnits = unitCountBySchedule.get(key) || 0;
-    const legacyQuantity = Math.max(0, numberOrZero(row.planned_quantity));
-    const remainingQuantity = legacyQuantity - representedByUnits;
-    return remainingQuantity > 0 ? [{ ...row, planned_quantity: remainingQuantity }] : [];
-  });
+ÛÛœİ[Ô™\İ[™]H×JK›X\
 
-  return { existingSchedules, existingAllocations };
-}
+›İÊHOˆÜ›İË˜ÛÛœİ[ÚÙ^K›İ×JJNÃBˆÛÛœİİ\İ\ˆH[X™\ŠÛÛœİ[Ë™Ù]
+˜Ø\İ[™×Üİ\Úİ\ˆŠOË›[Y\šX×İ˜[YJNÃBˆÛÛœİØ\İ[™ÓZ[]\ÈH[X™\ŠÛÛœİ[Ë™Ù]
+˜Ø\İ[™×Ù\˜][Û—ÛZ[]\ÈŠOË›[Y\šX×İ˜[YJNÃBˆÛÛœİİ\š[™Òİ\œÈH[X™\ŠÛÛœİ[Ë™Ù]
+˜İ\š[™×Ù\˜][Û—Úİ\œÈŠOË›[Y\šX×İ˜[YJNÃBˆYˆ
+VÜİ\İ\‹Ø\İ[™ÓZ[]\Ëİ\š[™Òİ\œ×K™]™\J[X™\‹š\Ñš[š]JJHÃBˆ›İÈ™]ÈÜ™\”[›š[™Ñ\œ›ÜŠ\ÈÛÛœİ[\ÈHÜ°è\š[ÜÈH›ÙpéğèÛÈ\İ0èÛÈ[˜ÛÛ\]\Ëˆ‹JNÃBˆCBˆ›ÙXİ[Û•[Z[™ÈHÃBˆØ\İİ\[YNˆ	Ôİš[™ÊX][˜Êİ\İ\ŠJKœYİ\
+‹ŒŠ_NŒBˆØ\İ[™Ñ\˜][Û“Z[]\ÎˆØ\İ[™ÓZ[]\ËBˆİ\š[™Ñ\˜][Û’İ\œÎˆİ\š[™Òİ\œËBˆ[YV›Û™NˆÜ™Ø[š^˜][Û”™\İ[™]OË[Y^›Û™H[Y\šXØKÔØ[×Ô][È‹BˆNÃBˆCBƒBˆÛÛœİÜ™\’YÈHÜ™\œË›X\
 
-/** MantÃ©m a interface antiga, usando agora a fila global de pedidos. */
-export async function buildOrderPlan(options) {
-  const queuePlan = await buildPlanningQueue(options);
-  return queuePlan.targetPlan;
-}
+Ü™\ŠHOˆÜ™\‹šY
+NÃBˆÛÛœİÚ][\Ô™\İ[İ\Y[š]Ô™\İ[İ\YYØXŞT™\İ[İ\Y[ØØ][ÛœÔ™\İ[HH]ØZ]›ÛZ\ÙK˜[
+ÃBˆÜ™\’YË›[™İBˆÈ‹™œ›ÛJ›Ü™\—Ú][\ÈŠCBˆœÙ[Xİ
+šYÜ™\—ÚYYXÙWİ\WÚY]X[]K›ÙXİ[Û—ÛZ[]\×ÜÛ˜\ÚİÙ\]Y[˜ÙHŠCBˆ™\J›Ü™Ø[š^˜][Û—ÚY‹Ü™Ø[š^˜][Û’Y
+CBˆš[Š›Ü™\—ÚY‹Ü™\’YÊCBˆ›Ü™\ŠœÙ\]Y[˜ÙH‹È\ØÙ[™[™ÎˆYHJCBˆ›[Z]
+L
+CBˆˆ›ÛZ\ÙKœ™\ÛÛ™JÈ]Nˆ×K\œ›Üˆ[JKBˆ‹™œ›ÛJœ›ÙXİ[Û—ÛÜ™\œÈŠCBˆœÙ[Xİ
+›Ü™\—ÚYŠCBˆ™\J›Ü™Ø[š^˜][Û—ÚY‹Ü™Ø[š^˜][Û’Y
+CBˆš[Šœİ]\È‹Èš[—Ü›ÙÜ™\ÜÈ‹™Û™H‹œØÜ˜\Y—JCBˆ›[Z]
+L
+KBˆ‹™œ›ÛJœ›ÙXİ[Û—ÜØÚY[\ÈŠCBˆœÙ[Xİ
+›Ü™\—ÚYŠCBˆ™\J›Ü™Ø[š^˜][Û—ÚY‹Ü™Ø[š^˜][Û’Y
+CBˆš[Šœİ]\È‹Èš[—Ü›ÙÜ™\ÜÈ‹™Û™H—JCBˆ›[Z]
+L
+KBˆ‹™œ›ÛJ˜[ØØ][ÛœÈŠCBˆœÙ[Xİ
+œ›ÙXİ[Û—ÛÜ™\—ÚYŠCBˆ™\J›Ü™Ø[š^˜][Û—ÚY‹Ü™Ø[š^˜][Û’Y
+CBˆš[Šœİ]\È‹Èš[—Ü›ÙÜ™\ÜÈ‹™Û™H—JCBˆ›[Z]
+L
+KBˆJNÃBˆ›İÒY‘\œ›ÜŠ][\Ô™\İ[™\œ›Ü‹“°èÛÈ›ÚHÜÜğë]™[Ø\œ™YØ\ˆÜÈ][œÈHš[HŠNÃBˆ›İÒY‘\œ›ÜŠİ\Y[š]Ô™\İ[™\œ›Ü‹“°èÛÈ›ÚHÜÜğë]™[™\šYšXØ\ˆH›ÙpéğèÛÈ[šXÚXYHŠNÃBˆ›İÒY‘\œ›ÜŠİ\YYØXŞT™\İ[™\œ›Ü‹“°èÛÈ›ÚHÜÜğë]™[™\šYšXØ\ˆ\È›ÙÜ˜[XpéğíY\È[H[™[Y[ÈŠNÃBˆ›İÒY‘\œ›ÜŠİ\Y[ØØ][ÛœÔ™\İ[™\œ›Ü‹“°èÛÈ›ÚHÜÜğë]™[™\šYšXØ\ˆ\ÈÜÚpéğíY\È[H›ÙpéğèÛÈŠNÃBƒBˆÛÛœİXİ]™SÜ™\’YÈH™]ÈÙ]
+Ü™\’YÊNÃBˆÛÛœİİ\Y[ØØ][Û•[š]YÈHË‹‹›™]ÈÙ]
 
-/** Reprograma a fila toda que ainda nÃ£o comeÃ§ou, em data e ordem de cadastro. */
-export async function buildPlanningQueue({ db, organizationId, input = {} }) {
-  const targetOrderId = String(input.orderId || "").trim();
-  if (!targetOrderId) throw new OrderPlanningError("orderId Ã© obrigatÃ³rio.", 400);
+İ\Y[ØØ][ÛœÔ™\İ[™]H×JK›X\
 
-  const [ordersResult, settingsResult, positionsResult] = await Promise.all([
-    db.from("orders")
-      .select("id, order_number, client_id, start_date, requested_due_date, planned_end_date, forecast_end_date, status, created_at")
-      .eq("organization_id", organizationId)
-      .eq("is_active", true)
-      .order("start_date", { ascending: true })
-      .order("created_at", { ascending: true })
-      .limit(1000),
-    db.from("calendar_settings")
-      .select("default_capacity_minutes, planning_horizon_days")
-      .eq("organization_id", organizationId)
-      .maybeSingle(),
-    db.from("mold_positions")
-      .select("id, code, status, configuration_kind, braco_catalog_code, leito_catalog_code, lateral_catalog_code")
-      .eq("organization_id", organizationId)
-      .order("code", { ascending: true }),
-  ]);
-  throwIfError(ordersResult.error, "NÃ£o foi possÃ­vel carregar a fila de pedidos");
-  throwIfError(settingsResult.error, "NÃ£o foi possÃ­vel carregar as configuraÃ§Ãµes do calendÃ¡rio");
-  throwIfError(positionsResult.error, "NÃ£o foi possÃ­vel carregar as quatro posiÃ§Ãµes de molde");
+›İÊHOˆ›İËœ›ÙXİ[Û—ÛÜ™\—ÚY
+JWNÃBˆÛÛœİİ\Y[ØØ][Û•[š]Ô™\İ[Hİ\Y[ØØ][Û•[š]YË›[™İBˆÈ]ØZ]‹™œ›ÛJœ›ÙXİ[Û—ÛÜ™\œÈŠCBˆœÙ[Xİ
+›Ü™\—ÚYŠCBˆ™\J›Ü™Ø[š^˜][Û—ÚY‹Ü™Ø[š^˜][Û’Y
+CBˆš[ŠšY‹İ\Y[ØØ][Û•[š]YÊCBˆ›[Z]
+L
+CBˆˆÈ]Nˆ×K\œ›Üˆ[NÃBˆ›İÒY‘\œ›ÜŠİ\Y[ØØ][Û•[š]Ô™\İ[™\œ›Ü‹“°èÛÈ›ÚHÜÜğë]™[ØØ[^˜\ˆÜÈYYÜÈ\ÈÜÚpéğíY\È[H›ÙpéğèÛÈŠNÃBˆÛÛœİİ\YÜ™\’YÈH™]ÈÙ]
+ÃBˆ‹‹Šİ\Y[š]Ô™\İ[™]H×JK›X\
 
-  const allOrders = ordersResult.data || [];
-  const orders = allOrders.filter((order) =>
-    !["cancelado", "entregue", "concluido"].includes(order.status)
-  );
-  const targetOrder = orders.find((order) => order.id === targetOrderId);
-  const closedTargetExists = input.allowClosedTarget === true && allOrders.some((order) => order.id === targetOrderId);
-  if (!targetOrder && !closedTargetExists) throw new OrderPlanningError("Pedido nÃ£o encontrado ou encerrado.", 404);
-  if (!positionsResult.data?.length) {
-    throw new OrderPlanningError("As quatro posiÃ§Ãµes de molde ainda nÃ£o foram cadastradas no banco.", 409);
-  }
-  ensureFourPositions(positionsResult.data);
+›İÊHOˆ›İË›Ü™\—ÚY
+KBˆ‹‹Šİ\YYØXŞT™\İ[™]H×JK›X\
 
-  const orderIds = orders.map((order) => order.id);
-  const [itemsResult, startedUnitsResult, startedLegacyResult, startedAllocationsResult] = await Promise.all([
-    orderIds.length
-      ? db.from("order_items")
-        .select("id, order_id, piece_type_id, quantity, production_minutes_snapshot, sequence")
-        .eq("organization_id", organizationId)
-        .in("order_id", orderIds)
-        .order("sequence", { ascending: true })
-        .limit(10000)
-      : Promise.resolve({ data: [], error: null }),
-    db.from("production_orders")
-      .select("order_id")
-      .eq("organization_id", organizationId)
-      .in("status", ["in_progress", "done", "scrapped"])
-      .limit(10000),
-    db.from("production_schedules")
-      .select("order_id")
-      .eq("organization_id", organizationId)
-      .in("status", ["in_progress", "done"])
-      .limit(10000),
-    db.from("allocations")
-      .select("production_order_id")
-      .eq("organization_id", organizationId)
-      .in("status", ["in_progress", "done"])
-      .limit(10000),
-  ]);
-  throwIfError(itemsResult.error, "NÃ£o foi possÃ­vel carregar os itens da fila");
-  throwIfError(startedUnitsResult.error, "NÃ£o foi possÃ­vel verificar a produÃ§Ã£o iniciada");
-  throwIfError(startedLegacyResult.error, "NÃ£o foi possÃ­vel verificar as programaÃ§Ãµes em andamento");
-  throwIfError(startedAllocationsResult.error, "NÃ£o foi possÃ­vel verificar as posiÃ§Ãµes em produÃ§Ã£o");
+›İÊHOˆ›İË›Ü™\—ÚY
+KBˆ‹‹Šİ\Y[ØØ][Û•[š]Ô™\İ[™]H×JK›X\
 
-  const activeOrderIds = new Set(orderIds);
-  const startedAllocationUnitIds = [...new Set((startedAllocationsResult.data || []).map((row) => row.production_order_id))];
-  const startedAllocationUnitsResult = startedAllocationUnitIds.length
-    ? await db.from("production_orders")
-      .select("order_id")
-      .eq("organization_id", organizationId)
-      .in("id", startedAllocationUnitIds)
-      .limit(10000)
-    : { data: [], error: null };
-  throwIfError(startedAllocationUnitsResult.error, "NÃ£o foi possÃ­vel localizar os pedidos das posiÃ§Ãµes em produÃ§Ã£o");
-  const startedOrderIds = new Set([
-    ...(startedUnitsResult.data || []).map((row) => row.order_id),
-    ...(startedLegacyResult.data || []).map((row) => row.order_id),
-    ...(startedAllocationUnitsResult.data || []).map((row) => row.order_id),
-  ].filter((id) => activeOrderIds.has(id)));
-  if (startedOrderIds.has(targetOrderId)) {
-    throw new OrderPlanningError("Pedido com produÃ§Ã£o iniciada ou concluÃ­da nÃ£o pode ser replanejado.", 409);
-  }
+›İÊHOˆ›İË›Ü™\—ÚY
+KBˆK™š[\Š
+Y
+HOˆXİ]™SÜ™\’YËš\ÊY
+JJNÃBˆYˆ
+İ\YÜ™\’YËš\Ê\™Ù]Ü™\’Y
+JHÃBˆ›İÈ™]ÈÜ™\”[›š[™Ñ\œ›ÜŠ”YYÈÛÛH›ÙpéğèÛÈ[šXÚXYHİHÛÛ˜ÛpëYH°èÛÈÙHÙ\ˆ™\[™Z˜YËˆ‹JNÃBˆCBƒBˆÛÛœİ][QÜ›İ\ÈH™]ÈX\
 
-  const itemGroups = new Map();
-  for (const item of itemsResult.data || []) {
-    const group = itemGroups.get(item.order_id) || [];
-    group.push(item);
-    itemGroups.set(item.order_id, group);
-  }
-  if (targetOrder && !itemGroups.get(targetOrderId)?.length) {
-    throw new OrderPlanningError("O pedido precisa ter ao menos um item.", 422);
-  }
+NÃBˆ›Üˆ
+ÛÛœİ][HÙˆ][\Ô™\İ[™]H×JHÃBˆÛÛœİÜ›İ\H][QÜ›İ\Ë™Ù]
+][K›Ü™\—ÚY
+H×NÃBˆÜ›İ\œ\Ú
+][JNÃBˆ][QÜ›İ\ËœÙ]
+][K›Ü™\—ÚYÜ›İ\
+NÃBˆCBˆYˆ
+\™Ù]Ü™\ˆ	‰ˆZ][QÜ›İ\Ë™Ù]
+\™Ù]Ü™\’Y
+OË›[™İ
+HÃBˆ›İÈ™]ÈÜ™\”[›š[™Ñ\œ›ÜŠ“ÈYYÈ™XÚ\ØH\ˆ[ÈY[›ÜÈ[H][Kˆ‹ŒŠNÃBˆCBƒBˆÛÛœİYXÙU\RYÈHË‹‹›™]ÈÙ]
 
-  const pieceTypeIds = [...new Set((itemsResult.data || []).map((item) => item.piece_type_id))];
-  const piecesResult = pieceTypeIds.length
-    ? await db.from("piece_types")
-      .select("id, code, name, piece_kind, production_minutes_per_unit")
-      .eq("organization_id", organizationId)
-      .in("id", pieceTypeIds)
-    : { data: [], error: null };
-  throwIfError(piecesResult.error, "NÃ£o foi possÃ­vel carregar as peÃ§as da fila");
-  const pieceById = new Map((piecesResult.data || []).map((piece) => [piece.id, piece]));
-  const requirementsResult = pieceTypeIds.length
-    ? await db.from("piece_type_molds")
-      .select("piece_type_id, role, catalog_code")
-      .eq("organization_id", organizationId)
-      .in("piece_type_id", pieceTypeIds)
-      .limit(5000)
-    : { data: [], error: null };
-  throwIfError(requirementsResult.error, "NÃ£o foi possÃ­vel carregar os moldes exigidos pelas peÃ§as");
-  const requiredMoldsByPiece = new Map();
-  for (const requirement of requirementsResult.data || []) {
-    const required = requiredMoldsByPiece.get(requirement.piece_type_id) || [];
-    required.push(requirement.catalog_code);
-    requiredMoldsByPiece.set(requirement.piece_type_id, required);
-  }
+][\Ô™\İ[™]H×JK›X\
 
-  const configuredHorizon = positiveSetting(settingsResult.data?.planning_horizon_days, 365);
-  const queue = orders
-    .filter((order) => itemGroups.get(order.id)?.length && !startedOrderIds.has(order.id))
-    .map((order) => {
-      const startDate = normalizeDate(
-        order.id === targetOrderId
-          ? input.startDate || order.start_date || todaySaoPaulo()
-          : order.start_date || todaySaoPaulo(),
-        "data de inÃ­cio",
-      );
-      const rawDueDate = order.id === targetOrderId && input.requestedDueDate !== undefined
-        ? input.requestedDueDate
-        : order.requested_due_date;
-      const dueDate = rawDueDate ? normalizeDate(rawDueDate, "prazo de entrega") : null;
-      if (dueDate && dueDate < startDate) {
-        throw new OrderPlanningError(`O prazo do pedido ${order.id} nÃ£o pode ser anterior ao inÃ­cio.`, 422);
-      }
-      const dueHorizon = dueDate ? daysBetween(startDate, dueDate) + 1 : 1;
-      if (order.id === targetOrderId && dueHorizon > 730) {
-        throw new OrderPlanningError("O prazo solicitado ultrapassa o horizonte mÃ¡ximo de 730 dias.", 422);
-      }
-      return {
-        ...order,
-        startDate,
-        dueDate,
-        horizonDays: Math.min(730, Math.max(configuredHorizon, Math.min(730, dueHorizon))),
-      };
-    })
-    .sort((left, right) =>
-      left.startDate.localeCompare(right.startDate) ||
-      String(left.created_at || "").localeCompare(String(right.created_at || "")) ||
-      left.id.localeCompare(right.id)
-    );
+][JHOˆ][KœYXÙWİ\WÚY
+JWNÃBˆÛÛœİYXÙ\Ô™\İ[HYXÙU\RYË›[™İBˆÈ]ØZ]‹™œ›ÛJœYXÙWİ\\ÈŠCBˆœÙ[Xİ
+šYÛÙK˜[YKYXÙWÚÚ[™›ÙXİ[Û—ÛZ[]\×Ü\—İ[š]ŠCBˆ™\J›Ü™Ø[š^˜][Û—ÚY‹Ü™Ø[š^˜][Û’Y
+CBˆš[ŠšY‹YXÙU\RYÊCBˆˆÈ]Nˆ×K\œ›Üˆ[NÃBˆ›İÒY‘\œ›ÜŠYXÙ\Ô™\İ[™\œ›Ü‹“°èÛÈ›ÚHÜÜğë]™[Ø\œ™YØ\ˆ\ÈpéØ\ÈHš[HŠNÃBˆÛÛœİYXÙPRYH™]ÈX\
 
-  if (!queue.length && closedTargetExists) {
-    return {
-      targetPlan: null,
-      plans: [],
-      queue: { replanOrderCount: 0, lockedOrderCount: startedOrderIds.size, infeasibleOrderIds: [] },
-      removedTargetFromPlan: true,
-      generatedAt: new Date().toISOString(),
-    };
-  }
+YXÙ\Ô™\İ[™]H×JK›X\
 
-  const firstDate = queue.map((order) => order.startDate).sort()[0];
-  const lastDate = queue.map((order) => addDays(order.startDate, order.horizonDays + 10)).sort().at(-1);
-  const calendarDays = await loadCalendarDays({
-    db,
-    organizationId,
-    startDate: firstDate,
-    endDate: lastDate,
-    settings: settingsResult.data || { default_capacity_minutes: 480 },
-  });
+YXÙJHOˆÜYXÙKšYYXÙWJJNÃBˆÛÛœİ™\]Z\™[Y[Ô™\İ[HYXÙU\RYË›[™İBˆÈ]ØZ]‹™œ›ÛJœYXÙWİ\WÛ[ÛÈŠCBˆœÙ[Xİ
+œYXÙWİ\WÚY›ÛKØ][Ù×ØÛÙHŠCBˆ™\J›Ü™Ø[š^˜][Û—ÚY‹Ü™Ø[š^˜][Û’Y
+CBˆš[ŠœYXÙWİ\WÚY‹YXÙU\RYÊCBˆ›[Z]
+L
+CBˆˆÈ]Nˆ×K\œ›Üˆ[NÃBˆ›İÒY‘\œ›ÜŠ™\]Z\™[Y[Ô™\İ[™\œ›Ü‹“°èÛÈ›ÚHÜÜğë]™[Ø\œ™YØ\ˆÜÈ[Û\È^YÚYÜÈ[\ÈpéØ\ÈŠNÃBˆÛÛœİ™\]Z\™Y[ÛĞTYXÙHH™]ÈX\
 
-  const { existingSchedules, existingAllocations } = await loadExistingReservations({
-    db,
-    organizationId,
-    startDate: firstDate,
-    endDate: lastDate,
-    onlyOrderIds: startedOrderIds,
-  });
-  const reservedAllocations = [...existingAllocations];
-  const committedPlans = [];
-  let targetPlan = null;
+NÃBˆ›Üˆ
+ÛÛœİ™\]Z\™[Y[Ùˆ™\]Z\™[Y[Ô™\İ[™]H×JHÃBˆÛÛœİ™\]Z\™YH™\]Z\™Y[ÛĞTYXÙK™Ù]
+™\]Z\™[Y[œYXÙWİ\WÚY
+H×NÃBˆ™\]Z\™Yœ\Ú
+™\]Z\™[Y[˜Ø][Ù×ØÛÙJNÃBˆ™\]Z\™Y[ÛĞTYXÙKœÙ]
+™\]Z\™[Y[œYXÙWİ\WÚY™\]Z\™Y
+NÃBˆCBƒBˆÛÛœİÛÛ™šYİ\™YÜš^›ÛˆHÜÚ]]™TÙ][™ÊÙ][™ÜÔ™\İ[™]OËœ[›š[™×ÚÜš^›Û—Ù^\ËÍJNÃBˆÛÛœİ]Y]YHHÜ™\œÃBˆ™š[\Š
+Ü™\ŠHOˆ][QÜ›İ\Ë™Ù]
+Ü™\‹šY
+OË›[™İ	‰ˆ\İ\YÜ™\’YËš\ÊÜ™\‹šY
+JCBˆ›X\
 
-  for (const order of queue) {
-    if (startedOrderIds.has(order.id)) continue;
-    const plannerItems = (itemGroups.get(order.id) || []).map((item) => {
-      const piece = pieceById.get(item.piece_type_id);
-      if (!piece) throw new OrderPlanningError(`PeÃ§a ${item.piece_type_id} nÃ£o encontrada.`, 422);
-      return {
-        itemId: item.id,
-        pieceTypeId: item.piece_type_id,
-        code: piece.code,
-        name: piece.name,
-        requiredMoldCodes: requiredMoldsByPiece.get(item.piece_type_id) || [],
-        requiresMoldConfig: ["braco", "pilar", "viga"].includes(piece.piece_kind),
-        quantity: item.quantity,
-        curingDays: DEFAULT_CURING_DAYS,
-        productionMinutesSnapshot: numberOrZero(item.production_minutes_snapshot) ||
-          numberOrZero(piece.production_minutes_per_unit),
-      };
-    });
-    let plan;
-    try {
-      plan = planOrder({
-        calendarDays,
-        items: plannerItems,
-        existingSchedules,
-        existingAllocations: reservedAllocations,
-        positions: positionsResult.data,
-        startDate: order.startDate,
-        dueDate: order.dueDate,
-        planningHorizonDays: order.horizonDays,
-      });
-    } catch (error) {
-      if (error instanceof PlannerError) throw new OrderPlanningError(error.message, error.status, error.details);
-      throw error;
-    }
-    plan.order = {
-      id: order.id,
-      orderNumber: order.order_number,
-      clientId: order.client_id,
-      status: order.status,
-      previousPlannedEndDate: order.planned_end_date,
-      previousForecastEndDate: order.forecast_end_date,
-      createdAt: order.created_at,
-    };
-    committedPlans.push({ orderId: order.id, plan });
-    if (order.id === targetOrderId) targetPlan = plan;
-    for (const unit of plan.units) {
-      reservedAllocations.push({
-        orderId: order.id,
-        scheduled_date: unit.castDate,
-        positionCode: unit.positionCode,
-        status: "planned",
-      });
-    }
-  }
+Ü™\ŠHOˆÃBˆÛÛœİİ\]HH›Ü›X[^™Q]JBˆÜ™\‹šYOOH\™Ù]Ü™\’YBˆÈ[œ]œİ\]HÜ™\‹œİ\Ù]HÙ^TØ[Ô][Ê
+CBˆˆÜ™\‹œİ\Ù]HÙ^TØ[Ô][Ê
+KBˆ™]HH[°ëXÚ[È‹Bˆ
+NÃBˆÛÛœİ˜]ÑYQ]HHÜ™\‹šYOOH\™Ù]Ü™\’Y	‰ˆ[œ]œ™\]Y\İYYQ]HOOH[™Yš[™YBˆÈ[œ]œ™\]Y\İYYQ]CBˆˆÜ™\‹œ™\]Y\İYÙYWÙ]NÃBˆÛÛœİYQ]HH˜]ÑYQ]HÈ›Ü›X[^™Q]J˜]ÑYQ]Kœ˜^›ÈH[™YØHŠHˆ[ÃBˆYˆ
+YQ]H	‰ˆYQ]Hİ\]JHÃBˆ›İÈ™]ÈÜ™\”[›š[™Ñ\œ›ÜŠÈ˜^›ÈÈYYÈ	ÛÜ™\‹šYH°èÛÈÙHÙ\ˆ[\š[Üˆ[È[°ëXÚ[Ë˜ŒŠNÃBˆCBˆÛÛœİYRÜš^›ÛˆHYQ]HÈ^\Ğ™]ÙY[Šİ\]KYQ]JH
+ÈHˆNÃBˆYˆ
+Ü™\‹šYOOH\™Ù]Ü™\’Y	‰ˆYRÜš^›ÛˆˆÌÌ
+HÃBˆ›İÈ™]ÈÜ™\”[›š[™Ñ\œ›ÜŠ“È˜^›ÈÛÛXÚ]YÈ[˜\\ÜØHÈÜš^›ÛHpè^[[ÈHÌÌX\Ëˆ‹ŒŠNÃBˆCBˆ™]\›ˆÃBˆ‹‹›Ü™\‹Bˆİ\]KBˆYQ]KBˆÜš^›Û‘^\ÎˆX]›Z[ŠÌÌX]›X^
+ÛÛ™šYİ\™YÜš^›Û‹X]›Z[ŠÌÌYRÜš^›ÛŠJJKBˆNÃBˆJCBˆœÛÜ
 
-  if (!targetPlan && !closedTargetExists) throw new OrderPlanningError("NÃ£o foi possÃ­vel calcular o pedido solicitado.", 422);
-  const infeasiblePlans = committedPlans.filter((entry) => !entry.plan.feasible);
-  return {
-    targetPlan,
-    plans: committedPlans,
-    queue: {
-      replanOrderCount: committedPlans.length,
-      lockedOrderCount: startedOrderIds.size,
-      infeasibleOrderIds: infeasiblePlans.map((entry) => entry.orderId),
-    },
-    removedTargetFromPlan: closedTargetExists,
-    generatedAt: new Date().toISOString(),
-  };
-}
+YšYÚ
+HOƒBˆYœİ\]K›ØØ[PÛÛ\\™JšYÚœİ\]JHBˆİš[™ÊY˜Ü™X]YØ]ˆŠK›ØØ[PÛÛ\\™Jİš[™ÊšYÚ˜Ü™X]YØ]ˆŠJHBˆYšY›ØØ[PÛÛ\\™JšYÚšY
+CBˆ
+NÃBƒBˆYˆ
+\]Y]YK›[™İ	‰ˆÛÜÙY\™Ù]^\İÊHÃBˆ™]\›ˆÃBˆ\™Ù][ˆ[Bˆ[œÎˆ×KBˆ]Y]YNˆÈ™\[“Ü™\Ûİ[ˆØÚÙYÜ™\Ûİ[ˆİ\YÜ™\’YËœÚ^™K[™™X\ÚX›SÜ™\’YÎˆ×HKBˆ™[[İ™Y\™Ù]œ›ÛT[ˆYKBˆÙ[™\˜]Y]ˆ™]È]J
+KÒTÓÔİš[™Ê
+KBˆNÃBˆCBƒBˆÛÛœİš\œİ]HH]Y]YK›X\
+
+Ü™\ŠHOˆÜ™\‹œİ\]JKœÛÜ
+
+VÌNÃBˆÛÛœİ\İ]HH]Y]YK›X\
+
+Ü™\ŠHOˆY^\ÊÜ™\‹œİ\]KÜ™\‹šÜš^›Û‘^\È
+ÈL
+JKœÛÜ
+
+K˜]
+LJNÃBˆÛÛœİØ[[™\‘^\ÈH]ØZ]ØYØ[[™\‘^\ÊÃBˆ‹BˆÜ™Ø[š^˜][Û’YBˆİ\]Nˆš\œİ]KBˆ[™]Nˆ\İ]KBˆÙ][™ÜÎˆÙ][™ÜÔ™\İ[™]HÈY˜][ØØ\XÚ]WÛZ[]\ÎˆKBˆJNÃBƒBˆÛÛœİÈ^\İ[™ÔØÚY[\Ë^\İ[™Ğ[ØØ][ÛœÈHH]ØZ]ØY^\İ[™Ô™\Ù\˜][ÛœÊÃBˆ‹BˆÜ™Ø[š^˜][Û’YBˆİ\]Nˆš\œİ]KBˆ[™]Nˆ\İ]KBˆÛ›SÜ™\’YÎˆİ\YÜ™\’YËBˆJNÃBˆÛÛœİ™\Ù\™Y[ØØ][ÛœÈHË‹‹™^\İ[™Ğ[ØØ][Ûœ×NÃBˆÛÛœİÛÛ[Z]Y[œÈH×NÃBˆ]\™Ù][ˆH[ÃBƒBˆ›Üˆ
+ÛÛœİÜ™\ˆÙˆ]Y]YJHÃBˆYˆ
+İ\YÜ™\’YËš\ÊÜ™\‹šY
+JHÛÛ[YNÃBˆÛÛœİ[›™\’][\ÈH
+][QÜ›İ\Ë™Ù]
+Ü™\‹šY
+H×JK›X\
+
+][JHOˆÃBˆÛÛœİYXÙHHYXÙPRY™Ù]
+][KœYXÙWİ\WÚY
+NÃBˆYˆ
+\YXÙJH›İÈ™]ÈÜ™\”[›š[™Ñ\œ›ÜŠpéØH	Ú][KœYXÙWİ\WÚYH°èÛÈ[˜ÛÛ˜YK˜ŒŠNÃBˆ™]\›ˆÃBˆ][RYˆ][KšYBˆYXÙU\RYˆ][KœYXÙWİ\WÚYBˆYXÙRÚ[™ˆYXÙKœYXÙWÚÚ[™BˆÛÙNˆYXÙK˜ÛÙKBˆ˜[YNˆYXÙK›˜[YKBˆ™\]Z\™Y[ÛÛÙ\Îˆ™\]Z\™Y[ÛĞTYXÙK™Ù]
+][KœYXÙWİ\WÚY
+H×KBˆ™\]Z\™\Ó[ÛÛÛ™šYÎˆÈ˜œ˜XÛÈ‹œ[\ˆ‹šYØH‹œXØH—Kš[˜ÛY\ÊYXÙKœYXÙWÚÚ[™
+KBˆ]X[]Nˆ][Kœ]X[]KBˆİ\š[™Ñ^\ÎˆQUSĞÕT’S‘×ÑVTËBˆ›ÙXİ[Û“Z[]\ÔÛ˜\Úİˆ[X™\“Ü–™\›Ê][Kœ›ÙXİ[Û—ÛZ[]\×ÜÛ˜\Úİ
+HBˆ[X™\“Ü–™\›ÊYXÙKœ›ÙXİ[Û—ÛZ[]\×Ü\—İ[š]
+KBˆNÃBˆJNÃBˆ][ÃBˆHÃBˆ[ˆH[“Ü™\ŠÃBˆØ[[™\‘^\ËBˆ][\Îˆ[›™\’][\ËBˆ^\İ[™ÔØÚY[\ËBˆ^\İ[™Ğ[ØØ][ÛœÎˆ™\Ù\™Y[ØØ][ÛœËBˆÜÚ][ÛœÎˆÜÚ][ÛœÔ™\İ[™]KBˆİ\]NˆÜ™\‹œİ\]KBˆYQ]NˆÜ™\‹™YQ]KBˆ[›š[™ÒÜš^›Û‘^\ÎˆÜ™\‹šÜš^›Û‘^\ËBˆ›ÙXİ[Û•[Z[™ËBˆJNÃBˆHØ]Ú
+\œ›ÜŠHÃBˆYˆ
+\œ›Üˆ[œİ[˜Ù[Ùˆ[›™\‘\œ›ÜŠH›İÈ™]ÈÜ™\”[›š[™Ñ\œ›ÜŠ\œ›Ü‹›Y\ÜØYÙK\œ›Ü‹œİ]\Ë\œ›Ü‹™]Z[ÊNÃBˆ›İÈ\œ›ÜÃBˆCBˆ[‹›Ü™\ˆHÃBˆYˆÜ™\‹šYBˆÜ™\“[X™\ˆÜ™\‹›Ü™\—Û[X™\‹BˆÛY[YˆÜ™\‹˜ÛY[ÚYBˆİ]\ÎˆÜ™\‹œİ]\ËBˆ™]š[İ\Ô[›™Y[™]NˆÜ™\‹œ[›™YÙ[™Ù]KBˆ™]š[İ\Ñ›Ü™XØ\İ[™]NˆÜ™\‹™›Ü™XØ\İÙ[™Ù]KBˆÜ™X]Y]ˆÜ™\‹˜Ü™X]YØ]BˆNÃBˆÛÛ[Z]Y[œËœ\Ú
+ÈÜ™\’YˆÜ™\‹šY[ˆJNÃBˆYˆ
+Ü™\‹šYOOH\™Ù]Ü™\’Y
+H\™Ù][ˆH[ÃBˆ›Üˆ
+ÛÛœİ[š]Ùˆ[‹[š]ÊHÃBˆ™\Ù\™Y[ØØ][ÛœËœ\Ú
+ÃBˆÜ™\’YˆÜ™\‹šYBˆØÚY[YÙ]Nˆ[š]˜Ø\İ]KBˆÜÚ][ÛÛÙNˆ[š]œÜÚ][ÛÛÙKBˆİ]\Îˆœ[›™Y‹BˆJNÃBˆCBˆCBƒBˆYˆ
+]\™Ù][ˆ	‰ˆXÛÜÙY\™Ù]^\İÊH›İÈ™]ÈÜ™\”[›š[™Ñ\œ›ÜŠ“°èÛÈ›ÚHÜÜğë]™[Ø[İ[\ˆÈYYÈÛÛXÚ]YËˆ‹ŒŠNÃBˆÛÛœİ[™™X\ÚX›T[œÈHÛÛ[Z]Y[œË™š[\Š
+[JHOˆY[Kœ[‹™™X\ÚX›JNÃBˆ™]\›ˆÃBˆ\™Ù][‹Bˆ[œÎˆÛÛ[Z]Y[œËBˆ]Y]YNˆÃBˆ™\[“Ü™\Ûİ[ˆÛÛ[Z]Y[œË›[™İBˆØÚÙYÜ™\Ûİ[ˆİ\YÜ™\’YËœÚ^™KBˆ[™™X\ÚX›SÜ™\’YÎˆ[™™X\ÚX›T[œË›X\
+
+[JHOˆ[K›Ü™\’Y
+KBˆKBˆ™[[İ™Y\™Ù]œ›ÛT[ˆÛÜÙY\™Ù]^\İËBˆÙ[™\˜]Y]ˆ™]È]J
+KÒTÓÔİš[™Ê
+KBˆNÃBŸCB

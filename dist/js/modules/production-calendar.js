@@ -1,1081 +1,1031 @@
-/*
- * MÃ³dulo de planejamento da produÃ§Ã£o.
- * Renderiza as visÃµes do calendÃ¡rio e coordena o planejador de pedidos.
- * Acesso remoto passa pelo repositÃ³rio; navegaÃ§Ã£o, pelo mÃ³dulo central.
- */
-(function productionCalendarModule() {
-  const $ = (id) => document.getElementById(id);
-  // Estado da Ã¡rea: dados carregados, visÃ£o selecionada e modais atualmente abertos.
-  const state = {
-    mode: "month",
-    days: [],
-    exceptions: [],
-    orders: [],
-    works: [],
-    schedules: [],
-    productionOrders: [],
-    positions: [],
-    capacityByPositions: [],
-    unitPlanningAvailable: false,
-    startedOrderIds: [],
-    settings: { default_capacity_minutes: 480, rules: [] },
-    selectedDate: null,
-    editingActivityId: null,
-    pendingPlan: null,
-    pendingOrderId: null,
-    dragContext: null,
-    refreshPromise: null,
-    refreshPending: false,
-  };
-  const activeStatuses = new Set(["orcamento", "aprovado", "em_producao", "atrasado"]);
-  const terminalStatuses = new Set(["concluido", "entregue", "cancelado"]);
-  const activityKindLabels = {
-    feriado: "Feriado",
-    dia_extra: "Dia extra",
-    parada: "Parada",
-    manutencao: "ManutenÃ§Ã£o",
-    folga_coletiva: "Folga coletiva",
-    personalizada: "Personalizada",
-  };
-
-  // FormataÃ§Ã£o de datas, perÃ­odos e textos compartilhada pelas trÃªs visÃµes.
-  function escapeHtml(value) {
-    return String(value ?? "").replace(/[&<>"']/g, (character) => ({
-      "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
-    })[character]);
-  }
-
-  function localToday() {
-    const now = new Date();
-    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
-  }
-
-  function anchorDate() {
-    if (!$('planningAnchor').value) $('planningAnchor').value = localToday();
-    return $('planningAnchor').value;
-  }
-
-  function isoDate(date) {
-    return date.toISOString().slice(0, 10);
-  }
-
-  function addDays(value, amount) {
-    const date = new Date(`${value}T00:00:00.000Z`);
-    date.setUTCDate(date.getUTCDate() + amount);
-    return isoDate(date);
-  }
-
-  function dateDistance(start, end) {
-    return Math.round((new Date(`${end}T00:00:00.000Z`) - new Date(`${start}T00:00:00.000Z`)) / 86400000);
-  }
-
-  function monthBounds(value = anchorDate()) {
-    const [year, month] = value.split("-").map(Number);
-    return {
-      start: `${year}-${String(month).padStart(2, "0")}-01`,
-      end: isoDate(new Date(Date.UTC(year, month, 0))),
-    };
-  }
-
-  function weekBounds(value = anchorDate()) {
-    const weekday = new Date(`${value}T00:00:00.000Z`).getUTCDay();
-    const mondayOffset = (weekday + 6) % 7;
-    const start = addDays(value, -mondayOffset);
-    return { start, end: addDays(start, 6) };
-  }
-
-  function visibleBounds() {
-    return state.mode === "week" ? weekBounds() : monthBounds();
-  }
-
-  function formatDateBR(value) {
-    const [year, month, day] = String(value || "").split("-");
-    return day && month && year ? `${day}/${month}/${year}` : "â€”";
-  }
-
-  function formatOrder(order) {
-    const reference = order?.order_number || "Pedido sem nÃºmero";
-    return [reference, order?.work_name, order?.client_name].filter(Boolean).join(" Â· ");
-  }
-
-  function orderById(orderId) {
-    return state.orders.find((order) => order.id === orderId) || null;
-  }
-
-  function dateSpan(record) {
-    const start = record?.start_date || record?.requested_due_date;
-    const end = record?.requested_due_date || record?.start_date;
-    if (!start || !end) return null;
-    return start <= end ? { start, end } : { start: end, end: start };
-  }
-
-  function spanContains(record, date) {
-    const span = dateSpan(record);
-    return Boolean(span && date >= span.start && date <= span.end);
-  }
-
-  function spanOverlaps(record, start, end) {
-    const span = dateSpan(record);
-    return Boolean(span && span.start <= end && span.end >= start);
-  }
-
-  function activeCalendarOrders() {
-    return state.orders.filter((order) => activeStatuses.has(order.status) && !terminalStatuses.has(order.status));
-  }
-
-  function activeCalendarWorks() {
-    return state.works.filter((work) => ["planejamento", "ativa"].includes(work.status));
-  }
-
-  function orderWindowLabel(order) {
-    const span = dateSpan(order);
-    const period = span
-      ? `${formatDateBR(span.start)}${span.end !== span.start ? ` a ${formatDateBR(span.end)}` : ""}`
-      : "sem datas cadastradas";
-    return `Pedido Â· ${formatOrder(order)} Â· ${period}`;
-  }
-
-  function workWindowLabel(work) {
-    const span = dateSpan(work);
-    const period = span
-      ? `${formatDateBR(span.start)}${span.end !== span.start ? ` a ${formatDateBR(span.end)}` : ""}`
-      : "sem datas cadastradas";
-    return `Obra Â· ${work.work_number || work.name}${work.work_number ? ` Â· ${work.name}` : ""} Â· ${period}`;
-  }
-
-  function orderSchedules(orderId) {
-    return state.schedules.filter((schedule) => schedule.order_id === orderId);
-  }
-
-  function scheduleLabel(schedule) {
-    const order = orderById(schedule.order_id);
-    const piece = [schedule.piece_code, schedule.piece_name].filter(Boolean).join(" Â· ");
-    return `${formatOrder(order)}${piece ? ` Â· ${piece}` : ""} Â· ${schedule.planned_quantity} un.`;
-  }
-
-  function getDay(date) {
-    return state.days.find((day) => day.date === date) || null;
-  }
-
-  function exceptionsForDate(date) {
-    return state.exceptions
-      .filter((item) => item.start_date <= date && item.end_date >= date)
-      .sort((a, b) => Number(b.priority || 0) - Number(a.priority || 0));
-  }
-
-  function schedulesForDate(date) {
-    return state.schedules.filter((schedule) => schedule.work_date === date);
-  }
-
-  const DEFAULT_POSITION_CODES = ["P01", "P02", "P03", "P04"];
-
-  function activePositionCount() {
-    const unavailable = new Set(state.positions
-      .filter((position) => position.status === "em_manutencao")
-      .map((position) => position.code));
-    return DEFAULT_POSITION_CODES.filter((code) => !unavailable.has(code)).length;
-  }
-
-  function productionUnitsForDate(date) {
-    return state.productionOrders.filter((unit) => unit.planned_cast_date === date);
-  }
-
-  function useLegacyScheduleView() {
-    return !state.unitPlanningAvailable || (!state.productionOrders.length && state.schedules.length > 0);
-  }
-
-  function positionStats(date) {
-    const day = getDay(date) || { is_working: false };
-    const positionCount = activePositionCount();
-    const capacity = state.capacityByPositions.find((item) => item.date === date);
-    const plannedUnits = !useLegacyScheduleView()
-      ? productionUnitsForDate(date).length
-      : schedulesForDate(date).reduce((sum, schedule) => sum + Math.max(0, Number(schedule.planned_quantity) || 0), 0);
-    const assignedPositions = !useLegacyScheduleView()
-      ? new Set(productionUnitsForDate(date).map((unit) => unit.position_code).filter(Boolean)).size
-      : schedulesForDate(date).reduce((sum, schedule) => sum + Math.max(0, Number(schedule.planned_quantity) || 0), 0);
-    const occupied = Math.max(Number(capacity?.occupied_positions) || 0, assignedPositions, plannedUnits);
-    const available = day.is_working ? positionCount : 0;
-    return {
-      positionCount,
-      plannedUnits,
-      occupied,
-      available,
-      overCapacity: occupied > available,
-    };
-  }
-
-  function unitOrder(unit) {
-    return unit.order_id || "";
-  }
-
-  function unitPieceLabel(unit) {
-    return unit.piece_code || unit.piece_name || "PeÃ§a";
-  }
-
-  function phaseEventsForDate(date) {
-    if (useLegacyScheduleView()) {
-      return schedulesForDate(date).map((schedule) => ({ kind: "casting", value: schedule, quantity: Number(schedule.planned_quantity) || 0 }));
-    }
-    const units = state.productionOrders;
-    const result = [];
-    const groups = new Map();
-    const addGroup = (kind, unit, keyPart = "") => {
-      const orderId = unitOrder(unit);
-      const key = `${kind}|${orderId}|${unitPieceLabel(unit)}|${keyPart}`;
-      const group = groups.get(key) || { kind, value: unit, quantity: 0 };
-      group.quantity += 1;
-      groups.set(key, group);
-    };
-    for (const unit of units) {
-      if (unit.planned_cast_date === date) addGroup("casting", unit, unit.position_code || "unallocated");
-      if (unit.planned_cure_start_date && unit.planned_cure_end_date && date >= unit.planned_cure_start_date && date <= unit.planned_cure_end_date) {
-        addGroup("curing", unit);
-      }
-      if (unit.planned_finish_date === date) addGroup("finish", unit);
-    }
-    result.push(...groups.values());
-    return result;
-  }
-
-  function phaseEventLabel(event) {
-    const value = event.value;
-    const order = orderById(unitOrder(value));
-    const reference = order?.order_number || "Pedido";
-    const piece = value.piece_code || value.piece_name || "PeÃ§a";
-    if (event.kind === "casting") {
-      const position = value.position_code || "sem posiÃ§Ã£o";
-      return `${position} Â· ${reference} Â· ${piece}${event.quantity > 1 ? ` Ã—${event.quantity}` : ""}`;
-    }
-    return `${event.kind === "curing" ? "Cura" : "Acabamento"} Â· ${reference} Â· ${piece}${event.quantity > 1 ? ` Ã—${event.quantity}` : ""}`;
-  }
-
-  function showStatus(id, message, isError = false) {
-    const element = $(id);
-    element.textContent = message;
-    element.classList.toggle("show", Boolean(message));
-    element.classList.toggle("error", Boolean(isError));
-  }
-
-  // RenderizaÃ§Ã£o: transforma os dados do calendÃ¡rio em blocos HTML acessÃ­veis.
-  function renderDay(date, options = {}) {
-    const day = getDay(date) || { is_working: false, capacity_minutes: 0 };
-    const stats = positionStats(date);
-    const occupancy = stats.positionCount ? Math.round(stats.occupied / stats.positionCount * 100) : 0;
-    const width = Math.min(100, occupancy);
-    const occupancyClass = stats.overCapacity ? "over" : occupancy >= 75 ? "high" : "";
-    const activities = exceptionsForDate(date);
-    const note = activities[0]?.name || day.note || "";
-    const todayClass = date === localToday() ? "today" : "";
-    const selectedClass = date === state.selectedDate ? "selected" : "";
-    const nonWorkingClass = day.is_working ? "" : "non-working";
-    const activityLabel = note ? `<span class="calendar-day-activity" title="${escapeHtml(note)}">${escapeHtml(note)}</span>` : "";
-    const datePhases = phaseEventsForDate(date);
-    const scheduledOrderIds = new Set(datePhases.map((event) => unitOrder(event.value)).filter(Boolean));
-    const dateOrders = activeCalendarOrders().filter((order) =>
-      spanContains(order, date) && !scheduledOrderIds.has(order.id)
-    );
-    const dateWorks = activeCalendarWorks().filter((work) => spanContains(work, date));
-    const events = [
-      ...datePhases,
-      ...dateOrders.map((order) => ({ kind: "order", value: order })),
-      ...dateWorks.map((work) => ({ kind: "work", value: work })),
-    ];
-    const eventLimit = options.week ? 8 : 3;
-    const eventRows = events.slice(0, eventLimit).map((event) => {
-      if (event.kind === "order") {
-        return `<span class="calendar-window-event order-window" title="${escapeHtml(orderWindowLabel(event.value))}">Pedido Â· ${escapeHtml(event.value.order_number || "Sem nÃºmero")}</span>`;
-      }
-      if (event.kind === "work") {
-        const work = event.value;
-        return `<span class="calendar-window-event work-window" title="${escapeHtml(workWindowLabel(work))}">Obra Â· ${escapeHtml(work.work_number || work.name)}</span>`;
-      }
-      const value = event.value;
-      const orderId = unitOrder(value);
-      const order = orderById(orderId);
-      const isCasting = event.kind === "casting";
-      const statusClass = value.status === "in_progress" ? "in-progress" : value.status === "done" ? "done" : "";
-      const canDrag = isCasting && value.status === "planned" && orderId && !state.startedOrderIds.includes(orderId);
-      const className = event.kind === "casting" ? "casting-event" : event.kind === "curing" ? "curing-event" : "finish-event";
-      const title = `${phaseEventLabel(event)} Â· ${formatDateBR(date)}${event.kind === "curing" ? " Â· cura nÃ£o ocupa posiÃ§Ã£o" : ""}`;
-      const label = !useLegacyScheduleView() ? phaseEventLabel(event) : `${formatOrder(order)} Â· ${value.piece_code || "produÃ§Ã£o"} Â· ${Number(value.planned_quantity)} un.`;
-      return `<button class="calendar-event ${className} ${statusClass}" type="button" data-order-event="${escapeHtml(orderId)}" data-work-date="${date}" title="${escapeHtml(title)}"${canDrag ? ' draggable="true"' : ""}>${escapeHtml(label)}</button>`;
-    }).join("");
-    const remainingEvents = events.length - eventLimit;
-    const positionLabel = day.is_working
-      ? `${stats.occupied}/${stats.positionCount} posiÃ§Ãµes${stats.overCapacity ? " Â· conflito" : ""}`
-      : stats.plannedUnits ? `Sem produÃ§Ã£o Â· ${stats.plannedUnits} concretagem(ns)` : "Sem produÃ§Ã£o";
-    return `<div class="calendar-day ${nonWorkingClass} ${todayClass} ${selectedClass}" role="button" tabindex="0" data-calendar-date="${date}" title="Abrir ajustes de ${formatDateBR(date)}"><span class="calendar-day-head"><span class="calendar-day-number">${Number(date.slice(-2))}</span><span class="calendar-day-status">${day.is_working ? "Ãºtil" : "parado"}</span></span><span class="calendar-day-capacity ${stats.overCapacity ? "position-conflict" : ""}">${positionLabel}</span>${activityLabel}<span class="calendar-day-occupancy"><i class="${occupancyClass}" style="width:${width}%"></i></span><div class="calendar-events">${eventRows}${remainingEvents > 0 ? `<span class="calendar-event-more">+${remainingEvents} etapas</span>` : ""}</div></div>`;
-  }
-
-  function renderMonth() {
-    const { start, end } = monthBounds();
-    const firstWeekday = (new Date(`${start}T00:00:00.000Z`).getUTCDay() + 6) % 7;
-    const daysCount = dateDistance(start, end) + 1;
-    const weekdays = ["Seg", "Ter", "Qua", "Qui", "Sex", "SÃ¡b", "Dom"];
-    let html = weekdays.map((day) => `<div class="calendar-weekday">${day}</div>`).join("");
-    html += Array.from({ length: firstWeekday }, () => '<div class="calendar-empty"></div>').join("");
-    for (let offset = 0; offset < daysCount; offset += 1) html += renderDay(addDays(start, offset));
-    const trailing = (7 - ((firstWeekday + daysCount) % 7)) % 7;
-    html += Array.from({ length: trailing }, () => '<div class="calendar-empty"></div>').join("");
-    $('planningCalendarState').className = "calendar-state calendar-month-view";
-    $('planningCalendarState').innerHTML = `<div class="calendar-grid">${html}</div>`;
-    $('planningCalendarHeading').textContent = new Date(`${start}T00:00:00.000Z`).toLocaleDateString("pt-BR", { month: "long", year: "numeric", timeZone: "UTC" });
-  }
-
-  function renderWeek() {
-    const { start, end } = weekBounds();
-    const weekdays = ["Seg", "Ter", "Qua", "Qui", "Sex", "SÃ¡b", "Dom"];
-    let html = weekdays.map((day) => `<div class="calendar-weekday">${day}</div>`).join("");
-    for (let offset = 0; offset < 7; offset += 1) html += renderDay(addDays(start, offset), { week: true });
-    $('planningCalendarState').className = "calendar-state calendar-week-view";
-    $('planningCalendarState').innerHTML = `<div class="calendar-grid">${html}</div>`;
-    $('planningCalendarHeading').textContent = `Semana de ${formatDateBR(start)} a ${formatDateBR(end)}`;
-  }
-
-  function renderGantt() {
-    const { start, end } = monthBounds();
-    const count = dateDistance(start, end) + 1;
-    const unitsInRange = state.productionOrders.filter((unit) =>
-      (unit.planned_cast_date >= start && unit.planned_cast_date <= end)
-      || (unit.planned_cure_start_date && unit.planned_cure_start_date <= end && unit.planned_cure_end_date >= start)
-      || (unit.planned_finish_date >= start && unit.planned_finish_date <= end)
-    );
-    const ordersWithDates = activeCalendarOrders().filter((order) =>
-      spanOverlaps(order, start, end)
-      || unitsInRange.some((unit) => unit.order_id === order.id)
-      || state.schedules.some((item) => item.order_id === order.id && item.work_date >= start && item.work_date <= end)
-    );
-    const worksWithDates = activeCalendarWorks().filter((work) => spanOverlaps(work, start, end));
-    const template = `--gantt-days:${count}`;
-    const headings = Array.from({ length: count }, (_, index) => {
-      const date = addDays(start, index);
-      const day = getDay(date) || { is_working: false };
-      const stats = positionStats(date);
-      return `<div class="gantt-cell ${day.is_working ? "" : "off"}" data-calendar-date="${date}" title="${formatDateBR(date)} Â· ${day.is_working ? `${stats.occupied}/${stats.positionCount} posiÃ§Ãµes` : "sem produÃ§Ã£o"}"><span>${Number(date.slice(-2))}</span><small>${day.is_working ? `${stats.occupied}/${stats.positionCount}` : "â€”"}</small></div>`;
-    }).join("");
-    let rows = "";
-    const appendRow = (label, getContent, rowClass = "") => {
-      rows += `<div class="gantt-label ${rowClass}">${escapeHtml(label)}</div>`;
-      for (let index = 0; index < count; index += 1) {
-        const date = addDays(start, index);
-        const day = getDay(date) || { is_working: false };
-        const stats = positionStats(date);
-        rows += `<div class="gantt-cell ${day.is_working ? "" : "off"} ${stats.overCapacity ? "over" : ""}" data-calendar-date="${date}" title="${formatDateBR(date)} Â· ${day.is_working ? `${stats.occupied}/${stats.positionCount} posiÃ§Ãµes` : "sem produÃ§Ã£o"}">${getContent(date)}</div>`;
-      }
-    };
-    const ganttUnitsFor = (date, kind, positionCode = null) => unitsInRange.filter((unit) => {
-      if (kind === "casting") return unit.planned_cast_date === date && (!positionCode || unit.position_code === positionCode);
-      if (kind === "curing") return unit.planned_cure_start_date && unit.planned_cure_end_date && date >= unit.planned_cure_start_date && date <= unit.planned_cure_end_date;
-      return unit.planned_finish_date === date;
-    });
-    const positionMeta = new Map(state.positions.map((position) => [position.code, position]));
-    const positionCodes = [...new Set([...DEFAULT_POSITION_CODES, ...state.positions.map((position) => position.code)])].sort();
-    rows += `<div class="gantt-stage-heading">Concretagem Â· ocupa uma posiÃ§Ã£o somente no dia marcado</div>`;
-    for (const code of positionCodes) {
-      const position = positionMeta.get(code);
-      const unavailable = position?.status === "em_manutencao";
-      appendRow(`${code}${unavailable ? " Â· manutenÃ§Ã£o" : ""}`, (date) => {
-        if (!useLegacyScheduleView()) {
-          return ganttUnitsFor(date, "casting", code).map((unit) => {
-            const orderId = unit.order_id;
-            const order = orderById(orderId);
-            const draggable = unit.status === "planned" && orderId && !state.startedOrderIds.includes(orderId);
-            const label = `${escapeHtml(order?.order_number || "Pedido")} Â· ${escapeHtml(unitPieceLabel(unit))}`;
-            return `<button class="gantt-work casting-work" type="button" data-order-event="${escapeHtml(orderId)}" data-work-date="${date}" title="${escapeHtml(phaseEventLabel({ kind: "casting", value: unit, quantity: 1 }))}"${draggable ? ' draggable="true"' : ""}>${label}</button>`;
-          }).join("");
-        }
-        return "";
-      }, unavailable ? "position-unavailable" : "position-label");
-    }
-    if (!useLegacyScheduleView()) {
-      const unallocatedUnits = unitsInRange.filter((unit) => unit.planned_cast_date >= start && unit.planned_cast_date <= end && !unit.position_code);
-      if (unallocatedUnits.length) {
-        appendRow("Sem posiÃ§Ã£o alocada", (date) => unallocatedUnits.filter((unit) => unit.planned_cast_date === date).map((unit) => {
-          const order = orderById(unit.order_id);
-          return `<span class="gantt-work unallocated-work" title="Concretagem sem posiÃ§Ã£o atribuÃ­da">${escapeHtml(order?.order_number || "Pedido")} Â· ${escapeHtml(unitPieceLabel(unit))}</span>`;
-        }).join(""), "position-unavailable");
-      }
-    } else {
-      appendRow("ProgramaÃ§Ã£o resumida Â· sem posiÃ§Ã£o individual", (date) => schedulesForDate(date).map((schedule) => {
-        const order = orderById(schedule.order_id);
-        return `<button class="gantt-work casting-work" type="button" data-order-event="${escapeHtml(schedule.order_id)}" data-work-date="${date}" title="${escapeHtml(scheduleLabel(schedule))}">${escapeHtml(order?.order_number || "Pedido")} Â· ${escapeHtml(schedule.piece_code || "produÃ§Ã£o")} Ã—${Number(schedule.planned_quantity) || 0}</button>`;
-      }).join(""), "position-unavailable");
-    }
-    rows += `<div class="gantt-stage-heading">Cura Â· intervalo corrido, sem ocupar posiÃ§Ã£o</div>`;
-    appendRow("Cura", (date) => ganttUnitsFor(date, "curing").map((unit) => {
-      const order = orderById(unit.order_id);
-      return `<span class="gantt-work curing-work" title="${escapeHtml(order?.order_number || "Pedido")} Â· ${escapeHtml(unitPieceLabel(unit))} Â· cura de ${formatDateBR(unit.planned_cure_start_date)} a ${formatDateBR(unit.planned_cure_end_date)}">${escapeHtml(order?.order_number || "Pedido")} Â· ${escapeHtml(unitPieceLabel(unit))}</span>`;
-    }).join(""), "phase-label curing-label");
-    rows += `<div class="gantt-stage-heading">Acabamento Â· primeiro dia Ãºtil apÃ³s a cura</div>`;
-    appendRow("Acabamento", (date) => ganttUnitsFor(date, "finish").map((unit) => {
-      const order = orderById(unit.order_id);
-      return `<button class="gantt-work finish-work" type="button" data-order-event="${escapeHtml(unit.order_id)}" data-work-date="${date}" title="${escapeHtml(order?.order_number || "Pedido")} Â· ${escapeHtml(unitPieceLabel(unit))} Â· acabamento">${escapeHtml(order?.order_number || "Pedido")} Â· ${escapeHtml(unitPieceLabel(unit))}</button>`;
-    }).join(""), "phase-label finish-label");
-    rows += `<div class="gantt-stage-heading">Datas dos pedidos e das obras cadastradas</div>`;
-    for (const order of ordersWithDates) {
-      appendRow(`Pedido Â· ${order.order_number || "Sem nÃºmero"}`, (date) => spanContains(order, date) ? '<span class="gantt-order-window" aria-hidden="true"></span>' : "", "order-label");
-    }
-    for (const work of worksWithDates) {
-      appendRow(`Obra Â· ${work.work_number || work.name}`, (date) => spanContains(work, date) ? '<span class="gantt-work-window" aria-hidden="true"></span>' : "", "work-label");
-    }
-    const hasRows = ordersWithDates.length > 0 || worksWithDates.length > 0;
-    const hasPhaseEvents = !useLegacyScheduleView() ? unitsInRange.length > 0 : state.schedules.length > 0;
-    const empty = hasRows || hasPhaseEvents ? "" : '<div class="gantt-empty">Nenhuma concretagem, etapa, pedido ou obra neste mÃªs.</div>';
-    $('planningCalendarState').className = "calendar-state calendar-gantt-view";
-    $('planningCalendarState').innerHTML = `<div class="gantt-wrap"><div class="gantt-group"><div class="gantt-resource">Etapas e posiÃ§Ãµes de produÃ§Ã£o<span>${count} dias Â· quatro posiÃ§Ãµes fÃ­sicas Â· a cura nÃ£o ocupa posiÃ§Ã£o</span></div><div class="gantt-timeline gantt-head" style="${template}"><div class="gantt-label">Etapa / recurso</div>${headings}</div><div class="gantt-timeline" style="${template}">${rows}${empty}</div></div></div>`;
-    $('planningCalendarHeading').textContent = `Gantt Â· ${new Date(`${start}T00:00:00.000Z`).toLocaleDateString("pt-BR", { month: "long", year: "numeric", timeZone: "UTC" })}`;
-  }
-
-  // Indicadores de capacidade e conflitos do intervalo atualmente visÃ­vel.
-  function renderSummary() {
-    const workingDays = state.days.filter((day) => day.is_working);
-    const capacityPositions = workingDays.reduce((sum) => sum + activePositionCount(), 0);
-    const plannedPositions = workingDays.reduce((sum, day) => sum + positionStats(day.date).plannedUnits, 0);
-    const occupancy = capacityPositions ? Math.round(plannedPositions / capacityPositions * 100) : 0;
-    const alertDays = state.days.filter((day) => positionStats(day.date).overCapacity).length;
-    const activeOrders = state.orders.filter((order) => activeStatuses.has(order.status)).length;
-    const today = getDay(localToday());
-    const todayStats = today ? positionStats(today.date) : null;
-    const bounds = visibleBounds();
-    const exceptionCount = state.exceptions.length;
-    const eventCount = !useLegacyScheduleView()
-      ? state.productionOrders.filter((unit) => unit.planned_cast_date >= bounds.start && unit.planned_cast_date <= bounds.end).length
-      : state.schedules.reduce((sum, schedule) => sum + (Number(schedule.planned_quantity) || 0), 0);
-    const datedOrders = activeCalendarOrders().filter((order) => spanOverlaps(order, bounds.start, bounds.end)).length;
-    const datedWorks = activeCalendarWorks().filter((work) => spanOverlaps(work, bounds.start, bounds.end)).length;
-    $('planningCalendarSummary').textContent = `${workingDays.length} dias Ãºteis Â· ${eventCount} ${eventCount === 1 ? "concretagem" : "concretagens"} no perÃ­odo Â· ${datedOrders} pedido${datedOrders === 1 ? "" : "s"} e ${datedWorks} obra${datedWorks === 1 ? "" : "s"} no perÃ­odo Â· ${exceptionCount} atividade${exceptionCount === 1 ? "" : "s"} de calendÃ¡rio.`;
-    $('planningOrdersKpi').textContent = String(activeOrders);
-    $('planningOccupancyKpi').textContent = `${occupancy}%`;
-    $('planningCapacityKpi').textContent = todayStats ? `${todayStats.occupied}/${todayStats.positionCount}` : "â€”";
-    $('planningAlertsKpi').textContent = String(alertDays);
-    const weekdayNames = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "SÃ¡b"];
-    const workingWeekdays = state.settings.rules.length
-      ? state.settings.rules.filter((rule) => rule.is_working).map((rule) => Number(rule.weekday))
-      : [1, 2, 3, 4, 5];
-    $('planningWorkdaysSummary').textContent = workingWeekdays.length
-      ? workingWeekdays.map((weekday) => weekdayNames[weekday]).join(", ")
-      : "Sem dias definidos";
-    $('planningDefaultCapacitySummary').textContent = `${activePositionCount()} posiÃ§Ãµes por dia Ãºtil`;
-  }
-
-  function renderCalendar() {
-    renderPlanningBacklog();
-    if (!state.days.length) {
-      $('planningCalendarState').className = "calendar-placeholder";
-      $('planningCalendarState').innerHTML = '<div><strong>CalendÃ¡rio sem dados para este perÃ­odo</strong><p>Atualize o calendÃ¡rio para gerar os dias e habilitar os ajustes e a programaÃ§Ã£o.</p></div>';
-      return;
-    }
-    if (state.mode === "week") renderWeek();
-    else if (state.mode === "gantt") renderGantt();
-    else renderMonth();
-    renderSummary();
-  }
-
-  // Pedidos ainda nÃ£o programados que compÃµem a fila apresentada acima do calendÃ¡rio.
-  function pendingOrders() {
-    return state.orders.filter((order) =>
-      activeStatuses.has(order.status)
-      && !terminalStatuses.has(order.status)
-      && !order.planned_end_date
-      && !state.startedOrderIds.includes(order.id)
-    );
-  }
-
-  function scheduledCountInVisibleRange(orderId) {
-    if (!useLegacyScheduleView()) {
-      return state.productionOrders.filter((unit) => unit.order_id === orderId).length;
-    }
-    return state.schedules
-      .filter((schedule) => schedule.order_id === orderId)
-      .reduce((sum, schedule) => sum + (Number(schedule.planned_quantity) || 0), 0);
-  }
-
-  function renderPlanningBacklog() {
-    const list = $('planningBacklogList');
-    if (!list) return;
-    const pending = pendingOrders();
-    const activeOrderWorkIds = new Set(state.orders
-      .filter((order) => activeStatuses.has(order.status) && order.work_id)
-      .map((order) => order.work_id));
-    const waitingWorks = state.works.filter((work) =>
-      ["planejamento", "ativa"].includes(work.status) && !activeOrderWorkIds.has(work.id)
-    );
-    $('planningBacklogCount').textContent = String(pending.length);
-    list.innerHTML = pending.length ? pending.map((order) => {
-      const visibleScheduled = scheduledCountInVisibleRange(order.id);
-      const total = (order.items || []).reduce((sum, item) => sum + (Number(item.quantity) || 0), 0);
-      const details = [
-        order.status ? `Status: ${order.status}` : "",
-        order.start_date ? `InÃ­cio: ${formatDateBR(order.start_date)}` : "",
-        order.requested_due_date ? `Prazo: ${formatDateBR(order.requested_due_date)}` : "",
-        visibleScheduled ? `${visibleScheduled}${total ? ` de ${total}` : ""} un. programadas no perÃ­odo visÃ­vel` : "",
-      ].filter(Boolean).join(" Â· ");
-      const explanation = visibleScheduled ? `ProgramaÃ§Ã£o parcial ou sem tÃ©rmino calculado: ${visibleScheduled} unidade(s) aparecem no intervalo selecionado.` : "Sem programaÃ§Ã£o registrada para o pedido.";
-      return `<article class="planning-backlog-item"><div class="planning-backlog-item-main"><strong>${escapeHtml(formatOrder(order))}</strong><span>${escapeHtml(details || "Sem datas cadastradas")}</span><small>${escapeHtml(explanation)}</small></div><button class="btn" type="button" data-plan-order-id="${escapeHtml(order.id)}">Planejar</button></article>`;
-    }).join("") : `<p class="planning-backlog-empty">${state.orders.length ? "Nenhum pedido aguardando programaÃ§Ã£o. Os pedidos ativos jÃ¡ tÃªm data de tÃ©rmino ou estÃ£o em produÃ§Ã£o." : "Nenhum pedido ativo cadastrado. Ao salvar um pedido em Cadastros, ele aparecerÃ¡ aqui automaticamente."}</p>`;
-    const works = $('planningBacklogWorks');
-    works.hidden = !waitingWorks.length;
-    works.innerHTML = waitingWorks.length
-      ? `<h4>Obras sem pedido de produÃ§Ã£o</h4>${waitingWorks.map((work) => {
-        const details = [work.status === "ativa" ? "Ativa" : "Planejamento", work.start_date ? `InÃ­cio: ${formatDateBR(work.start_date)}` : "", work.requested_due_date ? `Prazo: ${formatDateBR(work.requested_due_date)}` : ""].filter(Boolean).join(" Â· ");
-        return `<div class="planning-backlog-work"><span><strong>${escapeHtml(work.work_number || work.name)}</strong>${work.work_number ? ` Â· ${escapeHtml(work.name)}` : ""}</span><span>${escapeHtml(details)} Â· a obra aparece nas datas do calendÃ¡rio; vincule um pedido para programar as peÃ§as</span></div>`;
-      }).join("")}`
-      : "";
-  }
-
-  // PrÃ©via do pedido: seleciona um pedido, calcula a fila e sÃ³ depois permite confirmar.
-  function populateOrderSelect(selectedId = "") {
-    const eligible = state.orders.filter((order) => !terminalStatuses.has(order.status) && !state.startedOrderIds.includes(order.id));
-    $('planningOrderSelect').innerHTML = eligible.length
-      ? eligible.map((order) => `<option value="${escapeHtml(order.id)}">${escapeHtml(formatOrder(order))} Â· ${escapeHtml(order.status)}</option>`).join("")
-      : '<option value="">Nenhum pedido disponÃ­vel</option>';
-    $('planningOrderSelect').disabled = eligible.length === 0;
-    if (selectedId && eligible.some((order) => order.id === selectedId)) $('planningOrderSelect').value = selectedId;
-    return eligible;
-  }
-
-  function resetPlanPreview() {
-    state.pendingPlan = null;
-    state.pendingOrderId = null;
-    $('orderPlanPreview').hidden = true;
-    $('orderPlanPreview').innerHTML = "";
-    $('infeasibleChoice').hidden = true;
-    $('allowInfeasiblePlan').checked = false;
-    $('commitOrderPlan').disabled = true;
-    showStatus("orderPlanStatus", "");
-  }
-
-  function openOrderPlanner(orderId = "", move = null) {
-    resetPlanPreview();
-    state.dragContext = move;
-    const eligible = populateOrderSelect(orderId);
-    const selected = orderById($('planningOrderSelect').value) || eligible[0] || null;
-    $('planningOrderSelect').disabled = Boolean(move) || eligible.length === 0;
-    if (selected) {
-      $('planningOrderStart').value = move?.startDate || selected.start_date || localToday();
-      $('planningOrderDue').value = move?.dueDate || selected.requested_due_date || "";
-    } else {
-      $('planningOrderStart').value = localToday();
-      $('planningOrderDue').value = "";
-    }
-    $('orderPlanTitle').textContent = move ? "Reprogramar pedido" : "Planejar pedido";
-    $('orderPlanSubtitle').textContent = move
-      ? `Movendo uma programaÃ§Ã£o de ${formatDateBR(move.sourceDate)} para ${formatDateBR(move.targetDate)}. Revise o novo plano antes de gravar.`
-      : "Defina as datas e confira a capacidade antes de gravar a programaÃ§Ã£o.";
-    $('orderPlanModal').hidden = false;
-    if (!eligible.length) showStatus("orderPlanStatus", "NÃ£o hÃ¡ pedidos disponÃ­veis para planejar.");
-    if (move && selected) calculateOrderPlan();
-    else setTimeout(() => $('planningOrderSelect').focus(), 0);
-  }
-
-  function closeOrderPlanner() {
-    $('orderPlanModal').hidden = true;
-    state.dragContext = null;
-    resetPlanPreview();
-  }
-
-  function renderPlan(plan, order) {
-    const queueMessages = (plan.queueWarnings || []).flatMap((entry) =>
-      (entry.conflicts || []).map((conflict) => `Pedido ${entry.orderNumber || entry.orderId}: ${conflict.message}`)
-    ).slice(0, 5);
-    const requiresConfirmation = !plan.feasible || queueMessages.length > 0;
-    const statusText = plan.feasible
-      ? queueMessages.length ? "A fila tem outros pedidos com prazo inviÃ¡vel" : "Cabe no prazo solicitado"
-      : "Plano inviÃ¡vel no prazo atual";
-    const itemRows = (plan.items || []).map((item) => `<li>${escapeHtml(item.code || item.name || "Item")}: ${Number(item.plannedQuantity || 0)} un. programadas${Number(item.remainingQuantity || 0) ? ` Â· <strong>${Number(item.remainingQuantity)} un. sem data</strong>` : ""}</li>`).join("");
-    const conflictText = [
-      ...(plan.conflicts || []).map((conflict) => conflict.message || (conflict.type === "deadline" ? `${Number(conflict.remainingQuantity || 0)} unidades excedem a capacidade atÃ© o prazo.` : `Capacidade excedida em ${formatDateBR(conflict.date)}.`)),
-      ...queueMessages,
-    ].join(" ");
-    const previousEnd = order?.planned_end_date ? formatDateBR(order.planned_end_date) : "sem programaÃ§Ã£o";
-    const nextEnd = plan.plannedEndDate ? formatDateBR(plan.plannedEndDate) : "sem data calculada";
-    const shift = state.dragContext
-      ? `<p>Data da atividade: ${formatDateBR(state.dragContext.sourceDate)} â†’ ${formatDateBR(state.dragContext.targetDate)}. InÃ­cio do pedido: ${formatDateBR(order?.start_date)} â†’ ${formatDateBR(plan.startDate)}; prazo: ${order?.requested_due_date ? formatDateBR(order.requested_due_date) : "sem prazo"} â†’ ${plan.dueDate ? formatDateBR(plan.dueDate) : "sem prazo"}; fim planejado: ${previousEnd} â†’ ${nextEnd}.</p>`
-      : `<p>Fim estimado: ${nextEnd}${plan.dueDate ? ` Â· prazo solicitado ${formatDateBR(plan.dueDate)}` : " Â· sem prazo solicitado"}.</p>`;
-    $('orderPlanPreview').innerHTML = `<h4>${escapeHtml(statusText)}</h4><div class="plan-summary-grid"><div><strong>${Number(plan.totalRequestedQuantity || 0)}</strong><span>unidades solicitadas</span></div><div><strong>${Number(plan.totalPlannedQuantity || 0)}</strong><span>unidades programadas</span></div><div><strong>${escapeHtml(plan.plannedEndDate ? formatDateBR(plan.plannedEndDate) : "â€”")}</strong><span>fim estimado</span></div></div><p>${escapeHtml(formatOrder(order))}</p>${shift}<ul>${itemRows || "<li>NÃ£o hÃ¡ itens para programar neste pedido.</li>"}</ul>${requiresConfirmation ? `<div class="plan-warning">${escapeHtml(conflictText || "A capacidade nÃ£o atende ao pedido dentro do perÃ­odo calculado.")} Se confirmar, o sistema gravarÃ¡ as programaÃ§Ãµes possÃ­veis da fila.</div>` : ""}`;
-    $('orderPlanPreview').hidden = false;
-    $('infeasibleChoice').hidden = !requiresConfirmation;
-    $('allowInfeasiblePlan').checked = false;
-    $('commitOrderPlan').textContent = requiresConfirmation ? "Confirmar programaÃ§Ã£o da fila" : "Confirmar programaÃ§Ã£o";
-    $('commitOrderPlan').disabled = requiresConfirmation;
-  }
-
-  async function calculateOrderPlan(event) {
-    event?.preventDefault();
-    const orderId = $('planningOrderSelect').value;
-    const startDate = $('planningOrderStart').value;
-    const requestedDueDate = $('planningOrderDue').value || null;
-    const button = $('previewOrderPlan');
-    if (!orderId) return showStatus("orderPlanStatus", "Selecione um pedido.", true);
-    if (!startDate || (requestedDueDate && requestedDueDate < startDate)) return showStatus("orderPlanStatus", "Informe um inÃ­cio e um prazo vÃ¡lido.", true);
-    button.disabled = true;
-    button.textContent = "Calculandoâ€¦";
-    resetPlanPreview();
-    showStatus("orderPlanStatus", "Atualizando as datas do calendÃ¡rio e calculando capacidade e prazo.");
-    try {
-      const rangeEnd = requestedDueDate || addDays(startDate, 365);
-      await window.PRELUX_REPOSITORIES.planning.rebuildCalendar(startDate, rangeEnd);
-      const result = await window.PRELUX_REPOSITORIES.planning.planOrder({ orderId, startDate, requestedDueDate });
-      const plan = result.plan || result;
-      if (result.queueWarnings?.length) {
-        plan.queueWarnings = result.queueWarnings;
-      }
-      state.pendingPlan = plan;
-      state.pendingOrderId = orderId;
-      renderPlan(plan, orderById(orderId));
-      showStatus("orderPlanStatus", "PrÃ©via calculada no servidor. Confirme para gravar o novo plano.");
-      syncCommitButton();
-    } catch (error) {
-      const detailPlan = error.details?.schedules ? error.details : error.details?.plan;
-      if (detailPlan) {
-        state.pendingPlan = detailPlan;
-        state.pendingOrderId = orderId;
-        renderPlan(detailPlan, orderById(orderId));
-        showStatus("orderPlanStatus", error.message || "A prÃ©via encontrou um conflito.", true);
-        syncCommitButton();
-      } else {
-        showStatus("orderPlanStatus", error.message || "NÃ£o foi possÃ­vel calcular o plano.", true);
-      }
-    } finally {
-      button.disabled = false;
-      button.textContent = "Calcular prÃ©via";
-    }
-  }
-
-  function syncCommitButton() {
-    const plan = state.pendingPlan;
-    const requiresConfirmation = Boolean(plan && (!plan.feasible || plan.queueWarnings?.length));
-    $('commitOrderPlan').disabled = !plan || (requiresConfirmation && !$('allowInfeasiblePlan').checked);
-  }
-
-  async function commitOrderPlan() {
-    const plan = state.pendingPlan;
-    const orderId = state.pendingOrderId;
-    if (!plan || !orderId) return;
-    if ((!plan.feasible || plan.queueWarnings?.length) && !$('allowInfeasiblePlan').checked) return showStatus("orderPlanStatus", "Marque a confirmaÃ§Ã£o para gravar as programaÃ§Ãµes possÃ­veis da fila.", true);
-    const button = $('commitOrderPlan');
-    const oldText = button.textContent;
-    button.disabled = true;
-    button.textContent = "Gravandoâ€¦";
-    try {
-      await window.PRELUX_REPOSITORIES.planning.commitOrderPlan({
-        orderId,
-        startDate: $('planningOrderStart').value,
-        requestedDueDate: $('planningOrderDue').value || null,
-        allowInfeasible: !plan.feasible || Boolean(plan.queueWarnings?.length),
-      });
-      closeOrderPlanner();
-      await refreshPlanning();
-      showToast("ProgramaÃ§Ã£o do pedido atualizada.");
-    } catch (error) {
-      showStatus("orderPlanStatus", error.message || "NÃ£o foi possÃ­vel gravar a programaÃ§Ã£o.", true);
-    } finally {
-      button.textContent = oldText;
-      syncCommitButton();
-    }
-  }
-
-  // EdiÃ§Ã£o de calendÃ¡rio: dia Ãºtil, exceÃ§Ãµes, atividades e configuraÃ§Ãµes semanais.
-  function openCalendarDay(date) {
-    state.selectedDate = date;
-    const day = getDay(date) || { is_working: false, capacity_minutes: 0 };
-    const manual = state.exceptions.find((item) => item.kind === "personalizada" && item.start_date === date && item.end_date === date && Number(item.priority || 0) >= 100);
-    $('calendarDayTitle').textContent = `Ajustar ${formatDateBR(date)}`;
-    $('dayDate').value = date;
-    $('dayWorking').checked = Boolean(day.is_working);
-    $('dayCapacity').value = day.is_working ? 480 : 0;
-    $('dayNote').value = manual?.notes || "";
-    $('restoreCalendarDay').hidden = !manual;
-    $('restoreCalendarDay').dataset.activityId = manual?.id || "";
-    showStatus("calendarDayStatus", "");
-    renderDayActivities(date);
-    $('calendarDayModal').hidden = false;
-    renderCalendar();
-  }
-
-  function renderDayActivities(date) {
-    const activities = exceptionsForDate(date);
-    const container = $('calendarDayActivities');
-    if (!activities.length) {
-      container.innerHTML = '<p class="form-help">Nenhuma atividade cadastrada para este dia.</p>';
-      return;
-    }
-    container.innerHTML = `<h4>Atividades neste dia</h4>${activities.map((activity) => `<div class="activity-item"><div class="activity-item-main"><strong>${escapeHtml(activity.name)}</strong><span>${escapeHtml(activityKindLabels[activity.kind] || activity.kind)} Â· ${formatDateBR(activity.start_date)}${activity.end_date !== activity.start_date ? ` atÃ© ${formatDateBR(activity.end_date)}` : ""} Â· ${activity.is_working ? "concretagem liberada Â· atÃ© quatro posiÃ§Ãµes" : "sem concretagem"}</span></div><div class="activity-item-actions"><button class="icon-btn" type="button" data-day-action="edit" data-activity-id="${escapeHtml(activity.id)}">Editar</button><button class="icon-btn" type="button" data-day-action="delete" data-activity-id="${escapeHtml(activity.id)}">Excluir</button></div></div>`).join("")}`;
-  }
-
-  function closeCalendarDay() {
-    $('calendarDayModal').hidden = true;
-    showStatus("calendarDayStatus", "");
-  }
-
-  function openCalendarActivity(activity = null, presetDate = state.selectedDate) {
-    state.editingActivityId = activity?.id || null;
-    $('calendarActivityTitle').textContent = activity ? "Editar atividade" : "Nova atividade";
-    $('activityName').value = activity?.name || "";
-    $('activityKind').value = activity?.kind || "personalizada";
-    $('activityStart').value = activity?.start_date || presetDate || visibleBounds().start;
-    $('activityEnd').value = activity?.end_date || presetDate || visibleBounds().start;
-    $('activityWorking').checked = Boolean(activity?.is_working);
-    $('activityCapacity').value = activity?.is_working ? 480 : 0;
-    $('activityNotes').value = activity?.notes || "";
-    $('deleteCalendarActivity').hidden = !activity;
-    showStatus("calendarActivityStatus", "");
-    $('calendarActivityModal').hidden = false;
-    setTimeout(() => $('activityName').focus(), 0);
-  }
-
-  function closeCalendarActivity() {
-    $('calendarActivityModal').hidden = true;
-    state.editingActivityId = null;
-    showStatus("calendarActivityStatus", "");
-  }
-
-  async function openCalendarSettings() {
-    $('calendarSettingsModal').hidden = false;
-    showStatus("calendarSettingsStatus", "Carregando regra semanalâ€¦");
-    try {
-      const result = await window.PRELUX_REPOSITORIES.planning.getCalendarSettings();
-      state.settings = result.settings ? { ...result.settings, rules: result.rules || [] } : state.settings;
-      const settings = result.settings || {};
-      const rules = new Map((result.rules || []).map((rule) => [Number(rule.weekday), rule]));
-      $('defaultCapacityMinutes').value = 480;
-      document.querySelectorAll("[data-weekday]").forEach((input) => {
-        const weekday = Number(input.dataset.weekday);
-        const rule = rules.get(weekday);
-        input.checked = rule ? Boolean(rule.is_working) : weekday >= 1 && weekday <= 5;
-      });
-      showStatus("calendarSettingsStatus", "");
-    } catch (error) {
-      showStatus("calendarSettingsStatus", error.message || "NÃ£o foi possÃ­vel carregar a regra semanal.", true);
-    }
-  }
-
-  function closeCalendarSettings() {
-    $('calendarSettingsModal').hidden = true;
-    showStatus("calendarSettingsStatus", "");
-  }
-
-  async function saveCalendarSettings(event) {
-    event.preventDefault();
-    const defaultCapacityMinutes = 480;
-    const rules = [...document.querySelectorAll("[data-weekday]")].map((input) => ({
-      weekday: Number(input.dataset.weekday),
-      isWorking: input.checked,
-      capacityMinutes: input.checked ? 480 : 0,
-    }));
-    const button = $('saveCalendarSettings');
-    const oldText = button.textContent;
-    button.disabled = true;
-    button.textContent = "Salvandoâ€¦";
-    try {
-      await window.PRELUX_REPOSITORIES.planning.saveCalendarSettings({ defaultCapacityMinutes, rules });
-      closeCalendarSettings();
-      await refreshPlanning();
-      showToast("Semana padrÃ£o atualizada.");
-    } catch (error) {
-      showStatus("calendarSettingsStatus", error.message || "NÃ£o foi possÃ­vel salvar a regra semanal.", true);
-    } finally {
-      button.disabled = false;
-      button.textContent = oldText;
-    }
-  }
-
-  function refreshPlanning() {
-    if (state.refreshPromise) {
-      state.refreshPending = true;
-      return state.refreshPromise;
-    }
-    state.refreshPromise = (async () => {
-      do {
-        state.refreshPending = false;
-        await refreshPlanningNow();
-      } while (state.refreshPending);
-    })().finally(() => { state.refreshPromise = null; });
-    return state.refreshPromise;
-  }
-
-  async function refreshPlanningNow() {
-    const stateContainer = $('planningCalendarState');
-    const connection = $('planningConnectionState');
-    const config = window.PRELUX_CONFIG || {};
-    if (!config.supabaseUrl || !config.supabaseAnonKey) {
-      stateContainer.className = "calendar-placeholder";
-      stateContainer.innerHTML = '<div><strong>CalendÃ¡rio visual preparado</strong><p>Configure o acesso ao backend para carregar dias Ãºteis, pedidos e programaÃ§Ãµes.</p></div>';
-      connection.innerHTML = '<span class="dot"></span><span>Backend ainda nÃ£o configurado. O emissor de etiquetas funciona localmente.</span>';
-      return;
-    }
-    const range = visibleBounds();
-    stateContainer.className = "calendar-placeholder";
-    stateContainer.innerHTML = '<div><strong>Carregando calendÃ¡rioâ€¦</strong><p>Buscando capacidade, exceÃ§Ãµes e programaÃ§Ãµes.</p></div>';
-    try {
-      await window.PRELUX_REPOSITORIES.planning.rebuildCalendar(range.start, range.end);
-      const [calendar, planning, settings, operations] = await Promise.all([
-        window.PRELUX_REPOSITORIES.planning.getCalendar(range.start, range.end),
-        window.PRELUX_REPOSITORIES.planning.getPlanningData(range.start, range.end),
-        window.PRELUX_REPOSITORIES.planning.getCalendarSettings(),
-        window.PRELUX_REPOSITORIES.planning.getOperationsData().catch(() => null),
-      ]);
-      state.days = calendar.days || [];
-      state.exceptions = calendar.exceptions || [];
-      const operationOrders = operations?.orders || [];
-      const operationOrderById = new Map(operationOrders.map((order) => [order.id, order]));
-      const planningOrders = planning.orders || [];
-      const planningOrderIds = new Set(planningOrders.map((order) => order.id));
-      state.orders = [
-        ...planningOrders.map((order) => {
-          const operationOrder = operationOrderById.get(order.id) || {};
-          return { ...operationOrder, ...order, work_id: order.work_id || operationOrder.work_id, work_name: order.work_name || operationOrder.work_name || "", client_name: order.client_name || operationOrder.client_name || "" };
-        }),
-        ...operationOrders.filter((order) => !planningOrderIds.has(order.id)),
-      ];
-      state.works = operations?.works || [];
-      state.schedules = planning.schedules || [];
-      state.unitPlanningAvailable = Array.isArray(planning.productionOrders);
-      state.productionOrders = planning.productionOrders || [];
-      state.positions = planning.positions || [];
-      state.capacityByPositions = planning.capacityByPositions || [];
-      state.startedOrderIds = planning.startedOrderIds || [];
-      state.settings = settings.settings ? { ...settings.settings, rules: settings.rules || [] } : state.settings;
-      renderCalendar();
-      connection.innerHTML = !useLegacyScheduleView()
-        ? '<span class="dot" style="background:var(--green)"></span><span>Backend conectado. Concretagem, cura, acabamento e posiÃ§Ãµes carregados.</span>'
-        : '<span class="dot" style="background:#d58a1e"></span><span>Backend conectado com programaÃ§Ã£o resumida. PosiÃ§Ãµes, cura e acabamento ainda nÃ£o estÃ£o disponÃ­veis na integraÃ§Ã£o.</span>';
-    } catch (error) {
-      stateContainer.className = "calendar-placeholder";
-      stateContainer.innerHTML = `<div><strong>NÃ£o foi possÃ­vel carregar o calendÃ¡rio</strong><p>${escapeHtml(error.message || "Verifique a configuraÃ§Ã£o da API.")}</p></div>`;
-      $('planningBacklogCount').textContent = "â€”";
-      $('planningBacklogList').innerHTML = `<p class="planning-backlog-empty">NÃ£o foi possÃ­vel carregar os pedidos do cadastro: ${escapeHtml(error.message || "verifique a conexÃ£o e tente atualizar")}</p>`;
-      $('planningBacklogWorks').hidden = true;
-      connection.innerHTML = '<span class="dot"></span><span>Backend configurado, mas a chamada nÃ£o respondeu corretamente.</span>';
-      showToast("Falha ao atualizar o calendÃ¡rio.");
-    }
-  }
-
-  async function saveCalendarDay(event) {
-    event.preventDefault();
-    const date = $('dayDate').value;
-    if (!date) return;
-    const button = $('saveCalendarDay');
-    const oldText = button.textContent;
-    button.disabled = true;
-    button.textContent = "Salvandoâ€¦";
-    try {
-      await window.PRELUX_REPOSITORIES.planning.saveCalendarDay({
-        id: $('restoreCalendarDay').dataset.activityId || undefined,
-        startDate: date,
-        endDate: date,
-        name: $('dayNote').value.trim() || `Ajuste manual de ${formatDateBR(date)}`,
-        isWorking: $('dayWorking').checked,
-        capacityMinutes: $('dayWorking').checked ? 480 : 0,
-        notes: $('dayNote').value.trim(),
-      });
-      closeCalendarDay();
-      await refreshPlanning();
-      showToast("Ajuste do dia salvo.");
-    } catch (error) {
-      showStatus("calendarDayStatus", error.message || "NÃ£o foi possÃ­vel salvar o ajuste.", true);
-    } finally {
-      button.disabled = false;
-      button.textContent = oldText;
-    }
-  }
-
-  async function saveCalendarActivity(event) {
-    event.preventDefault();
-    const startDate = $('activityStart').value;
-    const endDate = $('activityEnd').value;
-    if (!startDate || !endDate || endDate < startDate) return showStatus("calendarActivityStatus", "Informe um perÃ­odo vÃ¡lido.", true);
-    const button = $('saveCalendarActivity');
-    const oldText = button.textContent;
-    const wasEditing = Boolean(state.editingActivityId);
-    button.disabled = true;
-    button.textContent = "Salvandoâ€¦";
-    try {
-      await window.PRELUX_REPOSITORIES.planning.saveCalendarActivity({
-        id: state.editingActivityId || undefined,
-        name: $('activityName').value.trim(),
-        kind: $('activityKind').value,
-        startDate,
-        endDate,
-        isWorking: $('activityWorking').checked,
-        capacityMinutes: $('activityWorking').checked ? 480 : 0,
-        notes: $('activityNotes').value.trim(),
-      });
-      closeCalendarActivity();
-      await refreshPlanning();
-      showToast(wasEditing ? "Atividade atualizada." : "Atividade adicionada.");
-    } catch (error) {
-      showStatus("calendarActivityStatus", error.message || "NÃ£o foi possÃ­vel salvar a atividade.", true);
-    } finally {
-      button.disabled = false;
-      button.textContent = oldText;
-    }
-  }
-
-  async function deleteCalendarActivity(id, closeDay = false) {
-    if (!id || !confirm("Excluir esta atividade do calendÃ¡rio?")) return;
-    try {
-      const bounds = visibleBounds();
-      await window.PRELUX_REPOSITORIES.planning.deleteCalendarActivity(id, bounds.start, bounds.end);
-      if (closeDay) closeCalendarDay();
-      else closeCalendarActivity();
-      await refreshPlanning();
-      showToast("Atividade excluÃ­da.");
-    } catch (error) {
-      showToast(error.message || "NÃ£o foi possÃ­vel excluir a atividade.");
-    }
-  }
-
-  // Controles de navegaÃ§Ã£o e eventos DOM conectados uma Ãºnica vez na inicializaÃ§Ã£o.
-  function changePeriod(direction) {
-    const date = new Date(`${anchorDate()}T00:00:00.000Z`);
-    if (state.mode === "week") date.setUTCDate(date.getUTCDate() + direction * 7);
-    else date.setUTCMonth(date.getUTCMonth() + direction);
-    $('planningAnchor').value = isoDate(date);
-    refreshPlanning();
-  }
-
-  function setCalendarMode(mode) {
-    state.mode = mode;
-    document.querySelectorAll("[data-calendar-mode]").forEach((button) => {
-      button.setAttribute("aria-pressed", String(button.dataset.calendarMode === mode));
-    });
-    refreshPlanning();
-  }
-
-  function handleCalendarClick(event) {
-    const orderEvent = event.target.closest("[data-order-event]");
-    if (orderEvent) {
-      event.preventDefault();
-      if (state.startedOrderIds.includes(orderEvent.dataset.orderEvent)) {
-        showToast("Este pedido jÃ¡ tem produÃ§Ã£o iniciada ou concluÃ­da e nÃ£o pode ser replanejado.");
-        return;
-      }
-      openOrderPlanner(orderEvent.dataset.orderEvent);
-      return;
-    }
-    const activityButton = event.target.closest("[data-day-action]");
-    if (activityButton) {
-      const activity = state.exceptions.find((item) => item.id === activityButton.dataset.activityId);
-      if (activityButton.dataset.dayAction === "edit" && activity) {
-        closeCalendarDay();
-        openCalendarActivity(activity);
-      } else if (activityButton.dataset.dayAction === "delete") deleteCalendarActivity(activity?.id, true);
-      return;
-    }
-    const day = event.target.closest("[data-calendar-date]");
-    if (day) openCalendarDay(day.dataset.calendarDate);
-  }
-
-  function handleDragStart(event) {
-    const item = event.target.closest('[data-order-event][draggable="true"]');
-    if (!item) return;
-    const { orderEvent, workDate } = item.dataset;
-    const payload = JSON.stringify({ orderId: orderEvent, sourceDate: workDate });
-    event.dataTransfer.effectAllowed = "move";
-    event.dataTransfer.setData("text/plain", payload);
-  }
-
-  function handleDragOver(event) {
-    const day = event.target.closest("[data-calendar-date]");
-    if (!day) return;
-    event.preventDefault();
-    event.dataTransfer.dropEffect = "move";
-    day.classList.add("drag-over");
-  }
-
-  function handleDragLeave(event) {
-    const day = event.target.closest("[data-calendar-date]");
-    if (day && !day.contains(event.relatedTarget)) day.classList.remove("drag-over");
-  }
-
-  async function handleDrop(event) {
-    const day = event.target.closest("[data-calendar-date]");
-    if (!day) return;
-    event.preventDefault();
-    day.classList.remove("drag-over");
-    let dropped;
-    try { dropped = JSON.parse(event.dataTransfer.getData("text/plain")); } catch { return; }
-    if (!dropped.orderId || !dropped.sourceDate || dropped.sourceDate === day.dataset.calendarDate) return;
-    const order = orderById(dropped.orderId);
-    if (!order) return showToast("O pedido nÃ£o estÃ¡ disponÃ­vel neste perÃ­odo.");
-    if (state.startedOrderIds.includes(dropped.orderId)) return showToast("Este pedido jÃ¡ tem produÃ§Ã£o iniciada ou concluÃ­da e nÃ£o pode ser replanejado.");
-    const delta = dateDistance(dropped.sourceDate, day.dataset.calendarDate);
-    const newStart = addDays(order.start_date, delta);
-    const newDue = order.requested_due_date ? addDays(order.requested_due_date, delta) : "";
-    openOrderPlanner(dropped.orderId, {
-      sourceDate: dropped.sourceDate,
-      targetDate: day.dataset.calendarDate,
-      startDate: newStart,
-      dueDate: newDue,
-    });
-  }
-
-  document.querySelectorAll("[data-calendar-mode]").forEach((button) => button.addEventListener("click", () => setCalendarMode(button.dataset.calendarMode)));
-  $('planningAnchor').value = localToday();
-  $('planningRefreshBtn').addEventListener("click", refreshPlanning);
-  $('planningAnchor').addEventListener("change", refreshPlanning);
-  $('planningPrevious').addEventListener("click", () => changePeriod(-1));
-  $('planningNextPeriod').addEventListener("click", () => changePeriod(1));
-  $('planningNextBtn').addEventListener("click", () => window.PRELUX_NAV.open("etiquetas"));
-  $('planningActivityBtn').addEventListener("click", () => openCalendarActivity());
-  $('planningSettingsBtn').addEventListener("click", openCalendarSettings);
-  $('planningOrderBtn').addEventListener("click", async () => {
-    await refreshPlanning();
-    openOrderPlanner();
-  });
-  $('planningBacklogList').addEventListener("click", async (event) => {
-    const button = event.target.closest("[data-plan-order-id]");
-    if (!button) return;
-    const orderId = button.dataset.planOrderId;
-    await refreshPlanning();
-    openOrderPlanner(orderId);
-  });
-  $('planningCalendarState').addEventListener("click", handleCalendarClick);
-  $('planningCalendarState').addEventListener("keydown", (event) => {
-    if ((event.key === "Enter" || event.key === " ") && event.target.matches("[data-calendar-date]")) {
-      event.preventDefault();
-      openCalendarDay(event.target.dataset.calendarDate);
-    }
-  });
-  $('planningCalendarState').addEventListener("dragstart", handleDragStart);
-  $('planningCalendarState').addEventListener("dragover", handleDragOver);
-  $('planningCalendarState').addEventListener("dragleave", handleDragLeave);
-  $('planningCalendarState').addEventListener("drop", handleDrop);
-  $('planningOrderSelect').addEventListener("change", () => {
-    const order = orderById($('planningOrderSelect').value);
-    resetPlanPreview();
-    if (order) {
-      $('planningOrderStart').value = order.start_date || localToday();
-      $('planningOrderDue').value = order.requested_due_date || "";
-    }
-  });
-  $('orderPlanForm').addEventListener("submit", calculateOrderPlan);
-  $('commitOrderPlan').addEventListener("click", commitOrderPlan);
-  $('allowInfeasiblePlan').addEventListener("change", syncCommitButton);
-  $('closeOrderPlan').addEventListener("click", closeOrderPlanner);
-  $('cancelOrderPlan').addEventListener("click", closeOrderPlanner);
-  $('orderPlanModal').addEventListener("click", (event) => { if (event.target.id === "orderPlanModal") closeOrderPlanner(); });
-  window.addEventListener("prelux:operations:changed", () => {
-    if (!$('planningView').hidden) refreshPlanning();
-  });
-  // A navegaÃ§Ã£o sinaliza a abertura da aba; atualizamos o calendÃ¡rio nesse momento.
-  window.addEventListener("prelux:planning:open", refreshPlanning);
-  $('closeCalendarDay').addEventListener("click", closeCalendarDay);
-  $('cancelCalendarDay').addEventListener("click", closeCalendarDay);
-  $('calendarDayModal').addEventListener("click", (event) => { if (event.target.id === "calendarDayModal") closeCalendarDay(); });
-  $('calendarDayForm').addEventListener("submit", saveCalendarDay);
-  $('restoreCalendarDay').addEventListener("click", () => deleteCalendarActivity($('restoreCalendarDay').dataset.activityId, true));
-  $('closeCalendarActivity').addEventListener("click", closeCalendarActivity);
-  $('cancelCalendarActivity').addEventListener("click", closeCalendarActivity);
-  $('calendarActivityModal').addEventListener("click", (event) => { if (event.target.id === "calendarActivityModal") closeCalendarActivity(); });
-  $('calendarActivityForm').addEventListener("submit", saveCalendarActivity);
-  $('deleteCalendarActivity').addEventListener("click", () => deleteCalendarActivity(state.editingActivityId));
-  $('calendarDayActivities').addEventListener("click", handleCalendarClick);
-  $('activityWorking').addEventListener("change", () => { $('activityCapacity').value = $('activityWorking').checked ? 480 : 0; });
-  $('closeCalendarSettings').addEventListener("click", closeCalendarSettings);
-  $('cancelCalendarSettings').addEventListener("click", closeCalendarSettings);
-  $('calendarSettingsModal').addEventListener("click", (event) => { if (event.target.id === "calendarSettingsModal") closeCalendarSettings(); });
-  $('calendarSettingsForm').addEventListener("submit", saveCalendarSettings);
-})();
+YªçŠx³¬uç%j·Â+ar‰ì¶ë•ë_¢ºŞjË"‚v›•ëÚ®&›•ëÊƒBˆ
+ˆpìÙ[ÈH[™Z˜[Y[ÈH›ÙpéğèÛËƒBˆ
+ˆ™[™\š^˜H\Èš\ğíY\ÈÈØ[[™0è\š[ÈHÛÛÜ™[˜HÈ[™Z˜YÜˆHYYÜËƒBˆ
+ˆXÙ\ÜÛÈ™[[İÈ\ÜØH[È™\ÜÚ]0ìÜš[ÎÈ˜]™YØpéğèÛË[ÈpìÙ[ÈÙ[˜[ƒBˆ
+‹ÃBŠ[˜İ[Ûˆ›ÙXİ[ÛØ[[™\“[Ù[J
+HÃBˆÛÛœİ	H
+Y
+HOˆØİ[Y[™Ù][[Y[RY
+Y
+NÃBˆËÈ\İYÈH0è\™XNˆYÜÈØ\œ™YØYÜËš\ğèÛÈÙ[XÚ[Û˜YHH[ÙZ\È]X[Y[HX™\ÜËƒBˆÛÛœİİ]HHÃBˆ[ÙNˆ›[Û‹Bˆ^\Îˆ×KBˆ^Ù\[ÛœÎˆ×KBˆÜ™\œÎˆ×KBˆÛÜšÜÎˆ×KBˆØÚY[\Îˆ×KBˆ›ÙXİ[Û“Ü™\œÎˆ×KBˆÜÚ][ÛœÎˆ×KBˆØ\XÚ]PTÜÚ][ÛœÎˆ×KBˆ[š][›š[™Ğ]˜Z[X›Nˆ˜[ÙKBˆİ\YÜ™\’YÎˆ×KBˆÙ][™ÜÎˆÈY˜][ØØ\XÚ]WÛZ[]\Îˆ[\Îˆ×HKBˆÙ[XİY]Nˆ[BˆY][™ĞXİ]š]RYˆ[Bˆ[™[™Ô[ˆ[Bˆ[™[™ÓÜ™\’Yˆ[Bˆ˜YĞÛÛ^ˆ[Bˆ™Yœ™\Ú›ÛZ\ÙNˆ[Bˆ™Yœ™\Ú[™[™Îˆ˜[ÙKBˆNÃBˆÛÛœİXİ]™Tİ]\Ù\ÈH™]ÈÙ]
+È›Ü˜Ø[Y[È‹˜\›İ˜YÈ‹™[WÜ›ÙXØ[È‹˜]˜\ØYÈ—JNÃBˆÛÛœİ\›Z[˜[İ]\Ù\ÈH™]ÈÙ]
+È˜ÛÛ˜ÛZYÈ‹™[™YİYH‹˜Ø[˜Ù[YÈ—JNÃBˆÛÛœİXİ]š]RÚ[™X™[ÈHÃBˆ™\šXYÎˆ‘™\šXYÈ‹BˆXWÙ^˜Nˆ‘XH^˜H‹Bˆ\˜YNˆ”\˜YH‹BˆX[][˜Ø[Îˆ“X[][°éğèÛÈ‹Bˆ›ÛØWØÛÛ]]˜Nˆ‘›ÛØHÛÛ]]˜H‹Bˆ\œÛÛ˜[^˜YNˆ”\œÛÛ˜[^˜YH‹BˆNÃBƒBˆËÈ›Ü›X]péğèÛÈH]\Ë\°ë[ÙÜÈH^ÜÈÛÛ\\[YH[\È°êœÈš\ğíY\ËƒBˆ[˜İ[Ûˆ\ØØ\R[
+˜[YJHÃBˆ™]\›ˆİš[™Ê˜[YHÏÈˆŠKœ™\XÙJÖÉˆ‰×KÙË
+Ú\˜Xİ\ŠHOˆ
+ÃBˆ‰ˆˆ‰˜[\È‹ˆ‰›È‹ˆˆ‰™İÈ‹	È‰Îˆ‰œ][İÈ‹‰Èˆ‰ˆÌÎNÈ‹BˆJVØÚ\˜Xİ\—JNÃBˆCBƒBˆ[˜İ[ÛˆØØ[Ù^J
+HÃBˆÛÛœİ›İÈH™]È]J
+NÃBˆ™]\›ˆ	Û›İË™Ù][YX\Š
+_KIÔİš[™Ê›İË™Ù][Û
+
+H
+ÈJKœYİ\
+‹ŒŠ_KIÔİš[™Ê›İË™Ù]]J
+JKœYİ\
+‹ŒŠ_XÃBˆCBƒBˆ[˜İ[Ûˆ[˜ÚÜ‘]J
+HÃBˆYˆ
+I
+	Ü[›š[™Ğ[˜ÚÜ‰ÊK˜[YJH	
+	Ü[›š[™Ğ[˜ÚÜ‰ÊK˜[YHHØØ[Ù^J
+NÃBˆ™]\›ˆ	
+	Ü[›š[™Ğ[˜ÚÜ‰ÊK˜[YNÃBˆCBƒBˆ[˜İ[Ûˆ\ÛÑ]J]JHÃBˆ™]\›ˆ]KÒTÓÔİš[™Ê
+KœÛXÙJL
+NÃBˆCBƒBˆ[˜İ[ÛˆY^\Ê˜[YK[[İ[
+HÃBˆÛÛœİ]HH™]È]J	İ˜[Y_UŒŒŒ˜
+NÃBˆ]KœÙ]UÑ]J]K™Ù]UÑ]J
+H
+È[[İ[
+NÃBˆ™]\›ˆ\ÛÑ]J]JNÃBˆCBƒBˆ[˜İ[Ûˆ]Q\İ[˜ÙJİ\[™
+HÃBˆ™]\›ˆX]œ›İ[™
+
+™]È]J	Ù[™UŒŒŒ˜
+HH™]È]J	Üİ\UŒŒŒ˜
+JHÈ
+NÃBˆCBƒBˆ[˜İ[Ûˆ[Û›İ[™Ê˜[YHH[˜ÚÜ‘]J
+JHÃBˆÛÛœİŞYX\‹[ÛHH˜[YKœÜ]
+‹HŠK›X\
+[X™\ŠNÃBˆ™]\›ˆÃBˆİ\ˆ	ŞYX\ŸKIÔİš[™Ê[Û
+KœYİ\
+‹ŒŠ_KLXBˆ[™ˆ\ÛÑ]J™]È]J]K•UÊYX\‹[Û
+JJKBˆNÃBˆCBƒBˆ[˜İ[ÛˆÙYZĞ›İ[™Ê˜[YHH[˜ÚÜ‘]J
+JHÃBˆÛÛœİÙYZÙ^HH™]È]J	İ˜[Y_UŒŒŒ˜
+K™Ù]UÑ^J
+NÃBˆÛÛœİ[Û™^SÙ™œÙ]H
+ÙYZÙ^H
+ÈŠH	HÎÃBˆÛÛœİİ\HY^\Ê˜[YK[[Û™^SÙ™œÙ]
+NÃBˆ™]\›ˆÈİ\[™ˆY^\Êİ\ŠHNÃBˆCBƒBˆ[˜İ[Ûˆš\ÚX›P›İ[™Ê
+HÃBˆ™]\›ˆİ]K›[ÙHOOHÙYZÈˆÈÙYZĞ›İ[™Ê
+Hˆ[Û›İ[™Ê
+NÃBˆCBƒBˆ[˜İ[Ûˆ›Ü›X]]P”Š˜[YJHÃBˆÛÛœİŞYX\‹[Û^WHHİš[™Ê˜[YHˆŠKœÜ]
+‹HŠNÃBˆ™]\›ˆ^H	‰ˆ[Û	‰ˆYX\ˆÈ	Ù^_KÉÛ[ÛKÉŞYX\ŸXˆ¸ %ÃBˆCBƒBˆ[˜İ[Ûˆ›Ü›X]Ü™\ŠÜ™\ŠHÃBˆÛÛœİ™Y™\™[˜ÙHHÜ™\Ë›Ü™\—Û[X™\ˆ”YYÈÙ[H°î›Y\›ÈÃBˆ™]\›ˆÜ™Y™\™[˜ÙKÜ™\ËÛÜš×Û˜[YKÜ™\Ë˜ÛY[Û˜[YWK™š[\Š›ÛÛX[ŠKš›Ú[Šˆ0­ÈŠNÃBˆCBƒBˆ[˜İ[ÛˆÜ™\RY
+Ü™\’Y
+HÃBˆ™]\›ˆİ]K›Ü™\œË™š[™
+
+Ü™\ŠHOˆÜ™\‹šYOOHÜ™\’Y
+H[ÃBˆCBƒBˆ[˜İ[Ûˆ]TÜ[Š™XÛÜ™
+HÃBˆÛÛœİİ\H™XÛÜ™Ëœİ\Ù]H™XÛÜ™Ëœ™\]Y\İYÙYWÙ]NÃBˆÛÛœİ[™H™XÛÜ™Ëœ™\]Y\İYÙYWÙ]H™XÛÜ™Ëœİ\Ù]NÃBˆYˆ
+\İ\Y[™
+H™]\›ˆ[ÃBˆ™]\›ˆİ\H[™ÈÈİ\[™HˆÈİ\ˆ[™[™ˆİ\NÃBˆCBƒBˆ[˜İ[ÛˆÜ[ÛÛZ[œÊ™XÛÜ™]JHÃBˆÛÛœİÜ[ˆH]TÜ[Š™XÛÜ™
+NÃBˆ™]\›ˆ›ÛÛX[ŠÜ[ˆ	‰ˆ]HHÜ[‹œİ\	‰ˆ]HHÜ[‹™[™
+NÃBˆCBƒBˆ[˜İ[ÛˆÜ[“İ™\›\Ê™XÛÜ™İ\[™
+HÃBˆÛÛœİÜ[ˆH]TÜ[Š™XÛÜ™
+NÃBˆ™]\›ˆ›ÛÛX[ŠÜ[ˆ	‰ˆÜ[‹œİ\H[™	‰ˆÜ[‹™[™Hİ\
+NÃBˆCBƒBˆ[˜İ[ÛˆXİ]™PØ[[™\“Ü™\œÊ
+HÃBˆ™]\›ˆİ]K›Ü™\œË™š[\Š
+Ü™\ŠHOˆXİ]™Tİ]\Ù\Ëš\ÊÜ™\‹œİ]\ÊH	‰ˆ]\›Z[˜[İ]\Ù\Ëš\ÊÜ™\‹œİ]\ÊJNÃBˆCBƒBˆ[˜İ[ÛˆXİ]™PØ[[™\•ÛÜšÜÊ
+HÃBˆ™]\›ˆİ]KÛÜšÜË™š[\Š
+ÛÜšÊHOˆÈœ[™Z˜[Y[È‹˜]]˜H—Kš[˜ÛY\ÊÛÜšËœİ]\ÊJNÃBˆCBƒBˆ[˜İ[ÛˆÜ™\•Ú[™İÓX™[
+Ü™\ŠHÃBˆÛÛœİÜ[ˆH]TÜ[ŠÜ™\ŠNÃBˆÛÛœİ\š[ÙHÜ[ƒBˆÈ	Ù›Ü›X]]P”ŠÜ[‹œİ\
+_IÜÜ[‹™[™OOHÜ[‹œİ\ÈH	Ù›Ü›X]]P”ŠÜ[‹™[™
+_XˆˆŸXBˆˆœÙ[H]\ÈØY\İ˜Y\ÈÃBˆ™]\›ˆYYÈ0­È	Ù›Ü›X]Ü™\ŠÜ™\Š_H0­È	Ü\š[ÙXÃBˆCBƒBˆ[˜İ[ÛˆÛÜšÕÚ[™İÓX™[
+ÛÜšÊHÃBˆÛÛœİÜ[ˆH]TÜ[ŠÛÜšÊNÃBˆÛÛœİ\š[ÙHÜ[ƒBˆÈ	Ù›Ü›X]]P”ŠÜ[‹œİ\
+_IÜÜ[‹™[™OOHÜ[‹œİ\ÈH	Ù›Ü›X]]P”ŠÜ[‹™[™
+_XˆˆŸXBˆˆœÙ[H]\ÈØY\İ˜Y\ÈÃBˆ™]\›ˆØœ˜H0­È	İÛÜšËÛÜš×Û[X™\ˆÛÜšË›˜[Y_IİÛÜšËÛÜš×Û[X™\ˆÈ0­È	İÛÜšË›˜[Y_XˆˆŸH0­È	Ü\š[ÙXÃBˆCBƒBˆ[˜İ[ÛˆÜ™\”ØÚY[\ÊÜ™\’Y
+HÃBˆ™]\›ˆİ]KœØÚY[\Ë™š[\Š
+ØÚY[JHOˆØÚY[K›Ü™\—ÚYOOHÜ™\’Y
+NÃBˆCBƒBˆ[˜İ[ÛˆØÚY[SX™[
+ØÚY[JHÃBˆÛÛœİÜ™\ˆHÜ™\RY
+ØÚY[K›Ü™\—ÚY
+NÃBˆÛÛœİYXÙHHÜØÚY[KœYXÙWØÛÙKØÚY[KœYXÙWÛ˜[YWK™š[\Š›ÛÛX[ŠKš›Ú[Šˆ0­ÈŠNÃBˆ™]\›ˆ	Ù›Ü›X]Ü™\ŠÜ™\Š_IÜYXÙHÈ0­È	ÜYXÙ_XˆˆŸH0­È	ÜØÚY[Kœ[›™YÜ]X[]_H[‹˜ÃBˆCBƒBˆ[˜İ[ÛˆÙ]^J]JHÃBˆ™]\›ˆİ]K™^\Ë™š[™
+
+^JHOˆ^K™]HOOH]JH[ÃBˆCBƒBˆ[˜İ[Ûˆ^Ù\[ÛœÑ›Ü‘]J]JHÃBˆ™]\›ˆİ]K™^Ù\[ÛœÃBˆ™š[\Š
+][JHOˆ][Kœİ\Ù]HH]H	‰ˆ][K™[™Ù]HH]JCBˆœÛÜ
+
+KŠHOˆ[X™\Š‹œš[Üš]H
+HH[X™\ŠKœš[Üš]H
+JNÃBˆCBƒBˆ[˜İ[ÛˆØÚY[\Ñ›Ü‘]J]JHÃBˆ™]\›ˆİ]KœØÚY[\Ë™š[\Š
+ØÚY[JHOˆØÚY[KÛÜš×Ù]HOOH]JNÃBˆCBƒBˆÛÛœİQUSÔÔÒUSÓ—ĞÓÑTÈHÈ”H‹”ˆ‹”È‹”—NÃBƒBˆ[˜İ[ÛˆXİ]™TÜÚ][ÛÛİ[
+
+HÃBˆÛÛœİ[˜]˜Z[X›HH™]ÈÙ]
+İ]KœÜÚ][ÛœÃBˆ™š[\Š
+ÜÚ][ÛŠHOˆÜÚ][Û‹œİ]\ÈOOH™[WÛX[][˜Ø[ÈŠCBˆ›X\
+
+ÜÚ][ÛŠHOˆÜÚ][Û‹˜ÛÙJJNÃBˆ™]\›ˆQUSÔÔÒUSÓ—ĞÓÑTË™š[\Š
+ÛÙJHOˆ][˜]˜Z[X›Kš\ÊÛÙJJK›[™İÃBˆCBƒBˆ[˜İ[Ûˆ›ÙXİ[Û•[š]Ñ›Ü‘]J]JHÃBˆ™]\›ˆİ]Kœ›ÙXİ[Û“Ü™\œË™š[\Š
+[š]
+HOˆ[š]œ[›™YØØ\İÙ]HOOH]JNÃBˆCBƒBˆ[˜İ[Ûˆ\ÙSYØXŞTØÚY[UšY]Ê
+HÃBˆ™]\›ˆ\İ]K[š][›š[™Ğ]˜Z[X›H
+\İ]Kœ›ÙXİ[Û“Ü™\œË›[™İ	‰ˆİ]KœØÚY[\Ë›[™İˆ
+NÃBˆCBƒBˆ[˜İ[ÛˆÜÚ][Û”İ]Ê]JHÃBˆÛÛœİ^HHÙ]^J]JHÈ\×İÛÜšÚ[™Îˆ˜[ÙHNÃBˆÛÛœİÜÚ][ÛÛİ[HXİ]™TÜÚ][ÛÛİ[
+
+NÃBˆÛÛœİØ\XÚ]HHİ]K˜Ø\XÚ]PTÜÚ][ÛœË™š[™
+
+][JHOˆ][K™]HOOH]JNÃBˆÛÛœİ[›™Y[š]ÈH]\ÙSYØXŞTØÚY[UšY]Ê
+CBˆÈ›ÙXİ[Û•[š]Ñ›Ü‘]J]JK›[™İBˆˆØÚY[\Ñ›Ü‘]J]JKœ™YXÙJ
+İ[KØÚY[JHOˆİ[H
+ÈX]›X^
+[X™\ŠØÚY[Kœ[›™YÜ]X[]JH
+K
+NÃBˆÛÛœİ\ÜÚYÛ™YÜÚ][ÛœÈH]\ÙSYØXŞTØÚY[UšY]Ê
+CBˆÈ™]ÈÙ]
+›ÙXİ[Û•[š]Ñ›Ü‘]J]JK›X\
+
+[š]
+HOˆ[š]œÜÚ][Û—ØÛÙJK™š[\Š›ÛÛX[ŠJKœÚ^™CBˆˆØÚY[\Ñ›Ü‘]J]JKœ™YXÙJ
+İ[KØÚY[JHOˆİ[H
+ÈX]›X^
+[X™\ŠØÚY[Kœ[›™YÜ]X[]JH
+K
+NÃBˆÛÛœİØØİ\YYHX]›X^
+[X™\ŠØ\XÚ]OË›ØØİ\YYÜÜÚ][ÛœÊH\ÜÚYÛ™YÜÚ][ÛœË[›™Y[š]ÊNÃBˆÛÛœİ]˜Z[X›HH^Kš\×İÛÜšÚ[™ÈÈÜÚ][ÛÛİ[ˆÃBˆ™]\›ˆÃBˆÜÚ][ÛÛİ[Bˆ[›™Y[š]ËBˆØØİ\YYBˆ]˜Z[X›KBˆİ™\Ø\XÚ]NˆØØİ\YYˆ]˜Z[X›KBˆNÃBˆCBƒBˆ[˜İ[Ûˆ[š]Ü™\Š[š]
+HÃBˆ™]\›ˆ[š]›Ü™\—ÚYˆÃBˆCBƒBˆ[˜İ[Ûˆ[š]YXÙSX™[
+[š]
+HÃBˆ™]\›ˆ[š]œYXÙWØÛÙH[š]œYXÙWÛ˜[YH”péØHÃBˆCBƒBˆ[˜İ[Ûˆ\ÙQ]™[Ñ›Ü‘]J]JHÃBˆYˆ
+\ÙSYØXŞTØÚY[UšY]Ê
+JHÃBˆ™]\›ˆØÚY[\Ñ›Ü‘]J]JK›X\
+
+ØÚY[JHOˆ
+ÈÚ[™ˆ˜Ø\İ[™È‹˜[YNˆØÚY[K]X[]Nˆ[X™\ŠØÚY[Kœ[›™YÜ]X[]JHJJNÃBˆCBˆÛÛœİ[š]ÈHİ]Kœ›ÙXİ[Û“Ü™\œÎÃBˆÛÛœİ™\İ[H×NÃBˆÛÛœİÜ›İ\ÈH™]ÈX\
+
+NÃBˆÛÛœİYÜ›İ\H
+Ú[™[š]Ù^T\HˆŠHOˆÃBˆÛÛœİÜ™\’YH[š]Ü™\Š[š]
+NÃBˆÛÛœİÙ^HH	ÚÚ[™_	ÛÜ™\’Y_	İ[š]YXÙSX™[
+[š]
+__	ÚÙ^T\XÃBˆÛÛœİÜ›İ\HÜ›İ\Ë™Ù]
+Ù^JHÈÚ[™˜[YNˆ[š]]X[]NˆNÃBˆÜ›İ\œ]X[]H
+ÏHNÃBˆÜ›İ\ËœÙ]
+Ù^KÜ›İ\
+NÃBˆNÃBˆ›Üˆ
+ÛÛœİ[š]Ùˆ[š]ÊHÃBˆYˆ
+[š]œ[›™YØØ\İÙ]HOOH]JHYÜ›İ\
+˜Ø\İ[™È‹[š][š]œÜÚ][Û—ØÛÙH[˜[ØØ]YŠNÃBˆYˆ
+[š]œ[›™YØİ\™WÜİ\Ù]H	‰ˆ[š]œ[›™YØİ\™WÙ[™Ù]H	‰ˆ]HH[š]œ[›™YØİ\™WÜİ\Ù]H	‰ˆ]HH[š]œ[›™YØİ\™WÙ[™Ù]JHÃBˆYÜ›İ\
+˜İ\š[™È‹[š]
+NÃBˆCBˆYˆ
+[š]œ[›™YÙš[š\ÚÙ]HOOH]JHYÜ›İ\
+™š[š\Ú‹[š]
+NÃBˆCBˆ™\İ[œ\Ú
+‹‹™Ü›İ\Ë˜[Y\Ê
+JNÃBˆ™]\›ˆ™\İ[ÃBˆCBƒBˆ[˜İ[Ûˆ\ÙQ]™[X™[
+]™[
+HÃBˆÛÛœİ˜[YHH]™[˜[YNÃBˆÛÛœİÜ™\ˆHÜ™\RY
+[š]Ü™\Š˜[YJJNÃBˆÛÛœİ™Y™\™[˜ÙHHÜ™\Ë›Ü™\—Û[X™\ˆ”YYÈÃBˆÛÛœİYXÙHH˜[YKœYXÙWØÛÙH˜[YKœYXÙWÛ˜[YH”péØHÃBˆYˆ
+]™[šÚ[™OOH˜Ø\İ[™ÈŠHÃBˆÛÛœİÜÚ][ÛˆH˜[YKœÜÚ][Û—ØÛÙHœÙ[HÜÚpéğèÛÈÃBˆ™]\›ˆ	ÜÜÚ][ÛŸH0­È	Ü™Y™\™[˜Ù_H0­È	ÜYXÙ_IÙ]™[œ]X[]HˆHÈ0åÉÙ]™[œ]X[]_XˆˆŸXÃBˆCBˆ™]\›ˆ	Ù]™[šÚ[™OOH˜İ\š[™ÈˆÈİ\˜HˆˆXØX˜[Y[ÈŸH0­È	Ü™Y™\™[˜Ù_H0­È	ÜYXÙ_IÙ]™[œ]X[]HˆHÈ0åÉÙ]™[œ]X[]_XˆˆŸXÃBˆCBƒBˆ[˜İ[ÛˆÚİÔİ]\ÊYY\ÜØYÙK\Ñ\œ›ÜˆH˜[ÙJHÃBˆÛÛœİ[[Y[H	
+Y
+NÃBˆ[[Y[^ÛÛ[HY\ÜØYÙNÃBˆ[[Y[˜Û\ÜÓ\İÙÙÛJœÚİÈ‹›ÛÛX[ŠY\ÜØYÙJJNÃBˆ[[Y[˜Û\ÜÓ\İÙÙÛJ™\œ›Üˆ‹›ÛÛX[Š\Ñ\œ›ÜŠJNÃBˆCBƒBˆËÈ™[™\š^˜péğèÛÎˆ˜[œÙ›Ü›XHÜÈYÜÈÈØ[[™0è\š[È[H›ØÛÜÈSXÙ\Üğë]™Z\ËƒBˆ[˜İ[Ûˆ™[™\‘^J]KÜ[ÛœÈHßJHÃBˆÛÛœİ^HHÙ]^J]JHÈ\×İÛÜšÚ[™Îˆ˜[ÙKØ\XÚ]WÛZ[]\ÎˆNÃBˆÛÛœİİ]ÈHÜÚ][Û”İ]Ê]JNÃBˆÛÛœİØØİ\[˜ŞHHİ]ËœÜÚ][ÛÛİ[ÈX]œ›İ[™
+İ]Ë›ØØİ\YYÈİ]ËœÜÚ][ÛÛİ[
+ˆL
+HˆÃBˆÛÛœİÚYHX]›Z[ŠLØØİ\[˜ŞJNÃBˆÛÛœİØØİ\[˜ŞPÛ\ÜÈHİ]Ë›İ™\Ø\XÚ]HÈ›İ™\ˆˆˆØØİ\[˜ŞHHÍHÈšYÚˆˆˆÃBˆÛÛœİXİ]š]Y\ÈH^Ù\[ÛœÑ›Ü‘]J]JNÃBˆÛÛœİ›İHHXİ]š]Y\ÖÌOË›˜[YH^K››İHˆÃBˆÛÛœİÙ^PÛ\ÜÈH]HOOHØØ[Ù^J
+HÈÙ^HˆˆˆÃBˆÛÛœİÙ[XİYÛ\ÜÈH]HOOHİ]KœÙ[XİY]HÈœÙ[XİYˆˆˆÃBˆÛÛœİ›Û•ÛÜšÚ[™ĞÛ\ÜÈH^Kš\×İÛÜšÚ[™ÈÈˆˆˆ››Û‹]ÛÜšÚ[™ÈÃBˆÛÛœİXİ]š]SX™[H›İHÈÜ[ˆÛ\ÜÏH˜Ø[[™\‹Y^KXXİ]š]Hˆ]OH‰Ù\ØØ\R[
+›İJ_H‰Ù\ØØ\R[
+›İJ_OÜÜ[˜ˆˆÃBˆÛÛœİ]T\Ù\ÈH\ÙQ]™[Ñ›Ü‘]J]JNÃBˆÛÛœİØÚY[YÜ™\’YÈH™]ÈÙ]
+]T\Ù\Ë›X\
+
+]™[
+HOˆ[š]Ü™\Š]™[˜[YJJK™š[\Š›ÛÛX[ŠJNÃBˆÛÛœİ]SÜ™\œÈHXİ]™PØ[[™\“Ü™\œÊ
+K™š[\Š
+Ü™\ŠHOƒBˆÜ[ÛÛZ[œÊÜ™\‹]JH	‰ˆ\ØÚY[YÜ™\’YËš\ÊÜ™\‹šY
+CBˆ
+NÃBˆÛÛœİ]UÛÜšÜÈHXİ]™PØ[[™\•ÛÜšÜÊ
+K™š[\Š
+ÛÜšÊHOˆÜ[ÛÛZ[œÊÛÜšË]JJNÃBˆÛÛœİ]™[ÈHÃBˆ‹‹™]T\Ù\ËBˆ‹‹™]SÜ™\œË›X\
+
+Ü™\ŠHOˆ
+ÈÚ[™ˆ›Ü™\ˆ‹˜[YNˆÜ™\ˆJJKBˆ‹‹™]UÛÜšÜË›X\
+
+ÛÜšÊHOˆ
+ÈÚ[™ˆÛÜšÈ‹˜[YNˆÛÜšÈJJKBˆNÃBˆÛÛœİ]™[[Z]HÜ[ÛœËÙYZÈÈˆÎÃBˆÛÛœİ]™[›İÜÈH]™[ËœÛXÙJ]™[[Z]
+K›X\
+
+]™[
+HOˆÃBˆYˆ
+]™[šÚ[™OOH›Ü™\ˆŠHÃBˆ™]\›ˆÜ[ˆÛ\ÜÏH˜Ø[[™\‹]Ú[™İËY]™[Ü™\‹]Ú[™İÈˆ]OH‰Ù\ØØ\R[
+Ü™\•Ú[™İÓX™[
+]™[˜[YJJ_H”YYÈ0­È	Ù\ØØ\R[
+]™[˜[YK›Ü™\—Û[X™\ˆ”Ù[H°î›Y\›ÈŠ_OÜÜ[˜ÃBˆCBˆYˆ
+]™[šÚ[™OOHÛÜšÈŠHÃBˆÛÛœİÛÜšÈH]™[˜[YNÃBˆ™]\›ˆÜ[ˆÛ\ÜÏH˜Ø[[™\‹]Ú[™İËY]™[ÛÜšË]Ú[™İÈˆ]OH‰Ù\ØØ\R[
+ÛÜšÕÚ[™İÓX™[
+ÛÜšÊJ_H“Øœ˜H0­È	Ù\ØØ\R[
+ÛÜšËÛÜš×Û[X™\ˆÛÜšË›˜[YJ_OÜÜ[˜ÃBˆCBˆÛÛœİ˜[YHH]™[˜[YNÃBˆÛÛœİÜ™\’YH[š]Ü™\Š˜[YJNÃBˆÛÛœİÜ™\ˆHÜ™\RY
+Ü™\’Y
+NÃBˆÛÛœİ\ĞØ\İ[™ÈH]™[šÚ[™OOH˜Ø\İ[™ÈÃBˆÛÛœİİ]\ĞÛ\ÜÈH˜[YKœİ]\ÈOOHš[—Ü›ÙÜ™\ÜÈˆÈš[‹\›ÙÜ™\ÜÈˆˆ˜[YKœİ]\ÈOOH™Û™HˆÈ™Û™HˆˆˆÃBˆÛÛœİØ[‘˜YÈH\ĞØ\İ[™È	‰ˆ˜[YKœİ]\ÈOOHœ[›™Yˆ	‰ˆÜ™\’Y	‰ˆ\İ]Kœİ\YÜ™\’YËš[˜ÛY\ÊÜ™\’Y
+NÃBˆÛÛœİÛ\ÜÓ˜[YHH]™[šÚ[™OOH˜Ø\İ[™ÈˆÈ˜Ø\İ[™ËY]™[ˆˆ]™[šÚ[™OOH˜İ\š[™ÈˆÈ˜İ\š[™ËY]™[ˆˆ™š[š\ÚY]™[ÃBˆÛÛœİ]HH	Ü\ÙQ]™[X™[
+]™[
+_H0­È	Ù›Ü›X]]P”Š]J_IÙ]™[šÚ[™OOH˜İ\š[™ÈˆÈˆ0­Èİ\˜H°èÛÈØİ\HÜÚpéğèÛÈˆˆˆŸXÃBˆÛÛœİX™[H]\ÙSYØXŞTØÚY[UšY]Ê
+HÈ\ÙQ]™[X™[
+]™[
+Hˆ	Ù›Ü›X]Ü™\ŠÜ™\Š_H0­È	İ˜[YKœYXÙWØÛÙHœ›ÙpéğèÛÈŸH0­È	Ó[X™\Š˜[YKœ[›™YÜ]X[]J_H[‹˜ÃBˆ™]\›ˆ]ÛˆÛ\ÜÏH˜Ø[[™\‹Y]™[	ØÛ\ÜÓ˜[Y_H	Üİ]\ĞÛ\ÜßHˆ\OH˜]Ûˆˆ]K[Ü™\‹Y]™[H‰Ù\ØØ\R[
+Ü™\’Y
+_Hˆ]K]ÛÜšËY]OH‰Ù]_Hˆ]OH‰Ù\ØØ\R[
+]J_H‰ØØ[‘˜YÈÈ	È˜YÙØX›OHYH‰ÈˆˆŸO‰Ù\ØØ\R[
+X™[
+_OØ]Û˜ÃBˆJKš›Ú[ŠˆŠNÃBˆÛÛœİ™[XZ[š[™Ñ]™[ÈH]™[Ë›[™İH]™[[Z]ÃBˆÛÛœİÜÚ][Û“X™[H^Kš\×İÛÜšÚ[™ÃBˆÈ	Üİ]Ë›ØØİ\YYKÉÜİ]ËœÜÚ][ÛÛİ[HÜÚpéğíY\ÉÜİ]Ë›İ™\Ø\XÚ]HÈˆ0­ÈÛÛ™›]ÈˆˆˆŸXBˆˆİ]Ëœ[›™Y[š]ÈÈÙ[H›ÙpéğèÛÈ0­È	Üİ]Ëœ[›™Y[š]ßHÛÛ˜Ü™]YÙ[JœÊXˆ”Ù[H›ÙpéğèÛÈÃBˆ™]\›ˆ]ˆÛ\ÜÏH˜Ø[[™\‹Y^H	Û›Û•ÛÜšÚ[™ĞÛ\ÜßH	İÙ^PÛ\ÜßH	ÜÙ[XİYÛ\ÜßHˆ›ÛOH˜]ÛˆˆXš[™^HŒˆ]KXØ[[™\‹Y]OH‰Ù]_Hˆ]OHXœš\ˆZ\İ\ÈH	Ù›Ü›X]]P”Š]J_HÜ[ˆÛ\ÜÏH˜Ø[[™\‹Y^KZXYÜ[ˆÛ\ÜÏH˜Ø[[™\‹Y^K[[X™\ˆ‰Ó[X™\Š]KœÛXÙJLŠJ_OÜÜ[Ü[ˆÛ\ÜÏH˜Ø[[™\‹Y^K\İ]\È‰Ù^Kš\×İÛÜšÚ[™ÈÈ°î[ˆˆœ\˜YÈŸOÜÜ[ÜÜ[Ü[ˆÛ\ÜÏH˜Ø[[™\‹Y^KXØ\XÚ]H	Üİ]Ë›İ™\Ø\XÚ]HÈœÜÚ][Û‹XÛÛ™›XİˆˆˆŸH‰ÜÜÚ][Û“X™[OÜÜ[‰ØXİ]š]SX™[OÜ[ˆÛ\ÜÏH˜Ø[[™\‹Y^K[ØØİ\[˜ŞHHÛ\ÜÏH‰ÛØØİ\[˜ŞPÛ\ÜßHˆİ[OHÚY‰İÚYIHÚOÜÜ[]ˆÛ\ÜÏH˜Ø[[™\‹Y]™[È‰Ù]™[›İÜßIÜ™[XZ[š[™Ñ]™[ÈˆÈÜ[ˆÛ\ÜÏH˜Ø[[™\‹Y]™[[[Ü™HŠÉÜ™[XZ[š[™Ñ]™[ßH]\\ÏÜÜ[˜ˆˆŸOÙ]Ù]˜ÃBˆCBƒBˆ[˜İ[Ûˆ™[™\“[Û
+
+HÃBˆÛÛœİÈİ\[™HH[Û›İ[™Ê
+NÃBˆÛÛœİš\œİÙYZÙ^HH
+™]È]J	Üİ\UŒŒŒ˜
+K™Ù]UÑ^J
+H
+ÈŠH	HÎÃBˆÛÛœİ^\ĞÛİ[H]Q\İ[˜ÙJİ\[™
+H
+ÈNÃBˆÛÛœİÙYZÙ^\ÈHÈ”ÙYÈ‹•\ˆ‹”]XH‹”]ZH‹”Ù^‹”ğèXˆ‹‘ÛH—NÃBˆ][HÙYZÙ^\Ë›X\
+
+^JHOˆ]ˆÛ\ÜÏH˜Ø[[™\‹]ÙYZÙ^H‰Ù^_OÙ]˜
+Kš›Ú[ŠˆŠNÃBˆ[
+ÏH\œ˜^K™œ›ÛJÈ[™İˆš\œİÙYZÙ^HK
+
+HOˆ	Ï]ˆÛ\ÜÏH˜Ø[[™\‹Y[\HÙ]‰ÊKš›Ú[ŠˆŠNÃBˆ›Üˆ
+]Ù™œÙ]HÈÙ™œÙ]^\ĞÛİ[ÈÙ™œÙ]
+ÏHJH[
+ÏH™[™\‘^JY^\Êİ\Ù™œÙ]
+JNÃBˆÛÛœİ˜Z[[™ÈH
+ÈH
+
+š\œİÙYZÙ^H
+È^\ĞÛİ[
+H	HÊJH	HÎÃBˆ[
+ÏH\œ˜^K™œ›ÛJÈ[™İˆ˜Z[[™ÈK
+
+HOˆ	Ï]ˆÛ\ÜÏH˜Ø[[™\‹Y[\HÙ]‰ÊKš›Ú[ŠˆŠNÃBˆ	
+	Ü[›š[™ĞØ[[™\”İ]IÊK˜Û\ÜÓ˜[YHH˜Ø[[™\‹\İ]HØ[[™\‹[[Û]šY]ÈÃBˆ	
+	Ü[›š[™ĞØ[[™\”İ]IÊKš[›™\’SH]ˆÛ\ÜÏH˜Ø[[™\‹YÜšY‰Ú[OÙ]˜ÃBˆ	
+	Ü[›š[™ĞØ[[™\’XY[™ÉÊK^ÛÛ[H™]È]J	Üİ\UŒŒŒ˜
+KÓØØ[Q]Tİš[™ÊœP”ˆ‹È[Ûˆ›Û™È‹YX\ˆ›[Y\šXÈ‹[YV›Û™Nˆ•UÈˆJNÃBˆCBƒBˆ[˜İ[Ûˆ™[™\•ÙYZÊ
+HÃBˆÛÛœİÈİ\[™HHÙYZĞ›İ[™Ê
+NÃBˆÛÛœİÙYZÙ^\ÈHÈ”ÙYÈ‹•\ˆ‹”]XH‹”]ZH‹”Ù^‹”ğèXˆ‹‘ÛH—NÃBˆ][HÙYZÙ^\Ë›X\
+
+^JHOˆ]ˆÛ\ÜÏH˜Ø[[™\‹]ÙYZÙ^H‰Ù^_OÙ]˜
+Kš›Ú[ŠˆŠNÃBˆ›Üˆ
+]Ù™œÙ]HÈÙ™œÙ]ÎÈÙ™œÙ]
+ÏHJH[
+ÏH™[™\‘^JY^\Êİ\Ù™œÙ]
+KÈÙYZÎˆYHJNÃBˆ	
+	Ü[›š[™ĞØ[[™\”İ]IÊK˜Û\ÜÓ˜[YHH˜Ø[[™\‹\İ]HØ[[™\‹]ÙYZË]šY]ÈÃBˆ	
+	Ü[›š[™ĞØ[[™\”İ]IÊKš[›™\’SH]ˆÛ\ÜÏH˜Ø[[™\‹YÜšY‰Ú[OÙ]˜ÃBˆ	
+	Ü[›š[™ĞØ[[™\’XY[™ÉÊK^ÛÛ[HÙ[X[˜HH	Ù›Ü›X]]P”Šİ\
+_HH	Ù›Ü›X]]P”Š[™
+_XÃBˆCBƒBˆ[˜İ[Ûˆ™[™\‘Ø[
+
+HÃBˆÛÛœİÈİ\[™HH[Û›İ[™Ê
+NÃBˆÛÛœİÛİ[H]Q\İ[˜ÙJİ\[™
+H
+ÈNÃBˆÛÛœİ[š]Ò[”˜[™ÙHHİ]Kœ›ÙXİ[Û“Ü™\œË™š[\Š
+[š]
+HOƒBˆ
+[š]œ[›™YØØ\İÙ]HHİ\	‰ˆ[š]œ[›™YØØ\İÙ]HH[™
+CBˆ
+[š]œ[›™YØİ\™WÜİ\Ù]H	‰ˆ[š]œ[›™YØİ\™WÜİ\Ù]HH[™	‰ˆ[š]œ[›™YØİ\™WÙ[™Ù]HHİ\
+CBˆ
+[š]œ[›™YÙš[š\ÚÙ]HHİ\	‰ˆ[š]œ[›™YÙš[š\ÚÙ]HH[™
+CBˆ
+NÃBˆÛÛœİÜ™\œÕÚ]]\ÈHXİ]™PØ[[™\“Ü™\œÊ
+K™š[\Š
+Ü™\ŠHOƒBˆÜ[“İ™\›\ÊÜ™\‹İ\[™
+CBˆ[š]Ò[”˜[™ÙKœÛÛYJ
+[š]
+HOˆ[š]›Ü™\—ÚYOOHÜ™\‹šY
+CBˆİ]KœØÚY[\ËœÛÛYJ
+][JHOˆ][K›Ü™\—ÚYOOHÜ™\‹šY	‰ˆ][KÛÜš×Ù]HHİ\	‰ˆ][KÛÜš×Ù]HH[™
+CBˆ
+NÃBˆÛÛœİÛÜšÜÕÚ]]\ÈHXİ]™PØ[[™\•ÛÜšÜÊ
+K™š[\Š
+ÛÜšÊHOˆÜ[“İ™\›\ÊÛÜšËİ\[™
+JNÃBˆÛÛœİ[\]HHKYØ[Y^\Î‰ØÛİ[XÃBˆÛÛœİXY[™ÜÈH\œ˜^K™œ›ÛJÈ[™İˆÛİ[K
+Ë[™^
+HOˆÃBˆÛÛœİ]HHY^\Êİ\[™^
+NÃBˆÛÛœİ^HHÙ]^J]JHÈ\×İÛÜšÚ[™Îˆ˜[ÙHNÃBˆÛÛœİİ]ÈHÜÚ][Û”İ]Ê]JNÃBˆ™]\›ˆ]ˆÛ\ÜÏH™Ø[XÙ[	Ù^Kš\×İÛÜšÚ[™ÈÈˆˆˆ›Ù™ˆŸHˆ]KXØ[[™\‹Y]OH‰Ù]_Hˆ]OH‰Ù›Ü›X]]P”Š]J_H0­È	Ù^Kš\×İÛÜšÚ[™ÈÈ	Üİ]Ë›ØØİ\YYKÉÜİ]ËœÜÚ][ÛÛİ[HÜÚpéğíY\ØˆœÙ[H›ÙpéğèÛÈŸHÜ[‰Ó[X™\Š]KœÛXÙJLŠJ_OÜÜ[ÛX[‰Ù^Kš\×İÛÜšÚ[™ÈÈ	Üİ]Ë›ØØİ\YYKÉÜİ]ËœÜÚ][ÛÛİ[Xˆ¸ %ŸOÜÛX[Ù]˜ÃBˆJKš›Ú[ŠˆŠNÃBˆ]›İÜÈHˆÃBˆÛÛœİ\[™›İÈH
+X™[Ù]ÛÛ[›İĞÛ\ÜÈHˆŠHOˆÃBˆ›İÜÈ
+ÏH]ˆÛ\ÜÏH™Ø[[X™[	Ü›İĞÛ\ÜßH‰Ù\ØØ\R[
+X™[
+_OÙ]˜ÃBˆ›Üˆ
+][™^HÈ[™^Ûİ[È[™^
+ÏHJHÃBˆÛÛœİ]HHY^\Êİ\[™^
+NÃBˆÛÛœİ^HHÙ]^J]JHÈ\×İÛÜšÚ[™Îˆ˜[ÙHNÃBˆÛÛœİİ]ÈHÜÚ][Û”İ]Ê]JNÃBˆ›İÜÈ
+ÏH]ˆÛ\ÜÏH™Ø[XÙ[	Ù^Kš\×İÛÜšÚ[™ÈÈˆˆˆ›Ù™ˆŸH	Üİ]Ë›İ™\Ø\XÚ]HÈ›İ™\ˆˆˆˆŸHˆ]KXØ[[™\‹Y]OH‰Ù]_Hˆ]OH‰Ù›Ü›X]]P”Š]J_H0­È	Ù^Kš\×İÛÜšÚ[™ÈÈ	Üİ]Ë›ØØİ\YYKÉÜİ]ËœÜÚ][ÛÛİ[HÜÚpéğíY\ØˆœÙ[H›ÙpéğèÛÈŸH‰ÙÙ]ÛÛ[
+]J_OÙ]˜ÃBˆCBˆNÃBˆÛÛœİØ[[š]Ñ›ÜˆH
+]KÚ[™ÜÚ][ÛÛÙHH[
+HOˆ[š]Ò[”˜[™ÙK™š[\Š
+[š]
+HOˆÃBˆYˆ
+Ú[™OOH˜Ø\İ[™ÈŠH™]\›ˆ[š]œ[›™YØØ\İÙ]HOOH]H	‰ˆ
+\ÜÚ][ÛÛÙH[š]œÜÚ][Û—ØÛÙHOOHÜÚ][ÛÛÙJNÃBˆYˆ
+Ú[™OOH˜İ\š[™ÈŠH™]\›ˆ[š]œ[›™YØİ\™WÜİ\Ù]H	‰ˆ[š]œ[›™YØİ\™WÙ[™Ù]H	‰ˆ]HH[š]œ[›™YØİ\™WÜİ\Ù]H	‰ˆ]HH[š]œ[›™YØİ\™WÙ[™Ù]NÃBˆ™]\›ˆ[š]œ[›™YÙš[š\ÚÙ]HOOH]NÃBˆJNÃBˆÛÛœİÜÚ][Û“Y]HH™]ÈX\
+İ]KœÜÚ][ÛœË›X\
+
+ÜÚ][ÛŠHOˆÜÜÚ][Û‹˜ÛÙKÜÚ][Û—JJNÃBˆÛÛœİÜÚ][ÛÛÙ\ÈHË‹‹›™]ÈÙ]
+Ë‹‹‘QUSÔÔÒUSÓ—ĞÓÑTË‹‹œİ]KœÜÚ][ÛœË›X\
+
+ÜÚ][ÛŠHOˆÜÚ][Û‹˜ÛÙJWJWKœÛÜ
+
+NÃBˆ›İÜÈ
+ÏH]ˆÛ\ÜÏH™Ø[\İYÙKZXY[™ÈÛÛ˜Ü™]YÙ[H0­ÈØİ\H[XHÜÚpéğèÛÈÛÛY[H›ÈXHX\˜ØYÏÙ]˜ÃBˆ›Üˆ
+ÛÛœİÛÙHÙˆÜÚ][ÛÛÙ\ÊHÃBˆÛÛœİÜÚ][ÛˆHÜÚ][Û“Y]K™Ù]
+ÛÙJNÃBˆÛÛœİ[˜]˜Z[X›HHÜÚ][ÛËœİ]\ÈOOH™[WÛX[][˜Ø[ÈÃBˆ\[™›İÊ	ØÛÙ_Iİ[˜]˜Z[X›HÈˆ0­ÈX[][°éğèÛÈˆˆˆŸX
+]JHOˆÃBˆYˆ
+]\ÙSYØXŞTØÚY[UšY]Ê
+JHÃBˆ™]\›ˆØ[[š]Ñ›ÜŠ]K˜Ø\İ[™È‹ÛÙJK›X\
+
+[š]
+HOˆÃBˆÛÛœİÜ™\’YH[š]›Ü™\—ÚYÃBˆÛÛœİÜ™\ˆHÜ™\RY
+Ü™\’Y
+NÃBˆÛÛœİ˜YÙØX›HH[š]œİ]\ÈOOHœ[›™Yˆ	‰ˆÜ™\’Y	‰ˆ\İ]Kœİ\YÜ™\’YËš[˜ÛY\ÊÜ™\’Y
+NÃBˆÛÛœİX™[H	Ù\ØØ\R[
+Ü™\Ë›Ü™\—Û[X™\ˆ”YYÈŠ_H0­È	Ù\ØØ\R[
+[š]YXÙSX™[
+[š]
+J_XÃBˆ™]\›ˆ]ÛˆÛ\ÜÏH™Ø[]ÛÜšÈØ\İ[™Ë]ÛÜšÈˆ\OH˜]Ûˆˆ]K[Ü™\‹Y]™[H‰Ù\ØØ\R[
+Ü™\’Y
+_Hˆ]K]ÛÜšËY]OH‰Ù]_Hˆ]OH‰Ù\ØØ\R[
+\ÙQ]™[X™[
+ÈÚ[™ˆ˜Ø\İ[™È‹˜[YNˆ[š]]X[]NˆHJJ_H‰Ù˜YÙØX›HÈ	È˜YÙØX›OHYH‰ÈˆˆŸO‰ÛX™[OØ]Û˜ÃBˆJKš›Ú[ŠˆŠNÃBˆCBˆ™]\›ˆˆÃBˆK[˜]˜Z[X›HÈœÜÚ][Û‹][˜]˜Z[X›HˆˆœÜÚ][Û‹[X™[ŠNÃBˆCBˆYˆ
+]\ÙSYØXŞTØÚY[UšY]Ê
+JHÃBˆÛÛœİ[˜[ØØ]Y[š]ÈH[š]Ò[”˜[™ÙK™š[\Š
+[š]
+HOˆ[š]œ[›™YØØ\İÙ]HHİ\	‰ˆ[š]œ[›™YØØ\İÙ]HH[™	‰ˆ][š]œÜÚ][Û—ØÛÙJNÃBˆYˆ
+[˜[ØØ]Y[š]Ë›[™İ
+HÃBˆ\[™›İÊ”Ù[HÜÚpéğèÛÈ[ØØYH‹
+]JHOˆ[˜[ØØ]Y[š]Ë™š[\Š
+[š]
+HOˆ[š]œ[›™YØØ\İÙ]HOOH]JK›X\
+
+[š]
+HOˆÃBˆÛÛœİÜ™\ˆHÜ™\RY
+[š]›Ü™\—ÚY
+NÃBˆ™]\›ˆÜ[ˆÛ\ÜÏH™Ø[]ÛÜšÈ[˜[ØØ]Y]ÛÜšÈˆ]OHÛÛ˜Ü™]YÙ[HÙ[HÜÚpéğèÛÈ]šXpëYH‰Ù\ØØ\R[
+Ü™\Ë›Ü™\—Û[X™\ˆ”YYÈŠ_H0­È	Ù\ØØ\R[
+[š]YXÙSX™[
+[š]
+J_OÜÜ[˜ÃBˆJKš›Ú[ŠˆŠKœÜÚ][Û‹][˜]˜Z[X›HŠNÃBˆCBˆH[ÙHÃBˆ\[™›İÊ”›ÙÜ˜[XpéğèÛÈ™\İ[ZYH0­ÈÙ[HÜÚpéğèÛÈ[™]šYX[‹
+]JHOˆØÚY[\Ñ›Ü‘]J]JK›X\
+
+ØÚY[JHOˆÃBˆÛÛœİÜ™\ˆHÜ™\RY
+ØÚY[K›Ü™\—ÚY
+NÃBˆ™]\›ˆ]ÛˆÛ\ÜÏH™Ø[]ÛÜšÈØ\İ[™Ë]ÛÜšÈˆ\OH˜]Ûˆˆ]K[Ü™\‹Y]™[H‰Ù\ØØ\R[
+ØÚY[K›Ü™\—ÚY
+_Hˆ]K]ÛÜšËY]OH‰Ù]_Hˆ]OH‰Ù\ØØ\R[
+ØÚY[SX™[
+ØÚY[JJ_H‰Ù\ØØ\R[
+Ü™\Ë›Ü™\—Û[X™\ˆ”YYÈŠ_H0­È	Ù\ØØ\R[
+ØÚY[KœYXÙWØÛÙHœ›ÙpéğèÛÈŠ_H0åÉÓ[X™\ŠØÚY[Kœ[›™YÜ]X[]JHOØ]Û˜ÃBˆJKš›Ú[ŠˆŠKœÜÚ][Û‹][˜]˜Z[X›HŠNÃBˆCBˆ›İÜÈ
+ÏH]ˆÛ\ÜÏH™Ø[\İYÙKZXY[™Èİ\˜H0­È[\˜[ÈÛÜœšYËÙ[HØİ\\ˆÜÚpéğèÛÏÙ]˜ÃBˆ\[™›İÊİ\˜H‹
+]JHOˆØ[[š]Ñ›ÜŠ]K˜İ\š[™ÈŠK›X\
+
+[š]
+HOˆÃBˆÛÛœİÜ™\ˆHÜ™\RY
+[š]›Ü™\—ÚY
+NÃBˆ™]\›ˆÜ[ˆÛ\ÜÏH™Ø[]ÛÜšÈİ\š[™Ë]ÛÜšÈˆ]OH‰Ù\ØØ\R[
+Ü™\Ë›Ü™\—Û[X™\ˆ”YYÈŠ_H0­È	Ù\ØØ\R[
+[š]YXÙSX™[
+[š]
+J_H0­Èİ\˜HH	Ù›Ü›X]]P”Š[š]œ[›™YØİ\™WÜİ\Ù]J_HH	Ù›Ü›X]]P”Š[š]œ[›™YØİ\™WÙ[™Ù]J_H‰Ù\ØØ\R[
+Ü™\Ë›Ü™\—Û[X™\ˆ”YYÈŠ_H0­È	Ù\ØØ\R[
+[š]YXÙSX™[
+[š]
+J_OÜÜ[˜ÃBˆJKš›Ú[ŠˆŠKœ\ÙK[X™[İ\š[™Ë[X™[ŠNÃBˆ›İÜÈ
+ÏH]ˆÛ\ÜÏH™Ø[\İYÙKZXY[™ÈXØX˜[Y[È0­Èš[YZ\›ÈXH0î[\0ìÜÈHİ\˜OÙ]˜ÃBˆ\[™›İÊXØX˜[Y[È‹
+]JHOˆØ[[š]Ñ›ÜŠ]K™š[š\ÚŠK›X\
+
+[š]
+HOˆÃBˆÛÛœİÜ™\ˆHÜ™\RY
+[š]›Ü™\—ÚY
+NÃBˆ™]\›ˆ]ÛˆÛ\ÜÏH™Ø[]ÛÜšÈš[š\Ú]ÛÜšÈˆ\OH˜]Ûˆˆ]K[Ü™\‹Y]™[H‰Ù\ØØ\R[
+[š]›Ü™\—ÚY
+_Hˆ]K]ÛÜšËY]OH‰Ù]_Hˆ]OH‰Ù\ØØ\R[
+Ü™\Ë›Ü™\—Û[X™\ˆ”YYÈŠ_H0­È	Ù\ØØ\R[
+[š]YXÙSX™[
+[š]
+J_H0­ÈXØX˜[Y[È‰Ù\ØØ\R[
+Ü™\Ë›Ü™\—Û[X™\ˆ”YYÈŠ_H0­È	Ù\ØØ\R[
+[š]YXÙSX™[
+[š]
+J_OØ]Û˜ÃBˆJKš›Ú[ŠˆŠKœ\ÙK[X™[š[š\Ú[X™[ŠNÃBˆ›İÜÈ
+ÏH]ˆÛ\ÜÏH™Ø[\İYÙKZXY[™È‘]\ÈÜÈYYÜÈH\ÈØœ˜\ÈØY\İ˜Y\ÏÙ]˜ÃBˆ›Üˆ
+ÛÛœİÜ™\ˆÙˆÜ™\œÕÚ]]\ÊHÃBˆ\[™›İÊYYÈ0­È	ÛÜ™\‹›Ü™\—Û[X™\ˆ”Ù[H°î›Y\›ÈŸX
+]JHOˆÜ[ÛÛZ[œÊÜ™\‹]JHÈ	ÏÜ[ˆÛ\ÜÏH™Ø[[Ü™\‹]Ú[™İÈˆ\šXKZY[HYHÜÜ[‰Èˆˆ‹›Ü™\‹[X™[ŠNÃBˆCBˆ›Üˆ
+ÛÛœİÛÜšÈÙˆÛÜšÜÕÚ]]\ÊHÃBˆ\[™›İÊØœ˜H0­È	İÛÜšËÛÜš×Û[X™\ˆÛÜšË›˜[Y_X
+]JHOˆÜ[ÛÛZ[œÊÛÜšË]JHÈ	ÏÜ[ˆÛ\ÜÏH™Ø[]ÛÜšË]Ú[™İÈˆ\šXKZY[HYHÜÜ[‰Èˆˆ‹ÛÜšË[X™[ŠNÃBˆCBˆÛÛœİ\Ô›İÜÈHÜ™\œÕÚ]]\Ë›[™İˆÛÜšÜÕÚ]]\Ë›[™İˆÃBˆÛÛœİ\Ô\ÙQ]™[ÈH]\ÙSYØXŞTØÚY[UšY]Ê
+HÈ[š]Ò[”˜[™ÙK›[™İˆˆİ]KœØÚY[\Ë›[™İˆÃBˆÛÛœİ[\HH\Ô›İÜÈ\Ô\ÙQ]™[ÈÈˆˆˆ	Ï]ˆÛ\ÜÏH™Ø[Y[\H“™[š[XHÛÛ˜Ü™]YÙ[K]\KYYÈİHØœ˜H™\İHpêœËÙ]‰ÎÃBˆ	
+	Ü[›š[™ĞØ[[™\”İ]IÊK˜Û\ÜÓ˜[YHH˜Ø[[™\‹\İ]HØ[[™\‹YØ[]šY]ÈÃBˆ	
+	Ü[›š[™ĞØ[[™\”İ]IÊKš[›™\’SH]ˆÛ\ÜÏH™Ø[]Ü˜\]ˆÛ\ÜÏH™Ø[YÜ›İ\]ˆÛ\ÜÏH™Ø[\™\Ûİ\˜ÙH‘]\\ÈHÜÚpéğíY\ÈH›ÙpéğèÛÏÜ[‰ØÛİ[HX\È0­È]X]›ÈÜÚpéğíY\È°ë\ÚXØ\È0­ÈHİ\˜H°èÛÈØİ\HÜÚpéğèÛÏÜÜ[Ù]]ˆÛ\ÜÏH™Ø[][Y[[™HØ[ZXYˆİ[OH‰İ[\]_H]ˆÛ\ÜÏH™Ø[[X™[‘]\HÈ™Xİ\œÛÏÙ]‰ÚXY[™ÜßOÙ]]ˆÛ\ÜÏH™Ø[][Y[[™Hˆİ[OH‰İ[\]_H‰Ü›İÜßIÙ[\_OÙ]Ù]Ù]˜ÃBˆ	
+	Ü[›š[™ĞØ[[™\’XY[™ÉÊK^ÛÛ[HØ[0­È	Û™]È]J	Üİ\UŒŒŒ˜
+KÓØØ[Q]Tİš[™ÊœP”ˆ‹È[Ûˆ›Û™È‹YX\ˆ›[Y\šXÈ‹[YV›Û™Nˆ•UÈˆJ_XÃBˆCBƒBˆËÈ[™XØYÜ™\ÈHØ\XÚYYHHÛÛ™›]ÜÈÈ[\˜[È]X[Y[Hš\ğë]™[ƒBˆ[˜İ[Ûˆ™[™\”İ[[X\J
+HÃBˆÛÛœİÛÜšÚ[™Ñ^\ÈHİ]K™^\Ë™š[\Š
+^JHOˆ^Kš\×İÛÜšÚ[™ÊNÃBˆÛÛœİØ\XÚ]TÜÚ][ÛœÈHÛÜšÚ[™Ñ^\Ëœ™YXÙJ
+İ[JHOˆİ[H
+ÈXİ]™TÜÚ][ÛÛİ[
+
+K
+NÃBˆÛÛœİ[›™YÜÚ][ÛœÈHÛÜšÚ[™Ñ^\Ëœ™YXÙJ
+İ[K^JHOˆİ[H
+ÈÜÚ][Û”İ]Ê^K™]JKœ[›™Y[š]Ë
+NÃBˆÛÛœİØØİ\[˜ŞHHØ\XÚ]TÜÚ][ÛœÈÈX]œ›İ[™
+[›™YÜÚ][ÛœÈÈØ\XÚ]TÜÚ][ÛœÈ
+ˆL
+HˆÃBˆÛÛœİ[\^\ÈHİ]K™^\Ë™š[\Š
+^JHOˆÜÚ][Û”İ]Ê^K™]JK›İ™\Ø\XÚ]JK›[™İÃBˆÛÛœİXİ]™SÜ™\œÈHİ]K›Ü™\œË™š[\Š
+Ü™\ŠHOˆXİ]™Tİ]\Ù\Ëš\ÊÜ™\‹œİ]\ÊJK›[™İÃBˆÛÛœİÙ^HHÙ]^JØØ[Ù^J
+JNÃBˆÛÛœİÙ^Tİ]ÈHÙ^HÈÜÚ][Û”İ]ÊÙ^K™]JHˆ[ÃBˆÛÛœİ›İ[™ÈHš\ÚX›P›İ[™Ê
+NÃBˆÛÛœİ^Ù\[ÛÛİ[Hİ]K™^Ù\[ÛœË›[™İÃBˆÛÛœİ]™[Ûİ[H]\ÙSYØXŞTØÚY[UšY]Ê
+CBˆÈİ]Kœ›ÙXİ[Û“Ü™\œË™š[\Š
+[š]
+HOˆ[š]œ[›™YØØ\İÙ]HH›İ[™Ëœİ\	‰ˆ[š]œ[›™YØØ\İÙ]HH›İ[™Ë™[™
+K›[™İBˆˆİ]KœØÚY[\Ëœ™YXÙJ
+İ[KØÚY[JHOˆİ[H
+È
+[X™\ŠØÚY[Kœ[›™YÜ]X[]JH
+K
+NÃBˆÛÛœİ]YÜ™\œÈHXİ]™PØ[[™\“Ü™\œÊ
+K™š[\Š
+Ü™\ŠHOˆÜ[“İ™\›\ÊÜ™\‹›İ[™Ëœİ\›İ[™Ë™[™
+JK›[™İÃBˆÛÛœİ]YÛÜšÜÈHXİ]™PØ[[™\•ÛÜšÜÊ
+K™š[\Š
+ÛÜšÊHOˆÜ[“İ™\›\ÊÛÜšË›İ[™Ëœİ\›İ[™Ë™[™
+JK›[™İÃBˆ	
+	Ü[›š[™ĞØ[[™\”İ[[X\IÊK^ÛÛ[H	İÛÜšÚ[™Ñ^\Ë›[™İHX\È0îZ\È0­È	Ù]™[Ûİ[H	Ù]™[Ûİ[OOHHÈ˜ÛÛ˜Ü™]YÙ[Hˆˆ˜ÛÛ˜Ü™]YÙ[œÈŸH›È\°ë[ÙÈ0­È	Ù]YÜ™\œßHYYÉÙ]YÜ™\œÈOOHHÈˆˆˆœÈŸHH	Ù]YÛÜšÜßHØœ˜IÙ]YÛÜšÜÈOOHHÈˆˆˆœÈŸH›È\°ë[ÙÈ0­È	Ù^Ù\[ÛÛİ[H]]šYYIÙ^Ù\[ÛÛİ[OOHHÈˆˆˆœÈŸHHØ[[™0è\š[Ë˜ÃBˆ	
+	Ü[›š[™ÓÜ™\œÒÜIÊK^ÛÛ[Hİš[™ÊXİ]™SÜ™\œÊNÃBˆ	
+	Ü[›š[™ÓØØİ\[˜ŞRÜIÊK^ÛÛ[H	ÛØØİ\[˜Ş_IXÃBˆ	
+	Ü[›š[™ĞØ\XÚ]RÜIÊK^ÛÛ[HÙ^Tİ]ÈÈ	İÙ^Tİ]Ë›ØØİ\YYKÉİÙ^Tİ]ËœÜÚ][ÛÛİ[Xˆ¸ %ÃBˆ	
+	Ü[›š[™Ğ[\ÒÜIÊK^ÛÛ[Hİš[™Ê[\^\ÊNÃBˆÛÛœİÙYZÙ^S˜[Y\ÈHÈ‘ÛH‹”ÙYÈ‹•\ˆ‹”]XH‹”]ZH‹”Ù^‹”ğèXˆ—NÃBˆÛÛœİÛÜšÚ[™ÕÙYZÙ^\ÈHİ]KœÙ][™ÜËœ[\Ë›[™İBˆÈİ]KœÙ][™ÜËœ[\Ë™š[\Š
+[JHOˆ[Kš\×İÛÜšÚ[™ÊK›X\
+
+[JHOˆ[X™\Š[KÙYZÙ^JJCBˆˆÌK‹ËWNÃBˆ	
+	Ü[›š[™ÕÛÜšÙ^\Ôİ[[X\IÊK^ÛÛ[HÛÜšÚ[™ÕÙYZÙ^\Ë›[™İBˆÈÛÜšÚ[™ÕÙYZÙ^\Ë›X\
+
+ÙYZÙ^JHOˆÙYZÙ^S˜[Y\ÖİÙYZÙ^WJKš›Ú[Š‹ŠCBˆˆ”Ù[HX\ÈYš[šYÜÈÃBˆ	
+	Ü[›š[™ÑY˜][Ø\XÚ]Tİ[[X\IÊK^ÛÛ[H	ØXİ]™TÜÚ][ÛÛİ[
+
+_HÜÚpéğíY\ÈÜˆXH0î[ÃBˆCBƒBˆ[˜İ[Ûˆ™[™\Ø[[™\Š
+HÃBˆ™[™\”[›š[™Ğ˜XÚÛÙÊ
+NÃBˆYˆ
+\İ]K™^\Ë›[™İ
+HÃBˆ	
+	Ü[›š[™ĞØ[[™\”İ]IÊK˜Û\ÜÓ˜[YHH˜Ø[[™\‹\XÙZÛ\ˆÃBˆ	
+	Ü[›š[™ĞØ[[™\”İ]IÊKš[›™\’SH	Ï]İ›Û™ÏØ[[™0è\š[ÈÙ[HYÜÈ\˜H\İH\°ë[ÙÏÜİ›Û™Ï]X[^™HÈØ[[™0è\š[È\˜HÙ\˜\ˆÜÈX\ÈHXš[]\ˆÜÈZ\İ\ÈHH›ÙÜ˜[XpéğèÛËÜÙ]‰ÎÃBˆ™]\›ÃBˆCBˆYˆ
+İ]K›[ÙHOOHÙYZÈŠH™[™\•ÙYZÊ
+NÃBˆ[ÙHYˆ
+İ]K›[ÙHOOH™Ø[ŠH™[™\‘Ø[
+
+NÃBˆ[ÙH™[™\“[Û
+
+NÃBˆ™[™\”İ[[X\J
+NÃBˆCBƒBˆËÈYYÜÈZ[™H°èÛÈ›ÙÜ˜[XYÜÈ]YHÛÛ\0íY[HHš[H\™\Ù[YHXÚ[XHÈØ[[™0è\š[ËƒBˆ[˜İ[Ûˆ[™[™ÓÜ™\œÊ
+HÃBˆ™]\›ˆİ]K›Ü™\œË™š[\Š
+Ü™\ŠHOƒBˆXİ]™Tİ]\Ù\Ëš\ÊÜ™\‹œİ]\ÊCBˆ	‰ˆ]\›Z[˜[İ]\Ù\Ëš\ÊÜ™\‹œİ]\ÊCBˆ	‰ˆ[Ü™\‹œ[›™YÙ[™Ù]CBˆ	‰ˆ\İ]Kœİ\YÜ™\’YËš[˜ÛY\ÊÜ™\‹šY
+CBˆ
+NÃBˆCBƒBˆ[˜İ[ÛˆØÚY[YÛİ[[•š\ÚX›T˜[™ÙJÜ™\’Y
+HÃBˆYˆ
+]\ÙSYØXŞTØÚY[UšY]Ê
+JHÃBˆ™]\›ˆİ]Kœ›ÙXİ[Û“Ü™\œË™š[\Š
+[š]
+HOˆ[š]›Ü™\—ÚYOOHÜ™\’Y
+K›[™İÃBˆCBˆ™]\›ˆİ]KœØÚY[\ÃBˆ™š[\Š
+ØÚY[JHOˆØÚY[K›Ü™\—ÚYOOHÜ™\’Y
+CBˆœ™YXÙJ
+İ[KØÚY[JHOˆİ[H
+È
+[X™\ŠØÚY[Kœ[›™YÜ]X[]JH
+K
+NÃBˆCBƒBˆ[˜İ[Ûˆ™[™\”[›š[™Ğ˜XÚÛÙÊ
+HÃBˆÛÛœİ\İH	
+	Ü[›š[™Ğ˜XÚÛÙÓ\İ	ÊNÃBˆYˆ
+[\İ
+H™]\›ÃBˆÛÛœİ[™[™ÈH[™[™ÓÜ™\œÊ
+NÃBˆÛÛœİXİ]™SÜ™\•ÛÜšÒYÈH™]ÈÙ]
+İ]K›Ü™\œÃBˆ™š[\Š
+Ü™\ŠHOˆXİ]™Tİ]\Ù\Ëš\ÊÜ™\‹œİ]\ÊH	‰ˆÜ™\‹ÛÜš×ÚY
+CBˆ›X\
+
+Ü™\ŠHOˆÜ™\‹ÛÜš×ÚY
+JNÃBˆÛÛœİØZ][™ÕÛÜšÜÈHİ]KÛÜšÜË™š[\Š
+ÛÜšÊHOƒBˆÈœ[™Z˜[Y[È‹˜]]˜H—Kš[˜ÛY\ÊÛÜšËœİ]\ÊH	‰ˆXXİ]™SÜ™\•ÛÜšÒYËš\ÊÛÜšËšY
+CBˆ
+NÃBˆ	
+	Ü[›š[™Ğ˜XÚÛÙĞÛİ[	ÊK^ÛÛ[Hİš[™Ê[™[™Ë›[™İ
+NÃBˆ\İš[›™\’SH[™[™Ë›[™İÈ[™[™Ë›X\
+
+Ü™\ŠHOˆÃBˆÛÛœİš\ÚX›TØÚY[YHØÚY[YÛİ[[•š\ÚX›T˜[™ÙJÜ™\‹šY
+NÃBˆÛÛœİİ[H
+Ü™\‹š][\È×JKœ™YXÙJ
+İ[K][JHOˆİ[H
+È
+[X™\Š][Kœ]X[]JH
+K
+NÃBˆÛÛœİ]Z[ÈHÃBˆÜ™\‹œİ]\ÈÈİ]\Îˆ	ÛÜ™\‹œİ]\ßXˆˆ‹BˆÜ™\‹œİ\Ù]HÈ[°ëXÚ[Îˆ	Ù›Ü›X]]P”ŠÜ™\‹œİ\Ù]J_Xˆˆ‹BˆÜ™\‹œ™\]Y\İYÙYWÙ]HÈ˜^›Îˆ	Ù›Ü›X]]P”ŠÜ™\‹œ™\]Y\İYÙYWÙ]J_Xˆˆ‹Bˆš\ÚX›TØÚY[YÈ	İš\ÚX›TØÚY[YIİİ[ÈH	İİ[XˆˆŸH[‹ˆ›ÙÜ˜[XY\È›È\°ë[ÙÈš\ğë]™[ˆˆ‹BˆK™š[\Š›ÛÛX[ŠKš›Ú[Šˆ0­ÈŠNÃBˆÛÛœİ^[˜][ÛˆHš\ÚX›TØÚY[YÈ›ÙÜ˜[XpéğèÛÈ\˜ÚX[İHÙ[H0ê\›Z[›ÈØ[İ[YÎˆ	İš\ÚX›TØÚY[YH[šYYJÊH\\™XÙ[H›È[\˜[ÈÙ[XÚ[Û˜YË˜ˆ”Ù[H›ÙÜ˜[XpéğèÛÈ™YÚ\İ˜YH\˜HÈYYËˆÃBˆ™]\›ˆ\XÛHÛ\ÜÏHœ[›š[™ËX˜XÚÛÙËZ][H]ˆÛ\ÜÏHœ[›š[™ËX˜XÚÛÙËZ][K[XZ[ˆİ›Û™Ï‰Ù\ØØ\R[
+›Ü›X]Ü™\ŠÜ™\ŠJ_OÜİ›Û™ÏÜ[‰Ù\ØØ\R[
+]Z[È”Ù[H]\ÈØY\İ˜Y\ÈŠ_OÜÜ[ÛX[‰Ù\ØØ\R[
+^[˜][ÛŠ_OÜÛX[Ù]]ÛˆÛ\ÜÏH˜ˆˆ\OH˜]Ûˆˆ]K\[‹[Ü™\‹ZYH‰Ù\ØØ\R[
+Ü™\‹šY
+_H”[™Z˜\Ø]ÛØ\XÛO˜ÃBˆJKš›Ú[ŠˆŠHˆÛ\ÜÏHœ[›š[™ËX˜XÚÛÙËY[\H‰Üİ]K›Ü™\œË›[™İÈ“™[š[HYYÈYİX\™[™È›ÙÜ˜[XpéğèÛËˆÜÈYYÜÈ]]›ÜÈ°èH0ê›H]HH0ê\›Z[›ÈİH\İ0èÛÈ[H›ÙpéğèÛËˆˆˆ“™[š[HYYÈ]]›ÈØY\İ˜YËˆ[ÈØ[˜\ˆ[HYYÈ[HØY\İ›ÜË[H\\™XÙ\°èH\]ZH]]ÛX]XØ[Y[KˆŸOÜ˜ÃBˆÛÛœİÛÜšÜÈH	
+	Ü[›š[™Ğ˜XÚÛÙÕÛÜšÜÉÊNÃBˆÛÜšÜËšY[ˆH]ØZ][™ÕÛÜšÜË›[™İÃBˆÛÜšÜËš[›™\’SHØZ][™ÕÛÜšÜË›[™İBˆÈ“Øœ˜\ÈÙ[HYYÈH›ÙpéğèÛÏÚ‰İØZ][™ÕÛÜšÜË›X\
+
+ÛÜšÊHOˆÃBˆÛÛœİ]Z[ÈHİÛÜšËœİ]\ÈOOH˜]]˜HˆÈ]]˜Hˆˆ”[™Z˜[Y[È‹ÛÜšËœİ\Ù]HÈ[°ëXÚ[Îˆ	Ù›Ü›X]]P”ŠÛÜšËœİ\Ù]J_Xˆˆ‹ÛÜšËœ™\]Y\İYÙYWÙ]HÈ˜^›Îˆ	Ù›Ü›X]]P”ŠÛÜšËœ™\]Y\İYÙYWÙ]J_Xˆˆ—K™š[\Š›ÛÛX[ŠKš›Ú[Šˆ0­ÈŠNÃBˆ™]\›ˆ]ˆÛ\ÜÏHœ[›š[™ËX˜XÚÛÙË]ÛÜšÈÜ[İ›Û™Ï‰Ù\ØØ\R[
+ÛÜšËÛÜš×Û[X™\ˆÛÜšË›˜[YJ_OÜİ›Û™Ï‰İÛÜšËÛÜš×Û[X™\ˆÈ0­È	Ù\ØØ\R[
+ÛÜšË›˜[YJ_XˆˆŸOÜÜ[Ü[‰Ù\ØØ\R[
+]Z[Ê_H0­ÈHØœ˜H\\™XÙH˜\È]\ÈÈØ[[™0è\š[ÎÈš[˜İ[H[HYYÈ\˜H›ÙÜ˜[X\ˆ\ÈpéØ\ÏÜÜ[Ù]˜ÃBˆJKš›Ú[ŠˆŠ_XBˆˆˆÃBˆCBƒBˆËÈ°ê]šXHÈYYÎˆÙ[XÚ[Û˜H[HYYËØ[İ[HHš[HHğìÈ\Ú\È\›Z]HÛÛ™š\›X\‹ƒBˆ[˜İ[ÛˆÜ[]SÜ™\”Ù[Xİ
+Ù[XİYYHˆŠHÃBˆÛÛœİ[YÚX›HHİ]K›Ü™\œË™š[\Š
+Ü™\ŠHOˆ]\›Z[˜[İ]\Ù\Ëš\ÊÜ™\‹œİ]\ÊH	‰ˆ\İ]Kœİ\YÜ™\’YËš[˜ÛY\ÊÜ™\‹šY
+JNÃBˆ	
+	Ü[›š[™ÓÜ™\”Ù[Xİ	ÊKš[›™\’SH[YÚX›K›[™İBˆÈ[YÚX›K›X\
+
+Ü™\ŠHOˆÜ[Ûˆ˜[YOH‰Ù\ØØ\R[
+Ü™\‹šY
+_H‰Ù\ØØ\R[
+›Ü›X]Ü™\ŠÜ™\ŠJ_H0­È	Ù\ØØ\R[
+Ü™\‹œİ]\Ê_OÛÜ[Û˜
+Kš›Ú[ŠˆŠCBˆˆ	ÏÜ[Ûˆ˜[YOHˆ“™[š[HYYÈ\ÜÛ°ë]™[ÛÜ[Û‰ÎÃBˆ	
+	Ü[›š[™ÓÜ™\”Ù[Xİ	ÊK™\ØX›YH[YÚX›K›[™İOOHÃBˆYˆ
+Ù[XİYY	‰ˆ[YÚX›KœÛÛYJ
+Ü™\ŠHOˆÜ™\‹šYOOHÙ[XİYY
+JH	
+	Ü[›š[™ÓÜ™\”Ù[Xİ	ÊK˜[YHHÙ[XİYYÃBˆ™]\›ˆ[YÚX›NÃBˆCBƒBˆ[˜İ[Ûˆ™\Ù][”™]šY]Ê
+HÃBˆİ]Kœ[™[™Ô[ˆH[ÃBˆİ]Kœ[™[™ÓÜ™\’YH[ÃBˆ	
+	ÛÜ™\”[”™]šY]ÉÊKšY[ˆHYNÃBˆ	
+	ÛÜ™\”[”™]šY]ÉÊKš[›™\’SHˆÃBˆ	
+	Ú[™™X\ÚX›PÚÚXÙIÊKšY[ˆHYNÃBˆ	
+	Ø[İÒ[™™X\ÚX›T[‰ÊK˜ÚXÚÙYH˜[ÙNÃBˆ	
+	ØÛÛ[Z]Ü™\”[‰ÊK™\ØX›YHYNÃBˆÚİÔİ]\Ê›Ü™\”[”İ]\È‹ˆŠNÃBˆCBƒBˆ[˜İ[ÛˆÜ[“Ü™\”[›™\ŠÜ™\’YHˆ‹[İ™HH[
+HÃBˆ™\Ù][”™]šY]Ê
+NÃBˆİ]K™˜YĞÛÛ^H[İ™NÃBˆÛÛœİ[YÚX›HHÜ[]SÜ™\”Ù[Xİ
+Ü™\’Y
+NÃBˆÛÛœİÙ[XİYHÜ™\RY
+	
+	Ü[›š[™ÓÜ™\”Ù[Xİ	ÊK˜[YJH[YÚX›VÌH[ÃBˆ	
+	Ü[›š[™ÓÜ™\”Ù[Xİ	ÊK™\ØX›YH›ÛÛX[Š[İ™JH[YÚX›K›[™İOOHÃBˆYˆ
+Ù[XİY
+HÃBˆ	
+	Ü[›š[™ÓÜ™\”İ\	ÊK˜[YHH[İ™OËœİ\]HÙ[XİYœİ\Ù]HØØ[Ù^J
+NÃBˆ	
+	Ü[›š[™ÓÜ™\‘YIÊK˜[YHH[İ™OË™YQ]HÙ[XİYœ™\]Y\İYÙYWÙ]HˆÃBˆH[ÙHÃBˆ	
+	Ü[›š[™ÓÜ™\”İ\	ÊK˜[YHHØØ[Ù^J
+NÃBˆ	
+	Ü[›š[™ÓÜ™\‘YIÊK˜[YHHˆÃBˆCBˆ	
+	ÛÜ™\”[•]IÊK^ÛÛ[H[İ™HÈ”™\›ÙÜ˜[X\ˆYYÈˆˆ”[™Z˜\ˆYYÈÃBˆ	
+	ÛÜ™\”[”İX]IÊK^ÛÛ[H[İ™CBˆÈ[İ™[™È[XH›ÙÜ˜[XpéğèÛÈH	Ù›Ü›X]]P”Š[İ™KœÛİ\˜ÙQ]J_H\˜H	Ù›Ü›X]]P”Š[İ™K\™Ù]]J_Kˆ™]š\ÙHÈ›İ›È[›È[\ÈHÜ˜]˜\‹˜Bˆˆ‘Yš[˜H\È]\ÈHÛÛ™š\˜HHØ\XÚYYH[\ÈHÜ˜]˜\ˆH›ÙÜ˜[XpéğèÛËˆÃBˆ	
+	ÛÜ™\”[“[Ù[	ÊKšY[ˆH˜[ÙNÃBˆYˆ
+Y[YÚX›K›[™İ
+HÚİÔİ]\Ê›Ü™\”[”İ]\È‹“°èÛÈ0èHYYÜÈ\ÜÛ°ë]™Z\È\˜H[™Z˜\‹ˆŠNÃBˆYˆ
+[İ™H	‰ˆÙ[XİY
+HØ[İ[]SÜ™\”[Š
+NÃBˆ[ÙHÙ][Y[İ]
+
+
+HOˆ	
+	Ü[›š[™ÓÜ™\”Ù[Xİ	ÊK™›Øİ\Ê
+K
+NÃBˆCBƒBˆ[˜İ[ÛˆÛÜÙSÜ™\”[›™\Š
+HÃBˆ	
+	ÛÜ™\”[“[Ù[	ÊKšY[ˆHYNÃBˆİ]K™˜YĞÛÛ^H[ÃBˆ™\Ù][”™]šY]Ê
+NÃBˆCBƒBˆ[˜İ[Ûˆ™[™\”[Š[‹Ü™\ŠHÃBˆÛÛœİ]Y]YSY\ÜØYÙ\ÈH
+[‹œ]Y]YUØ\›š[™ÜÈ×JK™›]X\
+
+[JHOƒBˆ
+[K˜ÛÛ™›XİÈ×JK›X\
+
+ÛÛ™›Xİ
+HOˆYYÈ	Ù[K›Ü™\“[X™\ˆ[K›Ü™\’YNˆ	ØÛÛ™›Xİ›Y\ÜØYÙ_X
+CBˆ
+KœÛXÙJJNÃBˆÛÛœİ™\]Z\™\ĞÛÛ™š\›X][ÛˆH\[‹™™X\ÚX›H]Y]YSY\ÜØYÙ\Ë›[™İˆÃBˆÛÛœİİ]\Õ^H[‹™™X\ÚX›CBˆÈ]Y]YSY\ÜØYÙ\Ë›[™İÈHš[H[Hİ]›ÜÈYYÜÈÛÛH˜^›È[špè]™[ˆˆØX™H›È˜^›ÈÛÛXÚ]YÈƒBˆˆ”[›È[špè]™[›È˜^›È]X[ÃBˆÛÛœİ][T›İÜÈH
+[‹š][\È×JK›X\
+
+][JHOˆO‰Ù\ØØ\R[
+][K˜ÛÙH][K›˜[YH’][HŠ_Nˆ	Ó[X™\Š][Kœ[›™Y]X[]H
+_H[‹ˆ›ÙÜ˜[XY\ÉÓ[X™\Š][Kœ™[XZ[š[™Ô]X[]H
+HÈ0­Èİ›Û™Ï‰Ó[X™\Š][Kœ™[XZ[š[™Ô]X[]J_H[‹ˆÙ[H]OÜİ›Û™Ï˜ˆˆŸOÛO˜
+Kš›Ú[ŠˆŠNÃBˆÛÛœİÛÛ™›Xİ^HÃBˆ‹‹Š[‹˜ÛÛ™›XİÈ×JK›X\
+
+ÛÛ™›Xİ
+HOˆÛÛ™›Xİ›Y\ÜØYÙH
+ÛÛ™›Xİ\HOOH™XY[™HˆÈ	Ó[X™\ŠÛÛ™›Xİœ™[XZ[š[™Ô]X[]H
+_H[šYY\È^ÙY[HHØ\XÚYYH]0êHÈ˜^›Ë˜ˆØ\XÚYYH^ÙYYH[H	Ù›Ü›X]]P”ŠÛÛ™›Xİ™]J_K˜
+JKBˆ‹‹œ]Y]YSY\ÜØYÙ\ËBˆKš›Ú[ŠˆŠNÃBˆÛÛœİ™]š[İ\Ñ[™HÜ™\Ëœ[›™YÙ[™Ù]HÈ›Ü›X]]P”ŠÜ™\‹œ[›™YÙ[™Ù]JHˆœÙ[H›ÙÜ˜[XpéğèÛÈÃBˆÛÛœİ™^[™H[‹œ[›™Y[™]HÈ›Ü›X]]P”Š[‹œ[›™Y[™]JHˆœÙ[H]HØ[İ[YHÃBˆÛÛœİ[YY[š]ÈH
+[‹[š]È×JK™š[\Š
+[š]
+HOˆ[š]œİ\ÏË›[™İ
+NÃBˆÛÛœİ›Ü›X]ØØ[[YHH
+˜[YJHOˆ˜[YCBˆÈ™]È[‘]U[YQ›Ü›X]
+œP”ˆ‹È[YV›Û™Nˆ[Y\šXØKÔØ[×Ô][È‹]Tİ[NˆœÚÜ‹[YTİ[NˆœÚÜˆJK™›Ü›X]
+™]È]J˜[YJJCBˆˆ˜HYš[š\ˆÃBˆÛÛœİ\ÙT›İÜÈH[YY[š]ËœÛXÙJ
+K›X\
+
+[š]
+HOˆÃBˆÛÛœİØ\İ[™ÈH[š]œİ\Ë™š[™
+
+İ\
+HOˆİ\œİ\Ú[™OOH˜ÛÛ˜Ü™]YÙ[HŠNÃBˆÛÛœİİ\š[™ÈH[š]œİ\Ë™š[™
+
+İ\
+HOˆİ\œİ\Ú[™OOH˜İ\˜HŠNÃBˆ™]\›ˆOİ›Û™Ï‰Ù\ØØ\R[
+[š]œÜÚ][ÛÛÙJ_OÜİ›Û™Ïˆ0­ÈÛÛ˜Ü™]YÙ[H	Ù›Ü›X]ØØ[[YJØ\İ[™ÏËœ[›™Yİ\]
+_x $ÉÙ›Ü›X]ØØ[[YJØ\İ[™ÏËœ[›™Y[™]
+_H0­Èİ\˜H]0êH	Ù›Ü›X]ØØ[[YJİ\š[™ÏËœ[›™Y[™]
+_OÛO˜ÃBˆJKš›Ú[ŠˆŠNÃBˆÛÛœİ\ÙT™]šY]ÈH\ÙT›İÜÃBˆÈ]ˆÛ\ÜÏHœ[‹\\Ù\Èİ›Û™Ï’Ü°è\š[ÜÈ\İ[XYÜÏÜİ›Û™Ï[‰Ü\ÙT›İÜßOİ[‰İ[YY[š]Ë›[™İˆÈÜ[“[Üİ˜[™ÈH	İ[YY[š]Ë›[™İH[šYY\ËÜÜ[˜ˆˆŸOÙ]˜BˆˆˆÃBˆÛÛœİÚYHİ]K™˜YĞÛÛ^BˆÈ‘]HH]]šYYNˆ	Ù›Ü›X]]P”Šİ]K™˜YĞÛÛ^œÛİ\˜ÙQ]J_H8¡¤ˆ	Ù›Ü›X]]P”Šİ]K™˜YĞÛÛ^\™Ù]]J_Kˆ[°ëXÚ[ÈÈYYÎˆ	Ù›Ü›X]]P”ŠÜ™\Ëœİ\Ù]J_H8¡¤ˆ	Ù›Ü›X]]P”Š[‹œİ\]J_NÈ˜^›Îˆ	ÛÜ™\Ëœ™\]Y\İYÙYWÙ]HÈ›Ü›X]]P”ŠÜ™\‹œ™\]Y\İYÙYWÙ]JHˆœÙ[H˜^›ÈŸH8¡¤ˆ	Ü[‹™YQ]HÈ›Ü›X]]P”Š[‹™YQ]JHˆœÙ[H˜^›ÈŸNÈš[H[™Z˜YÎˆ	Ü™]š[İ\Ñ[™H8¡¤ˆ	Û™^[™KÜ˜Bˆˆ‘š[H\İ[XYÎˆ	Û™^[™IÜ[‹™YQ]HÈ0­È˜^›ÈÛÛXÚ]YÈ	Ù›Ü›X]]P”Š[‹™YQ]J_Xˆˆ0­ÈÙ[H˜^›ÈÛÛXÚ]YÈŸKÜ˜ÃBˆ	
+	ÛÜ™\”[”™]šY]ÉÊKš[›™\’SH‰Ù\ØØ\R[
+İ]\Õ^
+_OÚ]ˆÛ\ÜÏHœ[‹\İ[[X\KYÜšY]İ›Û™Ï‰Ó[X™\Š[‹İ[™\]Y\İY]X[]H
+_OÜİ›Û™ÏÜ[[šYY\ÈÛÛXÚ]Y\ÏÜÜ[Ù]]İ›Û™Ï‰Ó[X™\Š[‹İ[[›™Y]X[]H
+_OÜİ›Û™ÏÜ[[šYY\È›ÙÜ˜[XY\ÏÜÜ[Ù]]İ›Û™Ï‰Ù\ØØ\R[
+[‹œ[›™Y[™]HÈ›Ü›X]]P”Š[‹œ[›™Y[™]JHˆ¸ %Š_OÜİ›Û™ÏÜ[™š[H\İ[XYÏÜÜ[Ù]Ù]‰Ù\ØØ\R[
+›Ü›X]Ü™\ŠÜ™\ŠJ_OÜ‰ÜÚYO[‰Ú][T›İÜÈO“°èÛÈ0èH][œÈ\˜H›ÙÜ˜[X\ˆ™\İHYYËÛOˆŸOİ[‰Ü\ÙT™]šY]ßIÜ™\]Z\™\ĞÛÛ™š\›X][ÛˆÈ]ˆÛ\ÜÏHœ[‹]Ø\›š[™È‰Ù\ØØ\R[
+ÛÛ™›Xİ^HØ\XÚYYH°èÛÈ][™H[ÈYYÈ[›ÈÈ\°ë[ÙÈØ[İ[YËˆŠ_HÙHÛÛ™š\›X\‹ÈÚ\İ[XHÜ˜]˜\°èH\È›ÙÜ˜[XpéğíY\ÈÜÜğë]™Z\ÈHš[KÙ]˜ˆˆŸXÃBˆ	
+	ÛÜ™\”[”™]šY]ÉÊKšY[ˆH˜[ÙNÃBˆ	
+	Ú[™™X\ÚX›PÚÚXÙIÊKšY[ˆH\™\]Z\™\ĞÛÛ™š\›X][ÛÃBˆ	
+	Ø[İÒ[™™X\ÚX›T[‰ÊK˜ÚXÚÙYH˜[ÙNÃBˆ	
+	ØÛÛ[Z]Ü™\”[‰ÊK^ÛÛ[H™\]Z\™\ĞÛÛ™š\›X][ÛˆÈÛÛ™š\›X\ˆ›ÙÜ˜[XpéğèÛÈHš[HˆˆÛÛ™š\›X\ˆ›ÙÜ˜[XpéğèÛÈÃBˆ	
+	ØÛÛ[Z]Ü™\”[‰ÊK™\ØX›YH™\]Z\™\ĞÛÛ™š\›X][ÛÃBˆCBƒBˆ\Ş[˜È[˜İ[ÛˆØ[İ[]SÜ™\”[Š]™[
+HÃBˆ]™[Ëœ™]™[Y˜][
+
+NÃBˆÛÛœİÜ™\’YH	
+	Ü[›š[™ÓÜ™\”Ù[Xİ	ÊK˜[YNÃBˆÛÛœİİ\]HH	
+	Ü[›š[™ÓÜ™\”İ\	ÊK˜[YNÃBˆÛÛœİ™\]Y\İYYQ]HH	
+	Ü[›š[™ÓÜ™\‘YIÊK˜[YH[ÃBˆÛÛœİ]ÛˆH	
+	Ü™]šY]ÓÜ™\”[‰ÊNÃBˆYˆ
+[Ü™\’Y
+H™]\›ˆÚİÔİ]\Ê›Ü™\”[”İ]\È‹”Ù[XÚ[Û™H[HYYËˆ‹YJNÃBˆYˆ
+\İ\]H
+™\]Y\İYYQ]H	‰ˆ™\]Y\İYYQ]Hİ\]JJH™]\›ˆÚİÔİ]\Ê›Ü™\”[”İ]\È‹’[™›Ü›YH[H[°ëXÚ[ÈH[H˜^›È°è[YËˆ‹YJNÃBˆ]Û‹™\ØX›YHYNÃBˆ]Û‹^ÛÛ[HØ[İ[[™ø )ˆÃBˆ™\Ù][”™]šY]Ê
+NÃBˆÚİÔİ]\Ê›Ü™\”[”İ]\È‹]X[^˜[™È\È]\ÈÈØ[[™0è\š[ÈHØ[İ[[™ÈØ\XÚYYHH˜^›ËˆŠNÃBˆHÃBˆÛÛœİ˜[™ÙQ[™H™\]Y\İYYQ]HY^\Êİ\]KÍJNÃBˆ]ØZ]Ú[™İË”‘SVÔ‘TÔÒUÔ’QTËœ[›š[™Ëœ™XZ[Ø[[™\Šİ\]K˜[™ÙQ[™
+NÃBˆÛÛœİ™\İ[H]ØZ]Ú[™İË”‘SVÔ‘TÔÒUÔ’QTËœ[›š[™Ëœ[“Ü™\ŠÈÜ™\’Yİ\]K™\]Y\İYYQ]HJNÃBˆÛÛœİ[ˆH™\İ[œ[ˆ™\İ[ÃBˆYˆ
+™\İ[œ]Y]YUØ\›š[™ÜÏË›[™İ
+HÃBˆ[‹œ]Y]YUØ\›š[™ÜÈH™\İ[œ]Y]YUØ\›š[™ÜÎÃBˆCBˆİ]Kœ[™[™Ô[ˆH[ÃBˆİ]Kœ[™[™ÓÜ™\’YHÜ™\’YÃBˆ™[™\”[Š[‹Ü™\RY
+Ü™\’Y
+JNÃBˆÚİÔİ]\Ê›Ü™\”[”İ]\È‹”°ê]šXHØ[İ[YH›ÈÙ\šYÜ‹ˆÛÛ™š\›YH\˜HÜ˜]˜\ˆÈ›İ›È[›ËˆŠNÃBˆŞ[˜ĞÛÛ[Z]]ÛŠ
+NÃBˆHØ]Ú
+\œ›ÜŠHÃBˆÛÛœİ]Z[[ˆH\œ›Ü‹™]Z[ÏËœØÚY[\ÈÈ\œ›Ü‹™]Z[Èˆ\œ›Ü‹™]Z[ÏËœ[ÃBˆYˆ
+]Z[[ŠHÃBˆİ]Kœ[™[™Ô[ˆH]Z[[ÃBˆİ]Kœ[™[™ÓÜ™\’YHÜ™\’YÃBˆ™[™\”[Š]Z[[‹Ü™\RY
+Ü™\’Y
+JNÃBˆÚİÔİ]\Ê›Ü™\”[”İ]\È‹\œ›Ü‹›Y\ÜØYÙHH°ê]šXH[˜ÛÛ›İH[HÛÛ™›]Ëˆ‹YJNÃBˆŞ[˜ĞÛÛ[Z]]ÛŠ
+NÃBˆH[ÙHÃBˆÚİÔİ]\Ê›Ü™\”[”İ]\È‹\œ›Ü‹›Y\ÜØYÙH“°èÛÈ›ÚHÜÜğë]™[Ø[İ[\ˆÈ[›Ëˆ‹YJNÃBˆCBˆHš[˜[HÃBˆ]Û‹™\ØX›YH˜[ÙNÃBˆ]Û‹^ÛÛ[HØ[İ[\ˆ°ê]šXHÃBˆCBˆCBƒBˆ[˜İ[ÛˆŞ[˜ĞÛÛ[Z]]ÛŠ
+HÃBˆÛÛœİ[ˆHİ]Kœ[™[™Ô[ÃBˆÛÛœİ™\]Z\™\ĞÛÛ™š\›X][ÛˆH›ÛÛX[Š[ˆ	‰ˆ
+\[‹™™X\ÚX›H[‹œ]Y]YUØ\›š[™ÜÏË›[™İ
+JNÃBˆ	
+	ØÛÛ[Z]Ü™\”[‰ÊK™\ØX›YH\[ˆ
+™\]Z\™\ĞÛÛ™š\›X][Ûˆ	‰ˆI
+	Ø[İÒ[™™X\ÚX›T[‰ÊK˜ÚXÚÙY
+NÃBˆCBƒBˆ\Ş[˜È[˜İ[ÛˆÛÛ[Z]Ü™\”[Š
+HÃBˆÛÛœİ[ˆHİ]Kœ[™[™Ô[ÃBˆÛÛœİÜ™\’YHİ]Kœ[™[™ÓÜ™\’YÃBˆYˆ
+\[ˆ[Ü™\’Y
+H™]\›ÃBˆYˆ
+
+\[‹™™X\ÚX›H[‹œ]Y]YUØ\›š[™ÜÏË›[™İ
+H	‰ˆI
+	Ø[İÒ[™™X\ÚX›T[‰ÊK˜ÚXÚÙY
+H™]\›ˆÚİÔİ]\Ê›Ü™\”[”İ]\È‹“X\œ]YHHÛÛ™š\›XpéğèÛÈ\˜HÜ˜]˜\ˆ\È›ÙÜ˜[XpéğíY\ÈÜÜğë]™Z\ÈHš[Kˆ‹YJNÃBˆÛÛœİ]ÛˆH	
+	ØÛÛ[Z]Ü™\”[‰ÊNÃBˆÛÛœİÛ^H]Û‹^ÛÛ[ÃBˆ]Û‹™\ØX›YHYNÃBˆ]Û‹^ÛÛ[H‘Ü˜]˜[™ø )ˆÃBˆHÃBˆ]ØZ]Ú[™İË”‘SVÔ‘TÔÒUÔ’QTËœ[›š[™Ë˜ÛÛ[Z]Ü™\”[ŠÃBˆÜ™\’YBˆİ\]Nˆ	
+	Ü[›š[™ÓÜ™\”İ\	ÊK˜[YKBˆ™\]Y\İYYQ]Nˆ	
+	Ü[›š[™ÓÜ™\‘YIÊK˜[YH[Bˆ[İÒ[™™X\ÚX›Nˆ\[‹™™X\ÚX›H›ÛÛX[Š[‹œ]Y]YUØ\›š[™ÜÏË›[™İ
+KBˆJNÃBˆÛÜÙSÜ™\”[›™\Š
+NÃBˆ]ØZ]™Yœ™\Ú[›š[™Ê
+NÃBˆÚİÕØ\İ
+”›ÙÜ˜[XpéğèÛÈÈYYÈ]X[^˜YKˆŠNÃBˆHØ]Ú
+\œ›ÜŠHÃBˆÚİÔİ]\Ê›Ü™\”[”İ]\È‹\œ›Ü‹›Y\ÜØYÙH“°èÛÈ›ÚHÜÜğë]™[Ü˜]˜\ˆH›ÙÜ˜[XpéğèÛËˆ‹YJNÃBˆHš[˜[HÃBˆ]Û‹^ÛÛ[HÛ^ÃBˆŞ[˜ĞÛÛ[Z]]ÛŠ
+NÃBˆCBˆCBƒBˆËÈYpéğèÛÈHØ[[™0è\š[ÎˆXH0î[^ÙpéğíY\Ë]]šYY\ÈHÛÛ™šYİ\˜péğíY\ÈÙ[X[˜Z\ËƒBˆ[˜İ[ÛˆÜ[Ø[[™\‘^J]JHÃBˆİ]KœÙ[XİY]HH]NÃBˆÛÛœİ^HHÙ]^J]JHÈ\×İÛÜšÚ[™Îˆ˜[ÙKØ\XÚ]WÛZ[]\ÎˆNÃBˆÛÛœİX[X[Hİ]K™^Ù\[ÛœË™š[™
+
+][JHOˆ][KšÚ[™OOHœ\œÛÛ˜[^˜YHˆ	‰ˆ][Kœİ\Ù]HOOH]H	‰ˆ][K™[™Ù]HOOH]H	‰ˆ[X™\Š][Kœš[Üš]H
+HHL
+NÃBˆ	
+	ØØ[[™\‘^U]IÊK^ÛÛ[HZ\İ\ˆ	Ù›Ü›X]]P”Š]J_XÃBˆ	
+	Ù^Q]IÊK˜[YHH]NÃBˆ	
+	Ù^UÛÜšÚ[™ÉÊK˜ÚXÚÙYH›ÛÛX[Š^Kš\×İÛÜšÚ[™ÊNÃBˆ	
+	Ù^PØ\XÚ]IÊK˜[YHH^Kš\×İÛÜšÚ[™ÈÈˆÃBˆ	
+	Ù^S›İIÊK˜[YHHX[X[Ë››İ\ÈˆÃBˆ	
+	Ü™\İÜ™PØ[[™\‘^IÊKšY[ˆH[X[X[ÃBˆ	
+	Ü™\İÜ™PØ[[™\‘^IÊK™]\Ù]˜Xİ]š]RYHX[X[ËšYˆÃBˆÚİÔİ]\Ê˜Ø[[™\‘^Tİ]\È‹ˆŠNÃBˆ™[™\‘^PXİ]š]Y\Ê]JNÃBˆ	
+	ØØ[[™\‘^S[Ù[	ÊKšY[ˆH˜[ÙNÃBˆ™[™\Ø[[™\Š
+NÃBˆCBƒBˆ[˜İ[Ûˆ™[™\‘^PXİ]š]Y\Ê]JHÃBˆÛÛœİXİ]š]Y\ÈH^Ù\[ÛœÑ›Ü‘]J]JNÃBˆÛÛœİÛÛZ[™\ˆH	
+	ØØ[[™\‘^PXİ]š]Y\ÉÊNÃBˆYˆ
+XXİ]š]Y\Ë›[™İ
+HÃBˆÛÛZ[™\‹š[›™\’SH	ÏÛ\ÜÏH™›Ü›KZ[“™[š[XH]]šYYHØY\İ˜YH\˜H\İHXKÜ‰ÎÃBˆ™]\›ÃBˆCBˆÛÛZ[™\‹š[›™\’SH]]šYY\È™\İHXOÚ‰ØXİ]š]Y\Ë›X\
+
+Xİ]š]JHOˆ]ˆÛ\ÜÏH˜Xİ]š]KZ][H]ˆÛ\ÜÏH˜Xİ]š]KZ][K[XZ[ˆİ›Û™Ï‰Ù\ØØ\R[
+Xİ]š]K›˜[YJ_OÜİ›Û™ÏÜ[‰Ù\ØØ\R[
+Xİ]š]RÚ[™X™[ÖØXİ]š]KšÚ[™HXİ]š]KšÚ[™
+_H0­È	Ù›Ü›X]]P”ŠXİ]š]Kœİ\Ù]J_IØXİ]š]K™[™Ù]HOOHXİ]š]Kœİ\Ù]HÈ]0êH	Ù›Ü›X]]P”ŠXİ]š]K™[™Ù]J_XˆˆŸH0­È	ØXİ]š]Kš\×İÛÜšÚ[™ÈÈ˜ÛÛ˜Ü™]YÙ[HX™\˜YH0­È]0êH]X]›ÈÜÚpéğíY\ÈˆˆœÙ[HÛÛ˜Ü™]YÙ[HŸOÜÜ[Ù]]ˆÛ\ÜÏH˜Xİ]š]KZ][KXXİ[ÛœÈ]ÛˆÛ\ÜÏHšXÛÛ‹Xˆˆ\OH˜]Ûˆˆ]KY^KXXİ[ÛH™Y]ˆ]KXXİ]š]KZYH‰Ù\ØØ\R[
+Xİ]š]KšY
+_H‘Y]\Ø]Û]ÛˆÛ\ÜÏHšXÛÛ‹Xˆˆ\OH˜]Ûˆˆ]KY^KXXİ[ÛH™[]Hˆ]KXXİ]š]KZYH‰Ù\ØØ\R[
+Xİ]š]KšY
+_H‘^ÛZ\Ø]ÛÙ]Ù]˜
+Kš›Ú[ŠˆŠ_XÃBˆCBƒBˆ[˜İ[ÛˆÛÜÙPØ[[™\‘^J
+HÃBˆ	
+	ØØ[[™\‘^S[Ù[	ÊKšY[ˆHYNÃBˆÚİÔİ]\Ê˜Ø[[™\‘^Tİ]\È‹ˆŠNÃBˆCBƒBˆ[˜İ[ÛˆÜ[Ø[[™\Xİ]š]JXİ]š]HH[™\Ù]]HHİ]KœÙ[XİY]JHÃBˆİ]K™Y][™ĞXİ]š]RYHXİ]š]OËšY[ÃBˆ	
+	ØØ[[™\Xİ]š]U]IÊK^ÛÛ[HXİ]š]HÈ‘Y]\ˆ]]šYYHˆˆ“›İ˜H]]šYYHÃBˆ	
+	ØXİ]š]S˜[YIÊK˜[YHHXİ]š]OË›˜[YHˆÃBˆ	
+	ØXİ]š]RÚ[™	ÊK˜[YHHXİ]š]OËšÚ[™œ\œÛÛ˜[^˜YHÃBˆ	
+	ØXİ]š]Tİ\	ÊK˜[YHHXİ]š]OËœİ\Ù]H™\Ù]]Hš\ÚX›P›İ[™Ê
+Kœİ\ÃBˆ	
+	ØXİ]š]Q[™	ÊK˜[YHHXİ]š]OË™[™Ù]H™\Ù]]Hš\ÚX›P›İ[™Ê
+Kœİ\ÃBˆ	
+	ØXİ]š]UÛÜšÚ[™ÉÊK˜ÚXÚÙYH›ÛÛX[ŠXİ]š]OËš\×İÛÜšÚ[™ÊNÃBˆ	
+	ØXİ]š]PØ\XÚ]IÊK˜[YHHXİ]š]OËš\×İÛÜšÚ[™ÈÈˆÃBˆ	
+	ØXİ]š]S›İ\ÉÊK˜[YHHXİ]š]OË››İ\ÈˆÃBˆ	
+	Ù[]PØ[[™\Xİ]š]IÊKšY[ˆHXXİ]š]NÃBˆÚİÔİ]\Ê˜Ø[[™\Xİ]š]Tİ]\È‹ˆŠNÃBˆ	
+	ØØ[[™\Xİ]š]S[Ù[	ÊKšY[ˆH˜[ÙNÃBˆÙ][Y[İ]
+
+
+HOˆ	
+	ØXİ]š]S˜[YIÊK™›Øİ\Ê
+K
+NÃBˆCBƒBˆ[˜İ[ÛˆÛÜÙPØ[[™\Xİ]š]J
+HÃBˆ	
+	ØØ[[™\Xİ]š]S[Ù[	ÊKšY[ˆHYNÃBˆİ]K™Y][™ĞXİ]š]RYH[ÃBˆÚİÔİ]\Ê˜Ø[[™\Xİ]š]Tİ]\È‹ˆŠNÃBˆCBƒBˆ\Ş[˜È[˜İ[ÛˆÜ[Ø[[™\”Ù][™ÜÊ
+HÃBˆ	
+	ØØ[[™\”Ù][™ÜÓ[Ù[	ÊKšY[ˆH˜[ÙNÃBˆ	
+	ØØ\İ[™Ôİ\[YQšY[	ÊKšY[ˆHYNÃBˆÚİÔİ]\Ê˜Ø[[™\”Ù][™ÜÔİ]\È‹Ø\œ™YØ[™È™YÜ˜HÙ[X[˜[8 )ˆŠNÃBˆHÃBˆÛÛœİ™\İ[H]ØZ]Ú[™İË”‘SVÔ‘TÔÒUÔ’QTËœ[›š[™Ë™Ù]Ø[[™\”Ù][™ÜÊ
+NÃBˆİ]KœÙ][™ÜÈH™\İ[œÙ][™ÜÈÈÈ‹‹œ™\İ[œÙ][™ÜË[\Îˆ™\İ[œ[\È×HHˆİ]KœÙ][™ÜÎÃBˆÛÛœİÙ][™ÜÈH™\İ[œÙ][™ÜÈßNÃBˆÛÛœİ[\ÈH™]ÈX\
+
+™\İ[œ[\È×JK›X\
+
+[JHOˆÓ[X™\Š[KÙYZÙ^JK[WJJNÃBˆ	
+	ÙY˜][Ø\XÚ]SZ[]\ÉÊK˜[YHHÃBˆ	
+	ØØ\İ[™Ôİ\[YQšY[	ÊKšY[ˆH\™\İ[œ›ÙXİ[Û•[Z[™ÎÃBˆ	
+	ØØ\İ[™Ôİ\[YIÊK˜[YHH	Ôİš[™Ê™\İ[œ›ÙXİ[Û•[Z[™ÏË˜Ø\İ[™Ôİ\İ\ˆÏÈ
+KœYİ\
+‹ŒŠ_NŒÃBˆØİ[Y[œ]Y\TÙ[XİÜ[
+–Ù]K]ÙYZÙ^WHŠK™›Ü‘XXÚ
+
+[œ]
+HOˆÃBˆÛÛœİÙYZÙ^HH[X™\Š[œ]™]\Ù]ÙYZÙ^JNÃBˆÛÛœİ[HH[\Ë™Ù]
+ÙYZÙ^JNÃBˆ[œ]˜ÚXÚÙYH[HÈ›ÛÛX[Š[Kš\×İÛÜšÚ[™ÊHˆÙYZÙ^HHH	‰ˆÙYZÙ^HHNÃBˆJNÃBˆÚİÔİ]\Ê˜Ø[[™\”Ù][™ÜÔİ]\È‹ˆŠNÃBˆHØ]Ú
+\œ›ÜŠHÃBˆÚİÔİ]\Ê˜Ø[[™\”Ù][™ÜÔİ]\È‹\œ›Ü‹›Y\ÜØYÙH“°èÛÈ›ÚHÜÜğë]™[Ø\œ™YØ\ˆH™YÜ˜HÙ[X[˜[ˆ‹YJNÃBˆCBˆCBƒBˆ[˜İ[ÛˆÛÜÙPØ[[™\”Ù][™ÜÊ
+HÃBˆ	
+	ØØ[[™\”Ù][™ÜÓ[Ù[	ÊKšY[ˆHYNÃBˆÚİÔİ]\Ê˜Ø[[™\”Ù][™ÜÔİ]\È‹ˆŠNÃBˆCBƒBˆ\Ş[˜È[˜İ[ÛˆØ]™PØ[[™\”Ù][™ÜÊ]™[
+HÃBˆ]™[œ™]™[Y˜][
+
+NÃBˆÛÛœİY˜][Ø\XÚ]SZ[]\ÈHÃBˆÛÛœİ[\ÈHË‹‹™Øİ[Y[œ]Y\TÙ[XİÜ[
+–Ù]K]ÙYZÙ^WHŠWK›X\
+
+[œ]
+HOˆ
+ÃBˆÙYZÙ^Nˆ[X™\Š[œ]™]\Ù]ÙYZÙ^JKBˆ\ÕÛÜšÚ[™Îˆ[œ]˜ÚXÚÙYBˆØ\XÚ]SZ[]\Îˆ[œ]˜ÚXÚÙYÈˆBˆJJNÃBˆÛÛœİ^[ØYHÈY˜][Ø\XÚ]SZ[]\Ë[\ÈNÃBˆYˆ
+I
+	ØØ\İ[™Ôİ\[YQšY[	ÊKšY[ŠHÃBˆ^[ØY˜Ø\İ[™Ôİ\İ\ˆH[X™\Š	
+	ØØ\İ[™Ôİ\[YIÊK˜[YKœÜ]
+ˆŠVÌJNÃBˆCBˆÛÛœİ]ÛˆH	
+	ÜØ]™PØ[[™\”Ù][™ÜÉÊNÃBˆÛÛœİÛ^H]Û‹^ÛÛ[ÃBˆ]Û‹™\ØX›YHYNÃBˆ]Û‹^ÛÛ[H”Ø[˜[™ø )ˆÃBˆHÃBˆ]ØZ]Ú[™İË”‘SVÔ‘TÔÒUÔ’QTËœ[›š[™ËœØ]™PØ[[™\”Ù][™ÜÊ^[ØY
+NÃBˆÛÜÙPØ[[™\”Ù][™ÜÊ
+NÃBˆ]ØZ]™Yœ™\Ú[›š[™Ê
+NÃBˆÚİÕØ\İ
+”Ù[X[˜HY°èÛÈHÜ°è\š[È]X[^˜YÜËˆŠNÃBˆHØ]Ú
+\œ›ÜŠHÃBˆÚİÔİ]\Ê˜Ø[[™\”Ù][™ÜÔİ]\È‹\œ›Ü‹›Y\ÜØYÙH“°èÛÈ›ÚHÜÜğë]™[Ø[˜\ˆH™YÜ˜HÙ[X[˜[ˆ‹YJNÃBˆHš[˜[HÃBˆ]Û‹™\ØX›YH˜[ÙNÃBˆ]Û‹^ÛÛ[HÛ^ÃBˆCBˆCBƒBˆ[˜İ[Ûˆ™Yœ™\Ú[›š[™Ê
+HÃBˆYˆ
+İ]Kœ™Yœ™\Ú›ÛZ\ÙJHÃBˆİ]Kœ™Yœ™\Ú[™[™ÈHYNÃBˆ™]\›ˆİ]Kœ™Yœ™\Ú›ÛZ\ÙNÃBˆCBˆİ]Kœ™Yœ™\Ú›ÛZ\ÙHH
+\Ş[˜È
+
+HOˆÃBˆÈÃBˆİ]Kœ™Yœ™\Ú[™[™ÈH˜[ÙNÃBˆ]ØZ]™Yœ™\Ú[›š[™Ó›İÊ
+NÃBˆHÚ[H
+İ]Kœ™Yœ™\Ú[™[™ÊNÃBˆJJ
+K™š[˜[J
+
+HOˆÈİ]Kœ™Yœ™\Ú›ÛZ\ÙHH[ÈJNÃBˆ™]\›ˆİ]Kœ™Yœ™\Ú›ÛZ\ÙNÃBˆCBƒBˆ\Ş[˜È[˜İ[Ûˆ™Yœ™\Ú[›š[™Ó›İÊ
+HÃBˆÛÛœİİ]PÛÛZ[™\ˆH	
+	Ü[›š[™ĞØ[[™\”İ]IÊNÃBˆÛÛœİÛÛ›™Xİ[ÛˆH	
+	Ü[›š[™ĞÛÛ›™Xİ[Û”İ]IÊNÃBˆÛÛœİÛÛ™šYÈHÚ[™İË”‘SVĞÓÓ‘’QÈßNÃBˆYˆ
+XÛÛ™šYËœİ\X˜\ÙU\›XÛÛ™šYËœİ\X˜\ÙP[›Û’Ù^JHÃBˆİ]PÛÛZ[™\‹˜Û\ÜÓ˜[YHH˜Ø[[™\‹\XÙZÛ\ˆÃBˆİ]PÛÛZ[™\‹š[›™\’SH	Ï]İ›Û™ÏØ[[™0è\š[Èš\İX[™\\˜YÏÜİ›Û™ÏÛÛ™šYİ\™HÈXÙ\ÜÛÈ[È˜XÚÙ[™\˜HØ\œ™YØ\ˆX\È0îZ\ËYYÜÈH›ÙÜ˜[XpéğíY\ËÜÙ]‰ÎÃBˆÛÛ›™Xİ[Û‹š[›™\’SH	ÏÜ[ˆÛ\ÜÏH™İÜÜ[Ü[˜XÚÙ[™Z[™H°èÛÈÛÛ™šYİ\˜YËˆÈ[Z\ÜÛÜˆH]\]Y]\È[˜Ú[Û˜HØØ[Y[KÜÜ[‰ÎÃBˆ™]\›ÃBˆCBˆÛÛœİ˜[™ÙHHš\ÚX›P›İ[™Ê
+NÃBˆİ]PÛÛZ[™\‹˜Û\ÜÓ˜[YHH˜Ø[[™\‹\XÙZÛ\ˆÃBˆİ]PÛÛZ[™\‹š[›™\’SH	Ï]İ›Û™ÏØ\œ™YØ[™ÈØ[[™0è\š[ø )Üİ›Û™Ï\ØØ[™ÈØ\XÚYYK^ÙpéğíY\ÈH›ÙÜ˜[XpéğíY\ËÜÙ]‰ÎÃBˆHÃBˆ]ØZ]Ú[™İË”‘SVÔ‘TÔÒUÔ’QTËœ[›š[™Ëœ™XZ[Ø[[™\Š˜[™ÙKœİ\˜[™ÙK™[™
+NÃBˆÛÛœİØØ[[™\‹[›š[™ËÙ][™ÜËÜ\˜][Ûœ×HH]ØZ]›ÛZ\ÙK˜[
+ÃBˆÚ[™İË”‘SVÔ‘TÔÒUÔ’QTËœ[›š[™Ë™Ù]Ø[[™\Š˜[™ÙKœİ\˜[™ÙK™[™
+KBˆÚ[™İË”‘SVÔ‘TÔÒUÔ’QTËœ[›š[™Ë™Ù][›š[™Ñ]J˜[™ÙKœİ\˜[™ÙK™[™
+KBˆÚ[™İË”‘SVÔ‘TÔÒUÔ’QTËœ[›š[™Ë™Ù]Ø[[™\”Ù][™ÜÊ
+KBˆÚ[™İË”‘SVÔ‘TÔÒUÔ’QTËœ[›š[™Ë™Ù]Ü\˜][ÛœÑ]J
+K˜Ø]Ú
+
+
+HOˆ[
+KBˆJNÃBˆİ]K™^\ÈHØ[[™\‹™^\È×NÃBˆİ]K™^Ù\[ÛœÈHØ[[™\‹™^Ù\[ÛœÈ×NÃBˆÛÛœİÜ\˜][Û“Ü™\œÈHÜ\˜][ÛœÏË›Ü™\œÈ×NÃBˆÛÛœİÜ\˜][Û“Ü™\RYH™]ÈX\
+Ü\˜][Û“Ü™\œË›X\
+
+Ü™\ŠHOˆÛÜ™\‹šYÜ™\—JJNÃBˆÛÛœİ[›š[™ÓÜ™\œÈH[›š[™Ë›Ü™\œÈ×NÃBˆÛÛœİ[›š[™ÓÜ™\’YÈH™]ÈÙ]
+[›š[™ÓÜ™\œË›X\
+
+Ü™\ŠHOˆÜ™\‹šY
+JNÃBˆİ]K›Ü™\œÈHÃBˆ‹‹œ[›š[™ÓÜ™\œË›X\
+
+Ü™\ŠHOˆÃBˆÛÛœİÜ\˜][Û“Ü™\ˆHÜ\˜][Û“Ü™\RY™Ù]
+Ü™\‹šY
+HßNÃBˆ™]\›ˆÈ‹‹›Ü\˜][Û“Ü™\‹‹‹›Ü™\‹ÛÜš×ÚYˆÜ™\‹ÛÜš×ÚYÜ\˜][Û“Ü™\‹ÛÜš×ÚYÛÜš×Û˜[YNˆÜ™\‹ÛÜš×Û˜[YHÜ\˜][Û“Ü™\‹ÛÜš×Û˜[YHˆ‹ÛY[Û˜[YNˆÜ™\‹˜ÛY[Û˜[YHÜ\˜][Û“Ü™\‹˜ÛY[Û˜[YHˆˆNÃBˆJKBˆ‹‹›Ü\˜][Û“Ü™\œË™š[\Š
+Ü™\ŠHOˆ\[›š[™ÓÜ™\’YËš\ÊÜ™\‹šY
+JKBˆNÃBˆİ]KÛÜšÜÈHÜ\˜][ÛœÏËÛÜšÜÈ×NÃBˆİ]KœØÚY[\ÈH[›š[™ËœØÚY[\È×NÃBˆİ]K[š][›š[™Ğ]˜Z[X›HH\œ˜^Kš\Ğ\œ˜^J[›š[™Ëœ›ÙXİ[Û“Ü™\œÊNÃBˆİ]Kœ›ÙXİ[Û“Ü™\œÈH[›š[™Ëœ›ÙXİ[Û“Ü™\œÈ×NÃBˆİ]KœÜÚ][ÛœÈH[›š[™ËœÜÚ][ÛœÈ×NÃBˆİ]K˜Ø\XÚ]PTÜÚ][ÛœÈH[›š[™Ë˜Ø\XÚ]PTÜÚ][ÛœÈ×NÃBˆİ]Kœİ\YÜ™\’YÈH[›š[™Ëœİ\YÜ™\’YÈ×NÃBˆİ]KœÙ][™ÜÈHÙ][™ÜËœÙ][™ÜÈÈÈ‹‹œÙ][™ÜËœÙ][™ÜË[\ÎˆÙ][™ÜËœ[\È×HHˆİ]KœÙ][™ÜÎÃBˆ™[™\Ø[[™\Š
+NÃBˆÛÛ›™Xİ[Û‹š[›™\’SH]\ÙSYØXŞTØÚY[UšY]Ê
+CBˆÈ	ÏÜ[ˆÛ\ÜÏH™İˆİ[OH˜˜XÚÙÜ›İ[™˜\ŠKYÜ™Y[ŠHÜÜ[Ü[˜XÚÙ[™ÛÛ™XİYËˆÛÛ˜Ü™]YÙ[Kİ\˜KXØX˜[Y[ÈHÜÚpéğíY\ÈØ\œ™YØYÜËÜÜ[‰ÃBˆˆ	ÏÜ[ˆÛ\ÜÏH™İˆİ[OH˜˜XÚÙÜ›İ[™ˆÙNLYHÜÜ[Ü[˜XÚÙ[™ÛÛ™XİYÈÛÛH›ÙÜ˜[XpéğèÛÈ™\İ[ZYKˆÜÚpéğíY\Ëİ\˜HHXØX˜[Y[ÈZ[™H°èÛÈ\İ0èÛÈ\ÜÛ°ë]™Z\È˜H[YÜ˜péğèÛËÜÜ[‰ÎÃBˆHØ]Ú
+\œ›ÜŠHÃBˆİ]PÛÛZ[™\‹˜Û\ÜÓ˜[YHH˜Ø[[™\‹\XÙZÛ\ˆÃBˆİ]PÛÛZ[™\‹š[›™\’SH]İ›Û™Ï“°èÛÈ›ÚHÜÜğë]™[Ø\œ™YØ\ˆÈØ[[™0è\š[ÏÜİ›Û™Ï‰Ù\ØØ\R[
+\œ›Ü‹›Y\ÜØYÙH•™\šYš\]YHHÛÛ™šYİ\˜péğèÛÈHTKˆŠ_OÜÙ]˜ÃBˆ	
+	Ü[›š[™Ğ˜XÚÛÙĞÛİ[	ÊK^ÛÛ[H¸ %ÃBˆ	
+	Ü[›š[™Ğ˜XÚÛÙÓ\İ	ÊKš[›™\’SHÛ\ÜÏHœ[›š[™ËX˜XÚÛÙËY[\H“°èÛÈ›ÚHÜÜğë]™[Ø\œ™YØ\ˆÜÈYYÜÈÈØY\İ›Îˆ	Ù\ØØ\R[
+\œ›Ü‹›Y\ÜØYÙH™\šYš\]YHHÛÛ™^0èÛÈH[H]X[^˜\ˆŠ_OÜ˜ÃBˆ	
+	Ü[›š[™Ğ˜XÚÛÙÕÛÜšÜÉÊKšY[ˆHYNÃBˆÛÛ›™Xİ[Û‹š[›™\’SH	ÏÜ[ˆÛ\ÜÏH™İÜÜ[Ü[˜XÚÙ[™ÛÛ™šYİ\˜YËX\ÈHÚ[XYH°èÛÈ™\ÜÛ™]HÛÜœ™][Y[KÜÜ[‰ÎÃBˆÚİÕØ\İ
+‘˜[H[È]X[^˜\ˆÈØ[[™0è\š[ËˆŠNÃBˆCBˆCBƒBˆ\Ş[˜È[˜İ[ÛˆØ]™PØ[[™\‘^J]™[
+HÃBˆ]™[œ™]™[Y˜][
+
+NÃBˆÛÛœİ]HH	
+	Ù^Q]IÊK˜[YNÃBˆYˆ
+Y]JH™]\›ÃBˆÛÛœİ]ÛˆH	
+	ÜØ]™PØ[[™\‘^IÊNÃBˆÛÛœİÛ^H]Û‹^ÛÛ[ÃBˆ]Û‹™\ØX›YHYNÃBˆ]Û‹^ÛÛ[H”Ø[˜[™ø )ˆÃBˆHÃBˆ]ØZ]Ú[™İË”‘SVÔ‘TÔÒUÔ’QTËœ[›š[™ËœØ]™PØ[[™\‘^JÃBˆYˆ	
+	Ü™\İÜ™PØ[[™\‘^IÊK™]\Ù]˜Xİ]š]RY[™Yš[™YBˆİ\]Nˆ]KBˆ[™]Nˆ]KBˆ˜[YNˆ	
+	Ù^S›İIÊK˜[YKš[J
+HZ\İHX[X[H	Ù›Ü›X]]P”Š]J_XBˆ\ÕÛÜšÚ[™Îˆ	
+	Ù^UÛÜšÚ[™ÉÊK˜ÚXÚÙYBˆØ\XÚ]SZ[]\Îˆ	
+	Ù^UÛÜšÚ[™ÉÊK˜ÚXÚÙYÈˆBˆ›İ\Îˆ	
+	Ù^S›İIÊK˜[YKš[J
+KBˆJNÃBˆÛÜÙPØ[[™\‘^J
+NÃBˆ]ØZ]™Yœ™\Ú[›š[™Ê
+NÃBˆÚİÕØ\İ
+Z\İHÈXHØ[›ËˆŠNÃBˆHØ]Ú
+\œ›ÜŠHÃBˆÚİÔİ]\Ê˜Ø[[™\‘^Tİ]\È‹\œ›Ü‹›Y\ÜØYÙH“°èÛÈ›ÚHÜÜğë]™[Ø[˜\ˆÈZ\İKˆ‹YJNÃBˆHš[˜[HÃBˆ]Û‹™\ØX›YH˜[ÙNÃBˆ]Û‹^ÛÛ[HÛ^ÃBˆCBˆCBƒBˆ\Ş[˜È[˜İ[ÛˆØ]™PØ[[™\Xİ]š]J]™[
+HÃBˆ]™[œ™]™[Y˜][
+
+NÃBˆÛÛœİİ\]HH	
+	ØXİ]š]Tİ\	ÊK˜[YNÃBˆÛÛœİ[™]HH	
+	ØXİ]š]Q[™	ÊK˜[YNÃBˆYˆ
+\İ\]HY[™]H[™]Hİ\]JH™]\›ˆÚİÔİ]\Ê˜Ø[[™\Xİ]š]Tİ]\È‹’[™›Ü›YH[H\°ë[ÙÈ°è[YËˆ‹YJNÃBˆÛÛœİ]ÛˆH	
+	ÜØ]™PØ[[™\Xİ]š]IÊNÃBˆÛÛœİÛ^H]Û‹^ÛÛ[ÃBˆÛÛœİØ\ÑY][™ÈH›ÛÛX[Šİ]K™Y][™ĞXİ]š]RY
+NÃBˆ]Û‹™\ØX›YHYNÃBˆ]Û‹^ÛÛ[H”Ø[˜[™ø )ˆÃBˆHÃBˆ]ØZ]Ú[™İË”‘SVÔ‘TÔÒUÔ’QTËœ[›š[™ËœØ]™PØ[[™\Xİ]š]JÃBˆYˆİ]K™Y][™ĞXİ]š]RY[™Yš[™YBˆ˜[YNˆ	
+	ØXİ]š]S˜[YIÊK˜[YKš[J
+KBˆÚ[™ˆ	
+	ØXİ]š]RÚ[™	ÊK˜[YKBˆİ\]KBˆ[™]KBˆ\ÕÛÜšÚ[™Îˆ	
+	ØXİ]š]UÛÜšÚ[™ÉÊK˜ÚXÚÙYBˆØ\XÚ]SZ[]\Îˆ	
+	ØXİ]š]UÛÜšÚ[™ÉÊK˜ÚXÚÙYÈˆBˆ›İ\Îˆ	
+	ØXİ]š]S›İ\ÉÊK˜[YKš[J
+KBˆJNÃBˆÛÜÙPØ[[™\Xİ]š]J
+NÃBˆ]ØZ]™Yœ™\Ú[›š[™Ê
+NÃBˆÚİÕØ\İ
+Ø\ÑY][™ÈÈ]]šYYH]X[^˜YKˆˆˆ]]šYYHYXÚ[Û˜YKˆŠNÃBˆHØ]Ú
+\œ›ÜŠHÃBˆÚİÔİ]\Ê˜Ø[[™\Xİ]š]Tİ]\È‹\œ›Ü‹›Y\ÜØYÙH“°èÛÈ›ÚHÜÜğë]™[Ø[˜\ˆH]]šYYKˆ‹YJNÃBˆHš[˜[HÃBˆ]Û‹™\ØX›YH˜[ÙNÃBˆ]Û‹^ÛÛ[HÛ^ÃBˆCBˆCBƒBˆ\Ş[˜È[˜İ[Ûˆ[]PØ[[™\Xİ]š]JYÛÜÙQ^HH˜[ÙJHÃBˆYˆ
+ZYXÛÛ™š\›J‘^ÛZ\ˆ\İH]]šYYHÈØ[[™0è\š[ÏÈŠJH™]\›ÃBˆHÃBˆÛÛœİ›İ[™ÈHš\ÚX›P›İ[™Ê
+NÃBˆ]ØZ]Ú[™İË”‘SVÔ‘TÔÒUÔ’QTËœ[›š[™Ë™[]PØ[[™\Xİ]š]JY›İ[™Ëœİ\›İ[™Ë™[™
+NÃBˆYˆ
+ÛÜÙQ^JHÛÜÙPØ[[™\‘^J
+NÃBˆ[ÙHÛÜÙPØ[[™\Xİ]š]J
+NÃBˆ]ØZ]™Yœ™\Ú[›š[™Ê
+NÃBˆÚİÕØ\İ
+]]šYYH^ÛpëYKˆŠNÃBˆHØ]Ú
+\œ›ÜŠHÃBˆÚİÕØ\İ
+\œ›Ü‹›Y\ÜØYÙH“°èÛÈ›ÚHÜÜğë]™[^ÛZ\ˆH]]šYYKˆŠNÃBˆCBˆCBƒBˆËÈÛÛ›Û\ÈH˜]™YØpéğèÛÈH]™[ÜÈÓHÛÛ™XİYÜÈ[XH0î›šXØH™^ˆ˜H[šXÚX[^˜péğèÛËƒBˆ[˜İ[ÛˆÚ[™ÙT\š[Ù
+\™Xİ[ÛŠHÃBˆÛÛœİ]HH™]È]J	Ø[˜ÚÜ‘]J
+_UŒŒŒ˜
+NÃBˆYˆ
+İ]K›[ÙHOOHÙYZÈŠH]KœÙ]UÑ]J]K™Ù]UÑ]J
+H
+È\™Xİ[Ûˆ
+ˆÊNÃBˆ[ÙH]KœÙ]UÓ[Û
+]K™Ù]UÓ[Û
+
+H
+È\™Xİ[ÛŠNÃBˆ	
+	Ü[›š[™Ğ[˜ÚÜ‰ÊK˜[YHH\ÛÑ]J]JNÃBˆ™Yœ™\Ú[›š[™Ê
+NÃBˆCBƒBˆ[˜İ[ÛˆÙ]Ø[[™\“[ÙJ[ÙJHÃBˆİ]K›[ÙHH[ÙNÃBˆØİ[Y[œ]Y\TÙ[XİÜ[
+–Ù]KXØ[[™\‹[[ÙWHŠK™›Ü‘XXÚ
+
+]ÛŠHOˆÃBˆ]Û‹œÙ]]šX]J˜\šXK\™\ÜÙY‹İš[™Ê]Û‹™]\Ù]˜Ø[[™\“[ÙHOOH[ÙJJNÃBˆJNÃBˆ™Yœ™\Ú[›š[™Ê
+NÃBˆCBƒBˆ[˜İ[Ûˆ[™PØ[[™\ÛXÚÊ]™[
+HÃBˆÛÛœİÜ™\‘]™[H]™[\™Ù]˜ÛÜÙ\İ
+–Ù]K[Ü™\‹Y]™[HŠNÃBˆYˆ
+Ü™\‘]™[
+HÃBˆ]™[œ™]™[Y˜][
+
+NÃBˆYˆ
+İ]Kœİ\YÜ™\’YËš[˜ÛY\ÊÜ™\‘]™[™]\Ù]›Ü™\‘]™[
+JHÃBˆÚİÕØ\İ
+‘\İHYYÈ°èH[H›ÙpéğèÛÈ[šXÚXYHİHÛÛ˜ÛpëYHH°èÛÈÙHÙ\ˆ™\[™Z˜YËˆŠNÃBˆ™]\›ÃBˆCBˆÜ[“Ü™\”[›™\ŠÜ™\‘]™[™]\Ù]›Ü™\‘]™[
+NÃBˆ™]\›ÃBˆCBˆÛÛœİXİ]š]P]ÛˆH]™[\™Ù]˜ÛÜÙ\İ
+–Ù]KY^KXXİ[Û—HŠNÃBˆYˆ
+Xİ]š]P]ÛŠHÃBˆÛÛœİXİ]š]HHİ]K™^Ù\[ÛœË™š[™
+
+][JHOˆ][KšYOOHXİ]š]P]Û‹™]\Ù]˜Xİ]š]RY
+NÃBˆYˆ
+Xİ]š]P]Û‹™]\Ù]™^PXİ[ÛˆOOH™Y]ˆ	‰ˆXİ]š]JHÃBˆÛÜÙPØ[[™\‘^J
+NÃBˆÜ[Ø[[™\Xİ]š]JXİ]š]JNÃBˆH[ÙHYˆ
+Xİ]š]P]Û‹™]\Ù]™^PXİ[ÛˆOOH™[]HŠH[]PØ[[™\Xİ]š]JXİ]š]OËšYYJNÃBˆ™]\›ÃBˆCBˆÛÛœİ^HH]™[\™Ù]˜ÛÜÙ\İ
+–Ù]KXØ[[™\‹Y]WHŠNÃBˆYˆ
+^JHÜ[Ø[[™\‘^J^K™]\Ù]˜Ø[[™\‘]JNÃBˆCBƒBˆ[˜İ[Ûˆ[™Q˜YÔİ\
+]™[
+HÃBˆÛÛœİ][HH]™[\™Ù]˜ÛÜÙ\İ
+	ÖÙ]K[Ü™\‹Y]™[VÙ˜YÙØX›OHYH—IÊNÃBˆYˆ
+Z][JH™]\›ÃBˆÛÛœİÈÜ™\‘]™[ÛÜšÑ]HHH][K™]\Ù]ÃBˆÛÛœİ^[ØYH”ÓÓ‹œİš[™ÚYJÈÜ™\’YˆÜ™\‘]™[Ûİ\˜ÙQ]NˆÛÜšÑ]HJNÃBˆ]™[™]U˜[œÙ™\‹™Y™™Xİ[İÙYH›[İ™HÃBˆ]™[™]U˜[œÙ™\‹œÙ]]J^ÜZ[ˆ‹^[ØY
+NÃBˆCBƒBˆ[˜İ[Ûˆ[™Q˜YÓİ™\Š]™[
+HÃBˆÛÛœİ^HH]™[\™Ù]˜ÛÜÙ\İ
+–Ù]KXØ[[™\‹Y]WHŠNÃBˆYˆ
+Y^JH™]\›ÃBˆ]™[œ™]™[Y˜][
+
+NÃBˆ]™[™]U˜[œÙ™\‹™›ÜY™™XİH›[İ™HÃBˆ^K˜Û\ÜÓ\İ˜Y
+™˜YË[İ™\ˆŠNÃBˆCBƒBˆ[˜İ[Ûˆ[™Q˜YÓX]™J]™[
+HÃBˆÛÛœİ^HH]™[\™Ù]˜ÛÜÙ\İ
+–Ù]KXØ[[™\‹Y]WHŠNÃBˆYˆ
+^H	‰ˆY^K˜ÛÛZ[œÊ]™[œ™[]Y\™Ù]
+JH^K˜Û\ÜÓ\İœ™[[İ™J™˜YË[İ™\ˆŠNÃBˆCBƒBˆ\Ş[˜È[˜İ[Ûˆ[™Q›Ü
+]™[
+HÃBˆÛÛœİ^HH]™[\™Ù]˜ÛÜÙ\İ
+–Ù]KXØ[[™\‹Y]WHŠNÃBˆYˆ
+Y^JH™]\›ÃBˆ]™[œ™]™[Y˜][
+
+NÃBˆ^K˜Û\ÜÓ\İœ™[[İ™J™˜YË[İ™\ˆŠNÃBˆ]›ÜYÃBˆHÈ›ÜYH”ÓÓ‹œ\œÙJ]™[™]U˜[œÙ™\‹™Ù]]J^ÜZ[ˆŠJNÈHØ]ÚÈ™]\›ÈCBˆYˆ
+Y›ÜY›Ü™\’YY›ÜYœÛİ\˜ÙQ]H›ÜYœÛİ\˜ÙQ]HOOH^K™]\Ù]˜Ø[[™\‘]JH™]\›ÃBˆÛÛœİÜ™\ˆHÜ™\RY
+›ÜY›Ü™\’Y
+NÃBˆYˆ
+[Ü™\ŠH™]\›ˆÚİÕØ\İ
+“ÈYYÈ°èÛÈ\İ0èH\ÜÛ°ë]™[™\İH\°ë[ÙËˆŠNÃBˆYˆ
+İ]Kœİ\YÜ™\’YËš[˜ÛY\Ê›ÜY›Ü™\’Y
+JH™]\›ˆÚİÕØ\İ
+‘\İHYYÈ°èH[H›ÙpéğèÛÈ[šXÚXYHİHÛÛ˜ÛpëYHH°èÛÈÙHÙ\ˆ™\[™Z˜YËˆŠNÃBˆÛÛœİ[HH]Q\İ[˜ÙJ›ÜYœÛİ\˜ÙQ]K^K™]\Ù]˜Ø[[™\‘]JNÃBˆÛÛœİ™]Ôİ\HY^\ÊÜ™\‹œİ\Ù]K[JNÃBˆÛÛœİ™]ÑYHHÜ™\‹œ™\]Y\İYÙYWÙ]HÈY^\ÊÜ™\‹œ™\]Y\İYÙYWÙ]K[JHˆˆÃBˆÜ[“Ü™\”[›™\Š›ÜY›Ü™\’YÃBˆÛİ\˜ÙQ]Nˆ›ÜYœÛİ\˜ÙQ]KBˆ\™Ù]]Nˆ^K™]\Ù]˜Ø[[™\‘]KBˆİ\]Nˆ™]Ôİ\BˆYQ]Nˆ™]ÑYKBˆJNÃBˆCBƒBˆØİ[Y[œ]Y\TÙ[XİÜ[
+–Ù]KXØ[[™\‹[[ÙWHŠK™›Ü‘XXÚ
+
+]ÛŠHOˆ]Û‹˜Y]™[\İ[™\Š˜ÛXÚÈ‹
+
+HOˆÙ]Ø[[™\“[ÙJ]Û‹™]\Ù]˜Ø[[™\“[ÙJJJNÃBˆ	
+	Ü[›š[™Ğ[˜ÚÜ‰ÊK˜[YHHØØ[Ù^J
+NÃBˆ	
+	Ü[›š[™Ô™Yœ™\Ú‰ÊK˜Y]™[\İ[™\Š˜ÛXÚÈ‹™Yœ™\Ú[›š[™ÊNÃBˆ	
+	Ü[›š[™Ğ[˜ÚÜ‰ÊK˜Y]™[\İ[™\Š˜Ú[™ÙH‹™Yœ™\Ú[›š[™ÊNÃBˆ	
+	Ü[›š[™Ô™]š[İ\ÉÊK˜Y]™[\İ[™\Š˜ÛXÚÈ‹
+
+HOˆÚ[™ÙT\š[Ù
+LJJNÃBˆ	
+	Ü[›š[™Ó™^\š[Ù	ÊK˜Y]™[\İ[™\Š˜ÛXÚÈ‹
+
+HOˆÚ[™ÙT\š[Ù
+JJNÃBˆ	
+	Ü[›š[™Ó™^‰ÊK˜Y]™[\İ[™\Š˜ÛXÚÈ‹
+
+HOˆÚ[™İË”‘SVÓU‹›Ü[Š™]\]Y]\ÈŠJNÃBˆ	
+	Ü[›š[™ĞXİ]š]P‰ÊK˜Y]™[\İ[™\Š˜ÛXÚÈ‹
+
+HOˆÜ[Ø[[™\Xİ]š]J
+JNÃBˆ	
+	Ü[›š[™ÔÙ][™ÜĞ‰ÊK˜Y]™[\İ[™\Š˜ÛXÚÈ‹Ü[Ø[[™\”Ù][™ÜÊNÃBˆ	
+	Ü[›š[™ÓÜ™\‰ÊK˜Y]™[\İ[™\Š˜ÛXÚÈ‹\Ş[˜È
+
+HOˆÃBˆ]ØZ]™Yœ™\Ú[›š[™Ê
+NÃBˆÜ[“Ü™\”[›™\Š
+NÃBˆJNÃBˆ	
+	Ü[›š[™Ğ˜XÚÛÙÓ\İ	ÊK˜Y]™[\İ[™\Š˜ÛXÚÈ‹\Ş[˜È
+]™[
+HOˆÃBˆÛÛœİ]ÛˆH]™[\™Ù]˜ÛÜÙ\İ
+–Ù]K\[‹[Ü™\‹ZYHŠNÃBˆYˆ
+X]ÛŠH™]\›ÃBˆÛÛœİÜ™\’YH]Û‹™]\Ù]œ[“Ü™\’YÃBˆ]ØZ]™Yœ™\Ú[›š[™Ê
+NÃBˆÜ[“Ü™\”[›™\ŠÜ™\’Y
+NÃBˆJNÃBˆ	
+	Ü[›š[™ĞØ[[™\”İ]IÊK˜Y]™[\İ[™\Š˜ÛXÚÈ‹[™PØ[[™\ÛXÚÊNÃBˆ	
+	Ü[›š[™ĞØ[[™\”İ]IÊK˜Y]™[\İ[™\ŠšÙ^YİÛˆ‹
+]™[
+HOˆÃBˆYˆ
+
+]™[šÙ^HOOH‘[\ˆˆ]™[šÙ^HOOHˆŠH	‰ˆ]™[\™Ù]›X]Ú\Ê–Ù]KXØ[[™\‹Y]WHŠJHÃBˆ]™[œ™]™[Y˜][
+
+NÃBˆÜ[Ø[[™\‘^J]™[\™Ù]™]\Ù]˜Ø[[™\‘]JNÃBˆCBˆJNÃBˆ	
+	Ü[›š[™ĞØ[[™\”İ]IÊK˜Y]™[\İ[™\Š™˜YÜİ\‹[™Q˜YÔİ\
+NÃBˆ	
+	Ü[›š[™ĞØ[[™\”İ]IÊK˜Y]™[\İ[™\Š™˜YÛİ™\ˆ‹[™Q˜YÓİ™\ŠNÃBˆ	
+	Ü[›š[™ĞØ[[™\”İ]IÊK˜Y]™[\İ[™\Š™˜YÛX]™H‹[™Q˜YÓX]™JNÃBˆ	
+	Ü[›š[™ĞØ[[™\”İ]IÊK˜Y]™[\İ[™\Š™›Ü‹[™Q›Ü
+NÃBˆ	
+	Ü[›š[™ÓÜ™\”Ù[Xİ	ÊK˜Y]™[\İ[™\Š˜Ú[™ÙH‹
+
+HOˆÃBˆÛÛœİÜ™\ˆHÜ™\RY
+	
+	Ü[›š[™ÓÜ™\”Ù[Xİ	ÊK˜[YJNÃBˆ™\Ù][”™]šY]Ê
+NÃBˆYˆ
+Ü™\ŠHÃBˆ	
+	Ü[›š[™ÓÜ™\”İ\	ÊK˜[YHHÜ™\‹œİ\Ù]HØØ[Ù^J
+NÃBˆ	
+	Ü[›š[™ÓÜ™\‘YIÊK˜[YHHÜ™\‹œ™\]Y\İYÙYWÙ]HˆÃBˆCBˆJNÃBˆ	
+	ÛÜ™\”[‘›Ü›IÊK˜Y]™[\İ[™\ŠœİX›Z]‹Ø[İ[]SÜ™\”[ŠNÃBˆ	
+	ØÛÛ[Z]Ü™\”[‰ÊK˜Y]™[\İ[™\Š˜ÛXÚÈ‹ÛÛ[Z]Ü™\”[ŠNÃBˆ	
+	Ø[İÒ[™™X\ÚX›T[‰ÊK˜Y]™[\İ[™\Š˜Ú[™ÙH‹Ş[˜ĞÛÛ[Z]]ÛŠNÃBˆ	
+	ØÛÜÙSÜ™\”[‰ÊK˜Y]™[\İ[™\Š˜ÛXÚÈ‹ÛÜÙSÜ™\”[›™\ŠNÃBˆ	
+	ØØ[˜Ù[Ü™\”[‰ÊK˜Y]™[\İ[™\Š˜ÛXÚÈ‹ÛÜÙSÜ™\”[›™\ŠNÃBˆ	
+	ÛÜ™\”[“[Ù[	ÊK˜Y]™[\İ[™\Š˜ÛXÚÈ‹
+]™[
+HOˆÈYˆ
+]™[\™Ù]šYOOH›Ü™\”[“[Ù[ŠHÛÜÙSÜ™\”[›™\Š
+NÈJNÃBˆÚ[™İË˜Y]™[\İ[™\Šœ™[^›Ü\˜][ÛœÎ˜Ú[™ÙY‹
+
+HOˆÃBˆYˆ
+I
+	Ü[›š[™ÕšY]ÉÊKšY[ŠH™Yœ™\Ú[›š[™Ê
+NÃBˆJNÃBˆËÈH˜]™YØpéğèÛÈÚ[˜[^˜HHX™\\˜HHX˜NÈ]X[^˜[[ÜÈÈØ[[™0è\š[È™\ÜÙH[ÛY[ËƒBˆÚ[™İË˜Y]™[\İ[™\Šœ™[^œ[›š[™Î›Ü[ˆ‹™Yœ™\Ú[›š[™ÊNÃBˆ	
+	ØÛÜÙPØ[[™\‘^IÊK˜Y]™[\İ[™\Š˜ÛXÚÈ‹ÛÜÙPØ[[™\‘^JNÃBˆ	
+	ØØ[˜Ù[Ø[[™\‘^IÊK˜Y]™[\İ[™\Š˜ÛXÚÈ‹ÛÜÙPØ[[™\‘^JNÃBˆ	
+	ØØ[[™\‘^S[Ù[	ÊK˜Y]™[\İ[™\Š˜ÛXÚÈ‹
+]™[
+HOˆÈYˆ
+]™[\™Ù]šYOOH˜Ø[[™\‘^S[Ù[ŠHÛÜÙPØ[[™\‘^J
+NÈJNÃBˆ	
+	ØØ[[™\‘^Q›Ü›IÊK˜Y]™[\İ[™\ŠœİX›Z]‹Ø]™PØ[[™\‘^JNÃBˆ	
+	Ü™\İÜ™PØ[[™\‘^IÊK˜Y]™[\İ[™\Š˜ÛXÚÈ‹
+
+HOˆ[]PØ[[™\Xİ]š]J	
+	Ü™\İÜ™PØ[[™\‘^IÊK™]\Ù]˜Xİ]š]RYYJJNÃBˆ	
+	ØÛÜÙPØ[[™\Xİ]š]IÊK˜Y]™[\İ[™\Š˜ÛXÚÈ‹ÛÜÙPØ[[™\Xİ]š]JNÃBˆ	
+	ØØ[˜Ù[Ø[[™\Xİ]š]IÊK˜Y]™[\İ[™\Š˜ÛXÚÈ‹ÛÜÙPØ[[™\Xİ]š]JNÃBˆ	
+	ØØ[[™\Xİ]š]S[Ù[	ÊK˜Y]™[\İ[™\Š˜ÛXÚÈ‹
+]™[
+HOˆÈYˆ
+]™[\™Ù]šYOOH˜Ø[[™\Xİ]š]S[Ù[ŠHÛÜÙPØ[[™\Xİ]š]J
+NÈJNÃBˆ	
+	ØØ[[™\Xİ]š]Q›Ü›IÊK˜Y]™[\İ[™\ŠœİX›Z]‹Ø]™PØ[[™\Xİ]š]JNÃBˆ	
+	Ù[]PØ[[™\Xİ]š]IÊK˜Y]™[\İ[™\Š˜ÛXÚÈ‹
+
+HOˆ[]PØ[[™\Xİ]š]Jİ]K™Y][™ĞXİ]š]RY
+JNÃBˆ	
+	ØØ[[™\‘^PXİ]š]Y\ÉÊK˜Y]™[\İ[™\Š˜ÛXÚÈ‹[™PØ[[™\ÛXÚÊNÃBˆ	
+	ØXİ]š]UÛÜšÚ[™ÉÊK˜Y]™[\İ[™\Š˜Ú[™ÙH‹
+
+HOˆÈ	
+	ØXİ]š]PØ\XÚ]IÊK˜[YHH	
+	ØXİ]š]UÛÜšÚ[™ÉÊK˜ÚXÚÙYÈˆÈJNÃBˆ	
+	ØÛÜÙPØ[[™\”Ù][™ÜÉÊK˜Y]™[\İ[™\Š˜ÛXÚÈ‹ÛÜÙPØ[[™\”Ù][™ÜÊNÃBˆ	
+	ØØ[˜Ù[Ø[[™\”Ù][™ÜÉÊK˜Y]™[\İ[™\Š˜ÛXÚÈ‹ÛÜÙPØ[[™\”Ù][™ÜÊNÃBˆ	
+	ØØ[[™\”Ù][™ÜÓ[Ù[	ÊK˜Y]™[\İ[™\Š˜ÛXÚÈ‹
+]™[
+HOˆÈYˆ
+]™[\™Ù]šYOOH˜Ø[[™\”Ù][™ÜÓ[Ù[ŠHÛÜÙPØ[[™\”Ù][™ÜÊ
+NÈJNÃBˆ	
+	ØØ[[™\”Ù][™ÜÑ›Ü›IÊK˜Y]™[\İ[™\ŠœİX›Z]‹Ø]™PØ[[™\”Ù][™ÜÊNÃBŸJJ
+NÃB
