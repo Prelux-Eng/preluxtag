@@ -1,355 +1,338 @@
-/*
- * Endpoint de leitura e manutenÃ§Ã£o do calendÃ¡rio e das suas configuraÃ§Ãµes.
- * Recebe aÃ§Ãµes da tela de Planejamento e devolve perÃ­odos jÃ¡ preparados para
- * renderizaÃ§Ã£o no navegador.
- */
-import { buildCalendarDays } from "../_shared/calendar.js";
-import { getServerConfig } from "../_shared/env.js";
-import { ensurePost, handleError, json, readJson } from "../_shared/http.js";
-import { addDays, normalizeDate } from "../_shared/planner.js";
-import { createAdminClient } from "../_shared/supabaseClient.js";
+YªçŠx³¬uç%j·Â+ar‰ì¶ë•ë_¢ºŞjË"‚v›•ëÚ®&›•ëÊƒBˆ
+ˆ[™Ú[HZ]\˜HHX[][°éğèÛÈÈØ[[™0è\š[ÈH\ÈİX\ÈÛÛ™šYİ\˜péğíY\ËƒBˆ
+ˆ™XÙX™HpéğíY\ÈH[HH[™Z˜[Y[ÈH]›Û™H\°ë[ÙÜÈ°èH™\\˜YÜÈ\˜CBˆ
+ˆ™[™\š^˜péğèÛÈ›È˜]™YØYÜ‹ƒBˆ
+‹ÃBš[\ÜÈZ[Ø[[™\‘^\ÈHœ›ÛH‹‹‹×ÜÚ\™YØØ[[™\‹šœÈÃBš[\ÜÈÙ]Ù\™\ÛÛ™šYÈHœ›ÛH‹‹‹×ÜÚ\™YÙ[‹šœÈÃBš[\ÜÈ[œİ\™TÜİ[™Q\œ›Ü‹œÛÛ‹™XYœÛÛˆHœ›ÛH‹‹‹×ÜÚ\™YÚšœÈÃBš[\ÜÈY^\Ë›Ü›X[^™Q]HHœ›ÛH‹‹‹×ÜÚ\™YÜ[›™\‹šœÈÃBš[\ÜÈÜ™X]PYZ[ÛY[Hœ›ÛH‹‹‹×ÜÚ\™YÜİ\X˜\ÙPÛY[šœÈÃBƒB˜ÛÛœİUÒÔÒV‘HHLÃB˜ÛÛœİÒS‘ÈH™]ÈÙ]
+ÃBˆ™™\šXYÈ‹Bˆ™XWÙ^˜H‹Bˆœ\˜YH‹Bˆ›X[][˜Ø[È‹Bˆ™›ÛØWØÛÛ]]˜H‹Bˆœ\œÛÛ˜[^˜YH‹B—JNÃBƒB™[˜İ[ÛˆÙ^UUÊ
+HÃBˆ™]\›ˆ™]È]J
+KÒTÓÔİš[™Ê
+KœÛXÙJL
+NÃBŸCBƒB™[˜İ[ÛˆÚ[šÜÏŠ][\Îˆ×KÚ^™Nˆ[X™\ŠNˆ×V×HÃBˆÛÛœİ™\İ[ˆ×V×HH×NÃBˆ›Üˆ
+][™^HÈ[™^][\Ë›[™İÈ[™^
+ÏHÚ^™JHÃBˆ™\İ[œ\Ú
+][\ËœÛXÙJ[™^[™^
+ÈÚ^™JJNÃBˆCBˆ™]\›ˆ™\İ[ÃBŸCBƒB™[˜İ[Ûˆ˜Y™\]Y\İ
+Y\ÜØYÙNˆİš[™ÊHÃBˆ™]\›ˆØš™Xİ˜\ÜÚYÛŠ™]È\œ›ÜŠY\ÜØYÙJKÈİ]\ÎˆŒˆJNÃBŸCBƒB™[˜İ[Ûˆ›ÛÛX[•˜[YJ˜[YNˆ[šÛ›İÛ‹˜[˜XÚÈH˜[ÙJHÃBˆYˆ
+˜[YHOOH[™Yš[™Y˜[YHOOH[˜[YHOOHˆŠH™]\›ˆ˜[˜XÚÎÃBˆYˆ
+\[Ùˆ˜[YHOOH˜›ÛÛX[ˆŠH™]\›ˆ˜[YNÃBˆ™]\›ˆÈYH‹ŒH‹œÚ[H‹Y\È—Kš[˜ÛY\Êİš[™Ê˜[YJKÓİÙ\Ø\ÙJ
+JNÃBŸCBƒB™[˜İ[Ûˆ›Û“™YØ]]™R[YÙ\Š˜[YNˆ[šÛ›İÛ‹X™[ˆİš[™Ë˜[˜XÚÈH
+HÃBˆYˆ
+˜[YHOOH[™Yš[™Y˜[YHOOH[˜[YHOOHˆŠH™]\›ˆ˜[˜XÚÎÃBˆÛÛœİ[X™\ˆH[X™\Š˜[YJNÃBˆYˆ
+S[X™\‹š\Ò[YÙ\Š[X™\ŠH[X™\ˆ
+H›İÈ˜Y™\]Y\İ
+	ÛX™[H]™HÙ\ˆ[H°î›Y\›È[Z\›ÈXZ[ÜˆİHYİX[H™\›Ë˜
+NÃBˆ™]\›ˆ[X™\ÃBŸCBƒB™[˜İ[Ûˆ˜[™ÙQœ›ÛT^[ØY
+^[ØYˆ™XÛÜ™İš[™Ë[šÛ›İÛ‹˜[˜XÚÔİ\HÙ^UUÊ
+JHÃBˆÛÛœİİ\]HH›Ü›X[^™Q]J^[ØYœİ\]H˜[˜XÚÔİ\™]H[šXÚX[ŠNÃBˆÛÛœİ[™]HH›Ü›X[^™Q]J^[ØY™[™]Hİ\]K™]Hš[˜[ŠNÃBˆYˆ
+[™]Hİ\]JH›İÈ˜Y™\]Y\İ
+H]Hš[˜[°èÛÈÙHÙ\ˆ[\š[Üˆ0è]H[šXÚX[ˆŠNÃBˆYˆ
+[™]HˆY^\Êİ\]KÌÌ
+JH›İÈ˜Y™\]Y\İ
+“È[\˜[Èpè^[[È\˜HÈØ[[™0è\š[È0êHHÌÌX\ËˆŠNÃBˆ™]\›ˆÈİ\]K[™]HNÃBŸCBƒB˜\Ş[˜È[˜İ[Ûˆ™YÙ[™\˜]Jˆ™]\›•\O\[ÙˆÜ™X]PYZ[ÛY[‹Ü™Ø[š^˜][Û’Yˆİš[™Ëİ\]Nˆİš[™Ë[™]Nˆİš[™ÊHÃBˆÛÛœİŞÈ]NˆÙ][™ÜË\œ›ÜˆÙ][™ÜÑ\œ›ÜˆKÈ]Nˆ[\Ë\œ›Üˆ[\Ñ\œ›ÜˆKÈ]Nˆ^Ù\[ÛœË\œ›Üˆ^Ù\[ÛœÑ\œ›ÜˆWHH]ØZ]›ÛZ\ÙK˜[
+ÃBˆ‹™œ›ÛJ˜Ø[[™\—ÜÙ][™ÜÈŠKœÙ[Xİ
+™Y˜][ØØ\XÚ]WÛZ[]\Ë[›š[™×ÚÜš^›Û—Ù^\ÈŠK™\J›Ü™Ø[š^˜][Û—ÚY‹Ü™Ø[š^˜][Û’Y
+K›X^X™TÚ[™ÛJ
+KBˆ‹™œ›ÛJ˜Ø[[™\—İÛÜšÚ[™×Ü[\ÈŠKœÙ[Xİ
+ÙYZÙ^K\×İÛÜšÚ[™ËØ\XÚ]WÛZ[]\ÈŠK™\J›Ü™Ø[š^˜][Û—ÚY‹Ü™Ø[š^˜][Û’Y
+KBˆ‹™œ›ÛJ˜Ø[[™\—Ù^Ù\[ÛœÈŠKœÙ[Xİ
+šY˜[YKÚ[™İ\Ù]K[™Ù]K\×İÛÜšÚ[™ËØ\XÚ]WÛZ[]\Ëš[Üš]K›İ\Ë\×ØXİ]™K\]YØ]ŠK™\J›Ü™Ø[š^˜][Û—ÚY‹Ü™Ø[š^˜][Û’Y
+K™\Jš\×ØXİ]™H‹YJK›Jœİ\Ù]H‹[™]JK™İJ™[™Ù]H‹İ\]JKBˆJNÃBˆYˆ
+Ù][™ÜÑ\œ›ÜŠH›İÈÙ][™ÜÑ\œ›ÜÃBˆYˆ
+[\Ñ\œ›ÜŠH›İÈ[\Ñ\œ›ÜÃBˆYˆ
+^Ù\[ÛœÑ\œ›ÜŠH›İÈ^Ù\[ÛœÑ\œ›ÜÃBƒBˆÛÛœİ^\ÈHZ[Ø[[™\‘^\ÊÈİ\]K[™]KÙ][™ÜÎˆÙ][™ÜÈßK[\Îˆ[\È×K^Ù\[ÛœÎˆ^Ù\[ÛœÈ×HJNÃBˆÛÛœİ™XÛÜ™ÈH^\Ë›X\
 
-const BATCH_SIZE = 500;
-const KINDS = new Set([
-  "feriado",
-  "dia_extra",
-  "parada",
-  "manutencao",
-  "folga_coletiva",
-  "personalizada",
-]);
+^JHOˆ
+ÈÜ™Ø[š^˜][Û—ÚYˆÜ™Ø[š^˜][Û’Y‹‹™^KÙ[™\˜]YØ]ˆ™]È]J
+KÒTÓÔİš[™Ê
+HJJNÃBˆ›Üˆ
+ÛÛœİ˜]ÚÙˆÚ[šÜÊ™XÛÜ™ËUÒÔÒV‘JJHÃBˆÛÛœİÈ\œ›ÜˆHH]ØZ]‹™œ›ÛJ˜Ø[[™\—Ù^\ÈŠK\Ù\
+˜]ÚÈÛÛÛ™›Xİˆ›Ü™Ø[š^˜][Û—ÚY]HˆJNÃBˆYˆ
+\œ›ÜŠH›İÈ\œ›ÜÃBˆCBˆ™]\›ˆ™XÛÜ™Ë›[™İÃBŸCBƒB˜\Ş[˜È[˜İ[Ûˆ™XYØ[[™\Šˆ™]\›•\O\[ÙˆÜ™X]PYZ[ÛY[‹Ü™Ø[š^˜][Û’Yˆİš[™Ëİ\]Nˆİš[™Ë[™]Nˆİš[™ÊHÃBˆÛÛœİŞÈ]Nˆ^\Ë\œ›Üˆ^\Ñ\œ›ÜˆKÈ]Nˆ^Ù\[ÛœË\œ›Üˆ^Ù\[ÛœÑ\œ›ÜˆKÈ]NˆØ\XÚ]K\œ›ÜˆØ\XÚ]Q\œ›ÜˆWHH]ØZ]›ÛZ\ÙK˜[
+ÃBˆ‹™œ›ÛJ˜Ø[[™\—Ù^\ÈŠKœÙ[Xİ
+™]K\×İÛÜšÚ[™ËØ\XÚ]WÛZ[]\ËÛİ\˜ÙK^Ù\[Û—ÚY›İKÙ[™\˜]YØ]ŠK™\J›Ü™Ø[š^˜][Û—ÚY‹Ü™Ø[š^˜][Û’Y
+K™İJ™]H‹İ\]JK›J™]H‹[™]JK›Ü™\Š™]HŠKBˆ‹™œ›ÛJ˜Ø[[™\—Ù^Ù\[ÛœÈŠKœÙ[Xİ
+šY˜[YKÚ[™İ\Ù]K[™Ù]K\×İÛÜšÚ[™ËØ\XÚ]WÛZ[]\Ëš[Üš]K›İ\Ë\×ØXİ]™KÜ™X]YØ]\]YØ]ŠK™\J›Ü™Ø[š^˜][Û—ÚY‹Ü™Ø[š^˜][Û’Y
+K™\Jš\×ØXİ]™H‹YJK›Jœİ\Ù]H‹[™]JK™İJ™[™Ù]H‹İ\]JK›Ü™\Šœİ\Ù]HŠK›Ü™\Šœš[Üš]H‹È\ØÙ[™[™Îˆ˜[ÙHJKBˆ‹™œ›ÛJ—ØØ\XÚ]WÙZ[HŠKœÙ[Xİ
+™]K\×İÛÜšÚ[™ËØ\XÚ]WÛZ[]\Ë[›™YÛZ[]\ËXİX[Ü]X[]KØØİ\[˜ŞWÜ\˜Ù[ŠK™\J›Ü™Ø[š^˜][Û—ÚY‹Ü™Ø[š^˜][Û’Y
+K™İJ™]H‹İ\]JK›J™]H‹[™]JK›Ü™\Š™]HŠKBˆJNÃBˆYˆ
+^\Ñ\œ›ÜŠH›İÈ^\Ñ\œ›ÜÃBˆYˆ
+^Ù\[ÛœÑ\œ›ÜŠH›İÈ^Ù\[ÛœÑ\œ›ÜÃBˆYˆ
+Ø\XÚ]Q\œ›ÜŠH›İÈØ\XÚ]Q\œ›ÜÃBˆ™]\›ˆÈ^\Îˆ^\È×K^Ù\[ÛœÎˆ^Ù\[ÛœÈ×KØ\XÚ]NˆØ\XÚ]H×HNÃBŸCBƒB™[˜İ[Ûˆ˜[Y]PXİ]š]J^[ØYˆ™XÛÜ™İš[™Ë[šÛ›İÛŠHÃBˆÛÛœİ˜[YHHİš[™Ê^[ØY›˜[YHˆŠKš[J
+NÃBˆYˆ
+[˜[YJH›İÈ˜Y™\]Y\İ
+’[™›Ü›YHÈ›ÛYHH]]šYYKˆŠNÃBˆYˆ
+˜[YK›[™İˆMŒ
+H›İÈ˜Y™\]Y\İ
+“È›ÛYHH]]šYYH]™H\ˆ›Èpè^[[ÈMŒØ\˜Xİ\™\ËˆŠNÃBˆÛÛœİÚ[™Hİš[™Ê^[ØYšÚ[™œ\œÛÛ˜[^˜YHŠNÃBˆYˆ
+RÒS‘Ëš\ÊÚ[™
+JH›İÈ˜Y™\]Y\İ
+•\ÈH]]šYYH[°è[YËˆŠNÃBˆÛÛœİİ\]HH›Ü›X[^™Q]J^[ØYœİ\]K™]H[šXÚX[ŠNÃBˆÛÛœİ[™]HH›Ü›X[^™Q]J^[ØY™[™]Hİ\]K™]Hš[˜[ŠNÃBˆYˆ
+[™]Hİ\]JH›İÈ˜Y™\]Y\İ
+H]Hš[˜[°èÛÈÙHÙ\ˆ[\š[Üˆ0è]H[šXÚX[ˆŠNÃBˆÛÛœİ\ÕÛÜšÚ[™ÈH›ÛÛX[•˜[YJ^[ØYš\ÕÛÜšÚ[™Ë˜[ÙJNÃBˆÛÛœİØ\XÚ]SZ[]\ÈH›Û“™YØ]]™R[YÙ\Š^[ØY˜Ø\XÚ]SZ[]\Ë˜Ø\XÚYYH‹\ÕÛÜšÚ[™ÈÈˆ
+NÃBˆ™]\›ˆÃBˆ˜[YKBˆÚ[™Bˆİ\Ù]Nˆİ\]KBˆ[™Ù]Nˆ[™]KBˆ\×İÛÜšÚ[™Îˆ\ÕÛÜšÚ[™ËBˆØ\XÚ]WÛZ[]\Îˆ\ÕÛÜšÚ[™ÈÈØ\XÚ]SZ[]\ÈˆBˆš[Üš]Nˆ›Û“™YØ]]™R[YÙ\Š^[ØYœš[Üš]Kœš[ÜšYYH‹Ú[™OOHœ\œÛÛ˜[^˜YHˆÈLˆŒ
+KBˆ›İ\Îˆİš[™Ê^[ØY››İ\ÈˆŠKš[J
+KœÛXÙJL
+H[BˆNÃBŸCBƒB˜\Ş[˜È[˜İ[ÛˆØ]™PXİ]š]Jˆ™]\›•\O\[ÙˆÜ™X]PYZ[ÛY[‹Ü™Ø[š^˜][Û’Yˆİš[™Ë^[ØYˆ™XÛÜ™İš[™Ë[šÛ›İÛ‹X[X[^HH˜[ÙJHÃBˆÛÛœİXİ]š]HH˜[Y]PXİ]š]JÈ‹‹œ^[ØY‹‹ŠX[X[^HÈÈÚ[™ˆœ\œÛÛ˜[^˜YH‹š[Üš]NˆLHˆßJHJNÃBˆÛÛœİYHİš[™Ê^[ØYšYˆŠKš[J
+NÃBˆ]]Y\NÃBˆYˆ
+Y
+HÃBˆ]Y\HH‹™œ›ÛJ˜Ø[[™\—Ù^Ù\[ÛœÈŠK\]JÈ‹‹˜Xİ]š]K\]YØ]ˆ™]È]J
+KÒTÓÔİš[™Ê
+K\×ØXİ]™NˆYHJK™\JšY‹Y
+K™\J›Ü™Ø[š^˜][Û—ÚY‹Ü™Ø[š^˜][Û’Y
+KœÙ[Xİ
+šY˜[YKÚ[™İ\Ù]K[™Ù]K\×İÛÜšÚ[™ËØ\XÚ]WÛZ[]\Ëš[Üš]K›İ\Ë\×ØXİ]™KÜ™X]YØ]\]YØ]ŠKœÚ[™ÛJ
+NÃBˆH[ÙHÃBˆ]Y\HH‹™œ›ÛJ˜Ø[[™\—Ù^Ù\[ÛœÈŠKš[œÙ\
+ÈÜ™Ø[š^˜][Û—ÚYˆÜ™Ø[š^˜][Û’Y‹‹˜Xİ]š]HJKœÙ[Xİ
+šY˜[YKÚ[™İ\Ù]K[™Ù]K\×İÛÜšÚ[™ËØ\XÚ]WÛZ[]\Ëš[Üš]K›İ\Ë\×ØXİ]™KÜ™X]YØ]\]YØ]ŠKœÚ[™ÛJ
+NÃBˆCBˆÛÛœİÈ]K\œ›ÜˆHH]ØZ]]Y\NÃBˆYˆ
+\œ›ÜŠH›İÈ\œ›ÜÃBˆÛÛœİ˜[™ÙHH˜[™ÙQœ›ÛT^[ØY
+^[ØYXİ]š]Kœİ\Ù]JNÃBˆ]ØZ]™YÙ[™\˜]J‹Ü™Ø[š^˜][Û’Y˜[™ÙKœİ\]K˜[™ÙK™[™]JNÃBˆ™]\›ˆÈØ]™Yˆ]K˜[™ÙK‹‹Š]ØZ]™XYØ[[™\Š‹Ü™Ø[š^˜][Û’Y˜[™ÙKœİ\]K˜[™ÙK™[™]JJHNÃBŸCBƒB˜\Ş[˜È[˜İ[Ûˆ[]PXİ]š]Jˆ™]\›•\O\[ÙˆÜ™X]PYZ[ÛY[‹Ü™Ø[š^˜][Û’Yˆİš[™Ë^[ØYˆ™XÛÜ™İš[™Ë[šÛ›İÛŠHÃBˆÛÛœİYHİš[™Ê^[ØYšYˆŠKš[J
+NÃBˆYˆ
+ZY
+H›İÈ˜Y™\]Y\İ
+]]šYYH°èÛÈ[™›Ü›XYKˆŠNÃBˆÛÛœİÈ]Nˆİ\œ™[\œ›Üˆ™XY\œ›ÜˆHH]ØZ]‹™œ›ÛJ˜Ø[[™\—Ù^Ù\[ÛœÈŠKœÙ[Xİ
+šYİ\Ù]K[™Ù]HŠK™\JšY‹Y
+K™\J›Ü™Ø[š^˜][Û—ÚY‹Ü™Ø[š^˜][Û’Y
+K›X^X™TÚ[™ÛJ
+NÃBˆYˆ
+™XY\œ›ÜŠH›İÈ™XY\œ›ÜÃBˆYˆ
+Xİ\œ™[
+H›İÈØš™Xİ˜\ÜÚYÛŠ™]È\œ›ÜŠ]]šYYH°èÛÈ[˜ÛÛ˜YKˆŠKÈİ]\ÎˆJNÃBˆÛÛœİÈ\œ›ÜˆHH]ØZ]‹™œ›ÛJ˜Ø[[™\—Ù^Ù\[ÛœÈŠK\]JÈ\×ØXİ]™Nˆ˜[ÙK\]YØ]ˆ™]È]J
+KÒTÓÔİš[™Ê
+HJK™\JšY‹Y
+K™\J›Ü™Ø[š^˜][Û—ÚY‹Ü™Ø[š^˜][Û’Y
+NÃBˆYˆ
+\œ›ÜŠH›İÈ\œ›ÜÃBˆÛÛœİ˜[™ÙHH˜[™ÙQœ›ÛT^[ØY
+^[ØYİ\œ™[œİ\Ù]JNÃBˆYˆ
+\^[ØY™[™]JH˜[™ÙK™[™]HHİ\œ™[™[™Ù]NÃBˆ]ØZ]™YÙ[™\˜]J‹Ü™Ø[š^˜][Û’Y˜[™ÙKœİ\]K˜[™ÙK™[™]JNÃBˆ™]\›ˆÈ[]YYˆY˜[™ÙK‹‹Š]ØZ]™XYØ[[™\Š‹Ü™Ø[š^˜][Û’Y˜[™ÙKœİ\]K˜[™ÙK™[™]JJHNÃBŸCBƒB˜\Ş[˜È[˜İ[Ûˆ™XY[›š[™Ñ]Jˆ™]\›•\O\[ÙˆÜ™X]PYZ[ÛY[‹Ü™Ø[š^˜][Û’Yˆİš[™Ëİ\]Nˆİš[™Ë[™]Nˆİš[™ÊHÃBˆÛÛœİŞÈ]NˆÜ™\œË\œ›ÜˆÜ™\œÑ\œ›ÜˆKÈ]NˆØÚY[\Ë\œ›ÜˆØÚY[\Ñ\œ›ÜˆKÈ]Nˆ[š]Ë\œ›Üˆ[š]Ñ\œ›ÜˆKÈ]NˆÜÚ][ÛœË\œ›ÜˆÜÚ][ÛœÑ\œ›ÜˆWHH]ØZ]›ÛZ\ÙK˜[
+ÃBˆ‹™œ›ÛJ›Ü™\œÈŠCBˆœÙ[Xİ
+šYÜ™\—Û[X™\‹ÛÜš×ÚYÛY[ÚYİ\Ù]K[›™YÜİ\Ù]K™\]Y\İYÙYWÙ]K[›™YÙ[™Ù]K›Ü™XØ\İÙ[™Ù]Kİ]\ÈŠCBˆ™\J›Ü™Ø[š^˜][Û—ÚY‹Ü™Ø[š^˜][Û’Y
+CBˆ™\Jš\×ØXİ]™H‹YJCBˆ›Ü™\Šœİ\Ù]HŠCBˆ›[Z]
+L
+KBˆ‹™œ›ÛJœ›ÙXİ[Û—ÜØÚY[\ÈŠCBˆœÙ[Xİ
+šYÜ™\—ÚYÜ™\—Ú][WÚYYXÙWİ\WÚYÛÜš×Ù]K[›™YÜ]X[]K[›™YÛZ[]\ËXİX[Ü]X[]Kİ]\ÈŠCBˆ™\J›Ü™Ø[š^˜][Û—ÚY‹Ü™Ø[š^˜][Û’Y
+CBˆ›™\Jœİ]\È‹˜Ø[˜Ù[YŠCBˆ™İJÛÜš×Ù]H‹İ\]JCBˆ›JÛÜš×Ù]H‹[™]JCBˆ›Ü™\ŠÛÜš×Ù]HŠKBˆ‹™œ›ÛJœ›ÙXİ[Û—ÛÜ™\œÈŠCBˆœÙ[Xİ
+šYÜ™\—ÚYÜ™\—Ú][WÚY[š]ÜÙ\]Y[˜ÙK[›™YØØ\İÙ]K[›™YØİ\™WÜİ\Ù]K[›™YØİ\™WÙ[™Ù]K[›™YÙš[š\ÚÙ]K[›™YÙ[™Ù]K›Ü™XØ\İÙ[™Ù]Kİ\š[™×Ù^\Ë›ÙXİ[Û—ÛZ[]\×ÜÛ˜\Úİİ]\ÈŠCBˆ™\J›Ü™Ø[š^˜][Û—ÚY‹Ü™Ø[š^˜][Û’Y
+CBˆš[Šœİ]\È‹Èœ[›™Y‹š[—Ü›ÙÜ™\ÜÈ‹™Û™H—JCBˆ›Jœ[›™YØØ\İÙ]H‹[™]JCBˆ™İJœ[›™YÙ[™Ù]H‹İ\]JCBˆ›Ü™\Šœ[›™YØØ\İÙ]HŠCBˆ›[Z]
+L
+KBˆ‹™œ›ÛJ›[ÛÜÜÚ][ÛœÈŠCBˆœÙ[Xİ
+šYÛÙKİ]\ÈŠCBˆ™\J›Ü™Ø[š^˜][Û—ÚY‹Ü™Ø[š^˜][Û’Y
+CBˆ›Ü™\Š˜ÛÙHŠKBˆJNÃBˆYˆ
+Ü™\œÑ\œ›ÜŠH›İÈÜ™\œÑ\œ›ÜÃBˆYˆ
+ØÚY[\Ñ\œ›ÜŠH›İÈØÚY[\Ñ\œ›ÜÃBˆYˆ
+[š]Ñ\œ›ÜŠH›İÈ[š]Ñ\œ›ÜÃBˆYˆ
+ÜÚ][ÛœÑ\œ›ÜŠH›İÈÜÚ][ÛœÑ\œ›ÜÃBƒBˆÛÛœİÛY[YÈHË‹‹›™]ÈÙ]
 
-function todayUTC() {
-  return new Date().toISOString().slice(0, 10);
-}
+Ü™\œÈ×JK›X\
 
-function chunks<T>(items: T[], size: number): T[][] {
-  const result: T[][] = [];
-  for (let index = 0; index < items.length; index += size) {
-    result.push(items.slice(index, index + size));
-  }
-  return result;
-}
+Ü™\ŠHOˆÜ™\‹˜ÛY[ÚY
+K™š[\Š›ÛÛX[ŠJWNÃBˆÛÛœİÛÜšÒYÈHË‹‹›™]ÈÙ]
 
-function badRequest(message: string) {
-  return Object.assign(new Error(message), { status: 422 });
-}
+Ü™\œÈ×JK›X\
 
-function booleanValue(value: unknown, fallback = false) {
-  if (value === undefined || value === null || value === "") return fallback;
-  if (typeof value === "boolean") return value;
-  return ["true", "1", "sim", "yes"].includes(String(value).toLowerCase());
-}
+Ü™\ŠHOˆÜ™\‹ÛÜš×ÚY
+K™š[\Š›ÛÛX[ŠJWNÃBˆÛÛœİ[š]YÈH
+[š]È×JK›X\
 
-function nonNegativeInteger(value: unknown, label: string, fallback = 0) {
-  if (value === undefined || value === null || value === "") return fallback;
-  const number = Number(value);
-  if (!Number.isInteger(number) || number < 0) throw badRequest(`${label} deve ser um nÃºmero inteiro maior ou igual a zero.`);
-  return number;
-}
+[š]
+HOˆ[š]šY
+NÃBˆÛÛœİÜ™\’][RYÈHË‹‹›™]ÈÙ]
+ÃBˆ‹‹ŠØÚY[\È×JK›X\
 
-function rangeFromPayload(payload: Record<string, unknown>, fallbackStart = todayUTC()) {
-  const startDate = normalizeDate(payload.startDate || fallbackStart, "data inicial");
-  const endDate = normalizeDate(payload.endDate || startDate, "data final");
-  if (endDate < startDate) throw badRequest("A data final nÃ£o pode ser anterior Ã  data inicial.");
-  if (endDate > addDays(startDate, 730)) throw badRequest("O intervalo mÃ¡ximo para o calendÃ¡rio Ã© de 730 dias.");
-  return { startDate, endDate };
-}
+ØÚY[JHOˆØÚY[K›Ü™\—Ú][WÚY
+KBˆ‹‹Š[š]È×JK›X\
 
-async function regenerate(db: ReturnType<typeof createAdminClient>, organizationId: string, startDate: string, endDate: string) {
-  const [{ data: settings, error: settingsError }, { data: rules, error: rulesError }, { data: exceptions, error: exceptionsError }] = await Promise.all([
-    db.from("calendar_settings").select("default_capacity_minutes, planning_horizon_days").eq("organization_id", organizationId).maybeSingle(),
-    db.from("calendar_working_rules").select("weekday, is_working, capacity_minutes").eq("organization_id", organizationId),
-    db.from("calendar_exceptions").select("id, name, kind, start_date, end_date, is_working, capacity_minutes, priority, notes, is_active, updated_at").eq("organization_id", organizationId).eq("is_active", true).lte("start_date", endDate).gte("end_date", startDate),
-  ]);
-  if (settingsError) throw settingsError;
-  if (rulesError) throw rulesError;
-  if (exceptionsError) throw exceptionsError;
+[š]
+HOˆ[š]›Ü™\—Ú][WÚY
+KBˆK™š[\Š›ÛÛX[ŠJWNÃBˆÛÛœİÜ™\’YÈH
+Ü™\œÈ×JK›X\
 
-  const days = buildCalendarDays({ startDate, endDate, settings: settings || {}, rules: rules || [], exceptions: exceptions || [] });
-  const records = days.map((day) => ({ organization_id: organizationId, ...day, generated_at: new Date().toISOString() }));
-  for (const batch of chunks(records, BATCH_SIZE)) {
-    const { error } = await db.from("calendar_days").upsert(batch, { onConflict: "organization_id,date" });
-    if (error) throw error;
-  }
-  return records.length;
-}
+Ü™\ŠHOˆÜ™\‹šY
+NÃBˆÛÛœİØÛY[Ô™\İ[ÛÜšÜÔ™\İ[][\Ô™\İ[[ØØ][ÛœÔ™\İ[YØXŞTİ\Y™\İ[[š]İ\Y™\İ[HH]ØZ]›ÛZ\ÙK˜[
+ÃBˆÛY[YË›[™İBˆÈ‹™œ›ÛJ˜ÛY[ÈŠKœÙ[Xİ
+šY˜[YHŠK™\J›Ü™Ø[š^˜][Û—ÚY‹Ü™Ø[š^˜][Û’Y
+Kš[ŠšY‹ÛY[YÊCBˆˆ›ÛZ\ÙKœ™\ÛÛ™JÈ]Nˆ×K\œ›Üˆ[JKBˆÛÜšÒYË›[™İBˆÈ‹™œ›ÛJÛÜšÜÈŠKœÙ[Xİ
+šY˜[YHŠK™\J›Ü™Ø[š^˜][Û—ÚY‹Ü™Ø[š^˜][Û’Y
+Kš[ŠšY‹ÛÜšÒYÊCBˆˆ›ÛZ\ÙKœ™\ÛÛ™JÈ]Nˆ×K\œ›Üˆ[JKBˆÜ™\’][RYË›[™İBˆÈ‹™œ›ÛJ›Ü™\—Ú][\ÈŠKœÙ[Xİ
+šYÜ™\—ÚYYXÙWİ\WÚYÙ\]Y[˜ÙHŠK™\J›Ü™Ø[š^˜][Û—ÚY‹Ü™Ø[š^˜][Û’Y
+Kš[ŠšY‹Ü™\’][RYÊCBˆˆ›ÛZ\ÙKœ™\ÛÛ™JÈ]Nˆ×K\œ›Üˆ[JKBˆ[š]YË›[™İBˆÈ‹™œ›ÛJ˜[ØØ][ÛœÈŠKœÙ[Xİ
+œ›ÙXİ[Û—ÛÜ™\—ÚY[ÛÜÜÚ][Û—ÚYØÚY[YÙ]Kİ]\ÈŠK™\J›Ü™Ø[š^˜][Û—ÚY‹Ü™Ø[š^˜][Û’Y
+Kš[Šœ›ÙXİ[Û—ÛÜ™\—ÚY‹[š]YÊKš[Šœİ]\È‹Èœ[›™Y‹š[—Ü›ÙÜ™\ÜÈ‹™Û™H—JK›[Z]
+L
+CBˆˆ›ÛZ\ÙKœ™\ÛÛ™JÈ]Nˆ×K\œ›Üˆ[JKBˆÜ™\’YË›[™İBˆÈ‹™œ›ÛJœ›ÙXİ[Û—ÜØÚY[\ÈŠKœÙ[Xİ
+›Ü™\—ÚYŠK™\J›Ü™Ø[š^˜][Û—ÚY‹Ü™Ø[š^˜][Û’Y
+Kš[Š›Ü™\—ÚY‹Ü™\’YÊKš[Šœİ]\È‹Èš[—Ü›ÙÜ™\ÜÈ‹™Û™H—JK›[Z]
+L
+CBˆˆ›ÛZ\ÙKœ™\ÛÛ™JÈ]Nˆ×K\œ›Üˆ[JKBˆÜ™\’YË›[™İBˆÈ‹™œ›ÛJœ›ÙXİ[Û—ÛÜ™\œÈŠKœÙ[Xİ
+›Ü™\—ÚYŠK™\J›Ü™Ø[š^˜][Û—ÚY‹Ü™Ø[š^˜][Û’Y
+Kš[Š›Ü™\—ÚY‹Ü™\’YÊKš[Šœİ]\È‹Èš[—Ü›ÙÜ™\ÜÈ‹™Û™H‹œØÜ˜\Y—JK›[Z]
+L
+CBˆˆ›ÛZ\ÙKœ™\ÛÛ™JÈ]Nˆ×K\œ›Üˆ[JKBˆJNÃBˆYˆ
+ÛY[Ô™\İ[™\œ›ÜŠH›İÈÛY[Ô™\İ[™\œ›ÜÃBˆYˆ
+ÛÜšÜÔ™\İ[™\œ›ÜŠH›İÈÛÜšÜÔ™\İ[™\œ›ÜÃBˆYˆ
+][\Ô™\İ[™\œ›ÜŠH›İÈ][\Ô™\İ[™\œ›ÜÃBˆYˆ
+[ØØ][ÛœÔ™\İ[™\œ›ÜŠH›İÈ[ØØ][ÛœÔ™\İ[™\œ›ÜÃBˆYˆ
+YØXŞTİ\Y™\İ[™\œ›ÜŠH›İÈYØXŞTİ\Y™\İ[™\œ›ÜÃBˆYˆ
+[š]İ\Y™\İ[™\œ›ÜŠH›İÈ[š]İ\Y™\İ[™\œ›ÜÃBƒBˆÛÛœİYXÙU\RYÈHË‹‹›™]ÈÙ]
 
-async function readCalendar(db: ReturnType<typeof createAdminClient>, organizationId: string, startDate: string, endDate: string) {
-  const [{ data: days, error: daysError }, { data: exceptions, error: exceptionsError }, { data: capacity, error: capacityError }] = await Promise.all([
-    db.from("calendar_days").select("date, is_working, capacity_minutes, source, exception_id, note, generated_at").eq("organization_id", organizationId).gte("date", startDate).lte("date", endDate).order("date"),
-    db.from("calendar_exceptions").select("id, name, kind, start_date, end_date, is_working, capacity_minutes, priority, notes, is_active, created_at, updated_at").eq("organization_id", organizationId).eq("is_active", true).lte("start_date", endDate).gte("end_date", startDate).order("start_date").order("priority", { ascending: false }),
-    db.from("v_capacity_daily").select("date, is_working, capacity_minutes, planned_minutes, actual_quantity, occupancy_percent").eq("organization_id", organizationId).gte("date", startDate).lte("date", endDate).order("date"),
-  ]);
-  if (daysError) throw daysError;
-  if (exceptionsError) throw exceptionsError;
-  if (capacityError) throw capacityError;
-  return { days: days || [], exceptions: exceptions || [], capacity: capacity || [] };
-}
+][\Ô™\İ[™]H×JK›X\
 
-function validateActivity(payload: Record<string, unknown>) {
-  const name = String(payload.name || "").trim();
-  if (!name) throw badRequest("Informe o nome da atividade.");
-  if (name.length > 160) throw badRequest("O nome da atividade deve ter no mÃ¡ximo 160 caracteres.");
-  const kind = String(payload.kind || "personalizada");
-  if (!KINDS.has(kind)) throw badRequest("Tipo de atividade invÃ¡lido.");
-  const startDate = normalizeDate(payload.startDate, "data inicial");
-  const endDate = normalizeDate(payload.endDate || startDate, "data final");
-  if (endDate < startDate) throw badRequest("A data final nÃ£o pode ser anterior Ã  data inicial.");
-  const isWorking = booleanValue(payload.isWorking, false);
-  const capacityMinutes = nonNegativeInteger(payload.capacityMinutes, "capacidade", isWorking ? 480 : 0);
-  return {
-    name,
-    kind,
-    start_date: startDate,
-    end_date: endDate,
-    is_working: isWorking,
-    capacity_minutes: isWorking ? capacityMinutes : 0,
-    priority: nonNegativeInteger(payload.priority, "prioridade", kind === "personalizada" ? 10 : 20),
-    notes: String(payload.notes || "").trim().slice(0, 500) || null,
-  };
-}
+][JHOˆ][KœYXÙWİ\WÚY
+K™š[\Š›ÛÛX[ŠJWNÃBˆÛÛœİ][TÜÚ][ÛœÈHË‹‹›™]ÈÙ]
 
-async function saveActivity(db: ReturnType<typeof createAdminClient>, organizationId: string, payload: Record<string, unknown>, manualDay = false) {
-  const activity = validateActivity({ ...payload, ...(manualDay ? { kind: "personalizada", priority: 100 } : {}) });
-  const id = String(payload.id || "").trim();
-  let query;
-  if (id) {
-    query = db.from("calendar_exceptions").update({ ...activity, updated_at: new Date().toISOString(), is_active: true }).eq("id", id).eq("organization_id", organizationId).select("id, name, kind, start_date, end_date, is_working, capacity_minutes, priority, notes, is_active, created_at, updated_at").single();
-  } else {
-    query = db.from("calendar_exceptions").insert({ organization_id: organizationId, ...activity }).select("id, name, kind, start_date, end_date, is_working, capacity_minutes, priority, notes, is_active, created_at, updated_at").single();
-  }
-  const { data, error } = await query;
-  if (error) throw error;
-  const range = rangeFromPayload(payload, activity.start_date);
-  await regenerate(db, organizationId, range.startDate, range.endDate);
-  return { saved: data, range, ...(await readCalendar(db, organizationId, range.startDate, range.endDate)) };
-}
+[ØØ][ÛœÔ™\İ[™]H×JK›X\
 
-async function deleteActivity(db: ReturnType<typeof createAdminClient>, organizationId: string, payload: Record<string, unknown>) {
-  const id = String(payload.id || "").trim();
-  if (!id) throw badRequest("Atividade nÃ£o informada.");
-  const { data: current, error: readError } = await db.from("calendar_exceptions").select("id, start_date, end_date").eq("id", id).eq("organization_id", organizationId).maybeSingle();
-  if (readError) throw readError;
-  if (!current) throw Object.assign(new Error("Atividade nÃ£o encontrada."), { status: 404 });
-  const { error } = await db.from("calendar_exceptions").update({ is_active: false, updated_at: new Date().toISOString() }).eq("id", id).eq("organization_id", organizationId);
-  if (error) throw error;
-  const range = rangeFromPayload(payload, current.start_date);
-  if (!payload.endDate) range.endDate = current.end_date;
-  await regenerate(db, organizationId, range.startDate, range.endDate);
-  return { deletedId: id, range, ...(await readCalendar(db, organizationId, range.startDate, range.endDate)) };
-}
+[ØØ][ÛŠHOˆ[ØØ][Û‹›[ÛÜÜÚ][Û—ÚY
+K™š[\Š›ÛÛX[ŠJWNÃBˆÛÛœİÜYXÙU\\Ô™\İ[[ØØ]YÜÚ][ÛœÔ™\İ[HH]ØZ]›ÛZ\ÙK˜[
+ÃBˆYXÙU\RYË›[™İBˆÈ‹™œ›ÛJœYXÙWİ\\ÈŠKœÙ[Xİ
+šYÛÙK˜[YHŠK™\J›Ü™Ø[š^˜][Û—ÚY‹Ü™Ø[š^˜][Û’Y
+Kš[ŠšY‹YXÙU\RYÊCBˆˆ›ÛZ\ÙKœ™\ÛÛ™JÈ]Nˆ×K\œ›Üˆ[JKBˆ][TÜÚ][ÛœË›[™İBˆÈ‹™œ›ÛJ›[ÛÜÜÚ][ÛœÈŠKœÙ[Xİ
+šYÛÙHŠK™\J›Ü™Ø[š^˜][Û—ÚY‹Ü™Ø[š^˜][Û’Y
+Kš[ŠšY‹][TÜÚ][ÛœÊCBˆˆ›ÛZ\ÙKœ™\ÛÛ™JÈ]Nˆ×K\œ›Üˆ[JKBˆJNÃBˆYˆ
+YXÙU\\Ô™\İ[™\œ›ÜŠH›İÈYXÙU\\Ô™\İ[™\œ›ÜÃBˆYˆ
+[ØØ]YÜÚ][ÛœÔ™\İ[™\œ›ÜŠH›İÈ[ØØ]YÜÚ][ÛœÔ™\İ[™\œ›ÜÃBƒBˆÛÛœİÛY[RYH™]ÈX\
 
-async function readPlanningData(db: ReturnType<typeof createAdminClient>, organizationId: string, startDate: string, endDate: string) {
-  const [{ data: orders, error: ordersError }, { data: schedules, error: schedulesError }, { data: units, error: unitsError }, { data: positions, error: positionsError }] = await Promise.all([
-    db.from("orders")
-      .select("id, order_number, work_id, client_id, start_date, planned_start_date, requested_due_date, planned_end_date, forecast_end_date, status")
-      .eq("organization_id", organizationId)
-      .eq("is_active", true)
-      .order("start_date")
-      .limit(1000),
-    db.from("production_schedules")
-      .select("id, order_id, order_item_id, piece_type_id, work_date, planned_quantity, planned_minutes, actual_quantity, status")
-      .eq("organization_id", organizationId)
-      .neq("status", "cancelled")
-      .gte("work_date", startDate)
-      .lte("work_date", endDate)
-      .order("work_date"),
-    db.from("production_orders")
-      .select("id, order_id, order_item_id, unit_sequence, planned_cast_date, planned_cure_start_date, planned_cure_end_date, planned_finish_date, planned_end_date, forecast_end_date, curing_days, production_minutes_snapshot, status")
-      .eq("organization_id", organizationId)
-      .in("status", ["planned", "in_progress", "done"])
-      .lte("planned_cast_date", endDate)
-      .gte("planned_end_date", startDate)
-      .order("planned_cast_date")
-      .limit(10000),
-    db.from("mold_positions")
-      .select("id, code, status")
-      .eq("organization_id", organizationId)
-      .order("code"),
-  ]);
-  if (ordersError) throw ordersError;
-  if (schedulesError) throw schedulesError;
-  if (unitsError) throw unitsError;
-  if (positionsError) throw positionsError;
+ÛY[Ô™\İ[™]H×JK›X\
 
-  const clientIds = [...new Set((orders || []).map((order) => order.client_id).filter(Boolean))];
-  const workIds = [...new Set((orders || []).map((order) => order.work_id).filter(Boolean))];
-  const unitIds = (units || []).map((unit) => unit.id);
-  const orderItemIds = [...new Set([
-    ...(schedules || []).map((schedule) => schedule.order_item_id),
-    ...(units || []).map((unit) => unit.order_item_id),
-  ].filter(Boolean))];
-  const orderIds = (orders || []).map((order) => order.id);
-  const [clientsResult, worksResult, itemsResult, allocationsResult, legacyStartedResult, unitStartedResult] = await Promise.all([
-    clientIds.length
-      ? db.from("clients").select("id, name").eq("organization_id", organizationId).in("id", clientIds)
-      : Promise.resolve({ data: [], error: null }),
-    workIds.length
-      ? db.from("works").select("id, name").eq("organization_id", organizationId).in("id", workIds)
-      : Promise.resolve({ data: [], error: null }),
-    orderItemIds.length
-      ? db.from("order_items").select("id, order_id, piece_type_id, sequence").eq("organization_id", organizationId).in("id", orderItemIds)
-      : Promise.resolve({ data: [], error: null }),
-    unitIds.length
-      ? db.from("allocations").select("production_order_id, mold_position_id, scheduled_date, status").eq("organization_id", organizationId).in("production_order_id", unitIds).in("status", ["planned", "in_progress", "done"]).limit(10000)
-      : Promise.resolve({ data: [], error: null }),
-    orderIds.length
-      ? db.from("production_schedules").select("order_id").eq("organization_id", organizationId).in("order_id", orderIds).in("status", ["in_progress", "done"]).limit(10000)
-      : Promise.resolve({ data: [], error: null }),
-    orderIds.length
-      ? db.from("production_orders").select("order_id").eq("organization_id", organizationId).in("order_id", orderIds).in("status", ["in_progress", "done", "scrapped"]).limit(10000)
-      : Promise.resolve({ data: [], error: null }),
-  ]);
-  if (clientsResult.error) throw clientsResult.error;
-  if (worksResult.error) throw worksResult.error;
-  if (itemsResult.error) throw itemsResult.error;
-  if (allocationsResult.error) throw allocationsResult.error;
-  if (legacyStartedResult.error) throw legacyStartedResult.error;
-  if (unitStartedResult.error) throw unitStartedResult.error;
+ÛY[
+HOˆØÛY[šYÛY[›˜[YWJJNÃBˆÛÛœİÛÜšĞRYH™]ÈX\
 
-  const pieceTypeIds = [...new Set((itemsResult.data || []).map((item) => item.piece_type_id).filter(Boolean))];
-  const itemPositions = [...new Set((allocationsResult.data || []).map((allocation) => allocation.mold_position_id).filter(Boolean))];
-  const [pieceTypesResult, allocatedPositionsResult] = await Promise.all([
-    pieceTypeIds.length
-      ? db.from("piece_types").select("id, code, name").eq("organization_id", organizationId).in("id", pieceTypeIds)
-      : Promise.resolve({ data: [], error: null }),
-    itemPositions.length
-      ? db.from("mold_positions").select("id, code").eq("organization_id", organizationId).in("id", itemPositions)
-      : Promise.resolve({ data: [], error: null }),
-  ]);
-  if (pieceTypesResult.error) throw pieceTypesResult.error;
-  if (allocatedPositionsResult.error) throw allocatedPositionsResult.error;
+ÛÜšÜÔ™\İ[™]H×JK›X\
 
-  const clientById = new Map((clientsResult.data || []).map((client) => [client.id, client.name]));
-  const workById = new Map((worksResult.data || []).map((work) => [work.id, work.name]));
-  const pieceById = new Map((pieceTypesResult.data || []).map((piece) => [piece.id, piece]));
-  const itemById = new Map((itemsResult.data || []).map((item) => [item.id, item]));
-  const positionById = new Map((allocatedPositionsResult.data || []).map((position) => [position.id, position.code]));
-  const allocationByUnit = new Map((allocationsResult.data || []).map((allocation) => [allocation.production_order_id, allocation]));
-  const activePositionCount = (positions || []).filter((position) => position.status !== "em_manutencao").length;
-  const occupancyByDate = new Map<string, Set<string>>();
-  const productionOrders = (units || []).map((unit) => {
-    const item = itemById.get(unit.order_item_id);
-    const piece = pieceById.get(item?.piece_type_id);
-    const allocation = allocationByUnit.get(unit.id);
-    const positionCode = positionById.get(allocation?.mold_position_id) || null;
-    if (unit.planned_cast_date >= startDate && unit.planned_cast_date <= endDate && positionCode) {
-      const occupied = occupancyByDate.get(unit.planned_cast_date) || new Set<string>();
-      occupied.add(positionCode);
-      occupancyByDate.set(unit.planned_cast_date, occupied);
-    }
-    return {
-      ...unit,
-      piece_type_id: item?.piece_type_id || null,
-      sequence: item?.sequence || null,
-      piece_code: piece?.code || "",
-      piece_name: piece?.name || "",
-      position_code: positionCode,
-      allocation_status: allocation?.status || null,
-      scheduled_date: allocation?.scheduled_date || unit.planned_cast_date,
-    };
-  });
-  const capacityByPositions = [...occupancyByDate.entries()].map(([date, occupied]) => ({
-    date,
-    capacity_positions: activePositionCount,
-    occupied_positions: occupied.size,
-    available_positions: Math.max(0, activePositionCount - occupied.size),
-    occupancy_percent: activePositionCount ? Math.round((occupied.size / activePositionCount) * 100) : 0,
-  })).sort((a, b) => a.date.localeCompare(b.date));
-  return {
-    orders: (orders || []).map((order) => ({
-      ...order,
-      work_name: workById.get(order.work_id) || "",
-      client_name: clientById.get(order.client_id) || "",
-    })),
-    schedules: (schedules || []).map((schedule) => ({
-      ...schedule,
-      piece_code: pieceById.get(schedule.piece_type_id)?.code || "",
-      piece_name: pieceById.get(schedule.piece_type_id)?.name || "",
-    })),
-    productionOrders,
-    capacityByPositions,
-    positions: positions || [],
-    startedOrderIds: [...new Set([
-      ...(legacyStartedResult.data || []).map((schedule) => schedule.order_id),
-      ...(unitStartedResult.data || []).map((unit) => unit.order_id),
-    ])],
-  };
-}
+ÛÜšÊHOˆİÛÜšËšYÛÜšË›˜[YWJJNÃBˆÛÛœİYXÙPRYH™]ÈX\
 
-async function readCalendarSettings(db: ReturnType<typeof createAdminClient>, organizationId: string) {
-  const [{ data: settings, error: settingsError }, { data: rules, error: rulesError }] = await Promise.all([
-    db.from("calendar_settings").select("default_capacity_minutes, planning_horizon_days").eq("organization_id", organizationId).maybeSingle(),
-    db.from("calendar_working_rules").select("weekday, is_working, capacity_minutes").eq("organization_id", organizationId).order("weekday"),
-  ]);
-  if (settingsError) throw settingsError;
-  if (rulesError) throw rulesError;
-  return { settings: settings || { default_capacity_minutes: 480, planning_horizon_days: 365 }, rules: rules || [] };
-}
+YXÙU\\Ô™\İ[™]H×JK›X\
 
-async function saveCalendarSettings(db: ReturnType<typeof createAdminClient>, organizationId: string, payload: Record<string, unknown>) {
-  const defaultCapacityMinutes = nonNegativeInteger(payload.defaultCapacityMinutes, "capacidade padrÃ£o", 480);
-  if (defaultCapacityMinutes > 1440) throw badRequest("A capacidade padrÃ£o nÃ£o pode ultrapassar 1440 minutos por dia.");
-  if (!Array.isArray(payload.rules) || payload.rules.length !== 7) throw badRequest("Informe a regra de trabalho para cada dia da semana.");
-  const seenWeekdays = new Set<number>();
-  const rules = payload.rules.map((value) => {
-    if (!value || typeof value !== "object") throw badRequest("Regra semanal invÃ¡lida.");
-    const rule = value as Record<string, unknown>;
-    const weekday = Number(rule.weekday);
-    if (!Number.isInteger(weekday) || weekday < 0 || weekday > 6 || seenWeekdays.has(weekday)) throw badRequest("Cada dia da semana deve aparecer uma Ãºnica vez.");
-    seenWeekdays.add(weekday);
-    const isWorking = booleanValue(rule.isWorking, false);
-    const capacityMinutes = nonNegativeInteger(rule.capacityMinutes, "capacidade do dia", defaultCapacityMinutes);
-    if (capacityMinutes > 1440) throw badRequest("A capacidade diÃ¡ria nÃ£o pode ultrapassar 1440 minutos.");
-    return {
-      organization_id: organizationId,
-      weekday,
-      is_working: isWorking,
-      capacity_minutes: isWorking ? capacityMinutes : 0,
-    };
-  });
-  const [{ error: settingsError }, { error: rulesError }] = await Promise.all([
-    db.from("calendar_settings").upsert({ organization_id: organizationId, default_capacity_minutes: defaultCapacityMinutes }, { onConflict: "organization_id" }),
-    db.from("calendar_working_rules").upsert(rules, { onConflict: "organization_id,weekday" }),
-  ]);
-  if (settingsError) throw settingsError;
-  if (rulesError) throw rulesError;
-  return readCalendarSettings(db, organizationId);
-}
+YXÙJHOˆÜYXÙKšYYXÙWJJNÃBˆÛÛœİ][PRYH™]ÈX\
 
-async function handler(request: Request) {
-  try {
-    const method = ensurePost(request);
-    if (method === "options") return json({ ok: true });
-    const config = getServerConfig();
-    const payload = await readJson(request);
-    const db = createAdminClient(config);
-    const action = String(payload.action || "get");
-    if (action === "get") {
-      const range = rangeFromPayload(payload);
-      return json({ ok: true, range, ...(await readCalendar(db, config.organizationId, range.startDate, range.endDate)) });
-    }
-    if (action === "planning_data") {
-      const range = rangeFromPayload(payload);
-      return json({ ok: true, range, ...(await readPlanningData(db, config.organizationId, range.startDate, range.endDate)) });
-    }
-    if (action === "get_settings") {
-      return json({ ok: true, ...(await readCalendarSettings(db, config.organizationId)) });
-    }
-    if (action === "save_settings") {
-      return json({ ok: true, ...(await saveCalendarSettings(db, config.organizationId, payload)) });
-    }
-    if (action === "save_activity" || action === "save_day") {
-      return json({ ok: true, ...(await saveActivity(db, config.organizationId, payload, action === "save_day")) });
-    }
-    if (action === "delete_activity") {
-      return json({ ok: true, ...(await deleteActivity(db, config.organizationId, payload)) });
-    }
-    throw badRequest("AÃ§Ã£o de calendÃ¡rio invÃ¡lida.");
-  } catch (error) {
-    return handleError(error);
-  }
-}
+][\Ô™\İ[™]H×JK›X\
 
-Deno.serve(handler);
+][JHOˆÚ][KšY][WJJNÃBˆÛÛœİÜÚ][ÛRYH™]ÈX\
+
+[ØØ]YÜÚ][ÛœÔ™\İ[™]H×JK›X\
+
+ÜÚ][ÛŠHOˆÜÜÚ][Û‹šYÜÚ][Û‹˜ÛÙWJJNÃBˆÛÛœİ[ØØ][ÛU[š]H™]ÈX\
+
+[ØØ][ÛœÔ™\İ[™]H×JK›X\
+
+[ØØ][ÛŠHOˆØ[ØØ][Û‹œ›ÙXİ[Û—ÛÜ™\—ÚY[ØØ][Û—JJNÃBˆÛÛœİXİ]™TÜÚ][ÛÛİ[H
+ÜÚ][ÛœÈ×JK™š[\Š
+ÜÚ][ÛŠHOˆÜÚ][Û‹œİ]\ÈOOH™[WÛX[][˜Ø[ÈŠK›[™İÃBˆÛÛœİØØİ\[˜ŞPQ]HH™]ÈX\İš[™ËÙ]İš[™ÏŠ
+NÃBˆÛÛœİ›ÙXİ[Û“Ü™\œÈH
+[š]È×JK›X\
+
+[š]
+HOˆÃBˆÛÛœİ][HH][PRY™Ù]
+[š]›Ü™\—Ú][WÚY
+NÃBˆÛÛœİYXÙHHYXÙPRY™Ù]
+][OËœYXÙWİ\WÚY
+NÃBˆÛÛœİ[ØØ][ÛˆH[ØØ][ÛU[š]™Ù]
+[š]šY
+NÃBˆÛÛœİÜÚ][ÛÛÙHHÜÚ][ÛRY™Ù]
+[ØØ][ÛË›[ÛÜÜÚ][Û—ÚY
+H[ÃBˆYˆ
+[š]œ[›™YØØ\İÙ]HHİ\]H	‰ˆ[š]œ[›™YØØ\İÙ]HH[™]H	‰ˆÜÚ][ÛÛÙJHÃBˆÛÛœİØØİ\YYHØØİ\[˜ŞPQ]K™Ù]
+[š]œ[›™YØØ\İÙ]JH™]ÈÙ]İš[™ÏŠ
+NÃBˆØØİ\YY˜Y
+ÜÚ][ÛÛÙJNÃBˆØØİ\[˜ŞPQ]KœÙ]
+[š]œ[›™YØØ\İÙ]KØØİ\YY
+NÃBˆCBˆ™]\›ˆÃBˆ‹‹[š]BˆYXÙWİ\WÚYˆ][OËœYXÙWİ\WÚY[BˆÙ\]Y[˜ÙNˆ][OËœÙ\]Y[˜ÙH[BˆYXÙWØÛÙNˆYXÙOË˜ÛÙHˆ‹BˆYXÙWÛ˜[YNˆYXÙOË›˜[YHˆ‹BˆÜÚ][Û—ØÛÙNˆÜÚ][ÛÛÙKBˆ[ØØ][Û—Üİ]\Îˆ[ØØ][ÛËœİ]\È[BˆØÚY[YÙ]Nˆ[ØØ][ÛËœØÚY[YÙ]H[š]œ[›™YØØ\İÙ]KBˆNÃBˆJNÃBˆÛÛœİØ\XÚ]PTÜÚ][ÛœÈHË‹‹›ØØİ\[˜ŞPQ]K™[šY\Ê
+WK›X\
+
+Ù]KØØİ\YYJHOˆ
+ÃBˆ]KBˆØ\XÚ]WÜÜÚ][ÛœÎˆXİ]™TÜÚ][ÛÛİ[BˆØØİ\YYÜÜÚ][ÛœÎˆØØİ\YYœÚ^™KBˆ]˜Z[X›WÜÜÚ][ÛœÎˆX]›X^
+Xİ]™TÜÚ][ÛÛİ[HØØİ\YYœÚ^™JKBˆØØİ\[˜ŞWÜ\˜Ù[ˆXİ]™TÜÚ][ÛÛİ[ÈX]œ›İ[™
+
+ØØİ\YYœÚ^™HÈXİ]™TÜÚ][ÛÛİ[
+H
+ˆL
+HˆBˆJJKœÛÜ
+
+KŠHOˆK™]K›ØØ[PÛÛ\\™J‹™]JJNÃBˆ™]\›ˆÃBˆÜ™\œÎˆ
+Ü™\œÈ×JK›X\
+
+Ü™\ŠHOˆ
+ÃBˆ‹‹›Ü™\‹BˆÛÜš×Û˜[YNˆÛÜšĞRY™Ù]
+Ü™\‹ÛÜš×ÚY
+Hˆ‹BˆÛY[Û˜[YNˆÛY[RY™Ù]
+Ü™\‹˜ÛY[ÚY
+Hˆ‹BˆJJKBˆØÚY[\Îˆ
+ØÚY[\È×JK›X\
+
+ØÚY[JHOˆ
+ÃBˆ‹‹œØÚY[KBˆYXÙWØÛÙNˆYXÙPRY™Ù]
+ØÚY[KœYXÙWİ\WÚY
+OË˜ÛÙHˆ‹BˆYXÙWÛ˜[YNˆYXÙPRY™Ù]
+ØÚY[KœYXÙWİ\WÚY
+OË›˜[YHˆ‹BˆJJKBˆ›ÙXİ[Û“Ü™\œËBˆØ\XÚ]PTÜÚ][ÛœËBˆÜÚ][ÛœÎˆÜÚ][ÛœÈ×KBˆİ\YÜ™\’YÎˆË‹‹›™]ÈÙ]
+ÃBˆ‹‹ŠYØXŞTİ\Y™\İ[™]H×JK›X\
+
+ØÚY[JHOˆØÚY[K›Ü™\—ÚY
+KBˆ‹‹Š[š]İ\Y™\İ[™]H×JK›X\
+
+[š]
+HOˆ[š]›Ü™\—ÚY
+KBˆJWKBˆNÃBŸCBƒB˜\Ş[˜È[˜İ[Ûˆ™XYØ[[™\”Ù][™ÜÊˆ™]\›•\O\[ÙˆÜ™X]PYZ[ÛY[‹Ü™Ø[š^˜][Û’Yˆİš[™ÊHÃBˆÛÛœİŞÈ]NˆÙ][™ÜË\œ›ÜˆÙ][™ÜÑ\œ›ÜˆKÈ]Nˆ[\Ë\œ›Üˆ[\Ñ\œ›ÜˆKÈ]Nˆİ\İ\‹\œ›Üˆİ\İ\‘\œ›ÜˆWHH]ØZ]›ÛZ\ÙK˜[
+ÃBˆ‹™œ›ÛJ˜Ø[[™\—ÜÙ][™ÜÈŠKœÙ[Xİ
+™Y˜][ØØ\XÚ]WÛZ[]\Ë[›š[™×ÚÜš^›Û—Ù^\ÈŠK™\J›Ü™Ø[š^˜][Û—ÚY‹Ü™Ø[š^˜][Û’Y
+K›X^X™TÚ[™ÛJ
+KBˆ‹™œ›ÛJ˜Ø[[™\—İÛÜšÚ[™×Ü[\ÈŠKœÙ[Xİ
+ÙYZÙ^K\×İÛÜšÚ[™ËØ\XÚ]WÛZ[]\ÈŠK™\J›Ü™Ø[š^˜][Û—ÚY‹Ü™Ø[š^˜][Û’Y
+K›Ü™\ŠÙYZÙ^HŠKBˆ‹™œ›ÛJ˜Ø[İ[][Û—ØÛÛœİ[ÈŠKœÙ[Xİ
+›[Y\šX×İ˜[YHŠK™\J›Ü™Ø[š^˜][Û—ÚY‹Ü™Ø[š^˜][Û’Y
+CBˆ™\J˜ÛÛœİ[ÚÙ^H‹˜Ø\İ[™×Üİ\Úİ\ˆŠK›X^X™TÚ[™ÛJ
+KBˆJNÃBˆYˆ
+Ù][™ÜÑ\œ›ÜŠH›İÈÙ][™ÜÑ\œ›ÜÃBˆYˆ
+[\Ñ\œ›ÜŠH›İÈ[\Ñ\œ›ÜÃBˆÛÛœİ›ÙXİ[Û•[Z[™ÈHİ\İ\‘\œ›Üˆ\İ\İ\ƒBˆÈ[BˆˆÈØ\İ[™Ôİ\İ\ˆ[X™\Šİ\İ\‹›[Y\šX×İ˜[YJHNÃBˆ™]\›ˆÈÙ][™ÜÎˆÙ][™ÜÈÈY˜][ØØ\XÚ]WÛZ[]\Îˆ[›š[™×ÚÜš^›Û—Ù^\ÎˆÍHK[\Îˆ[\È×K›ÙXİ[Û•[Z[™ÈNÃBŸCBƒB˜\Ş[˜È[˜İ[ÛˆØ]™PØ[[™\”Ù][™ÜÊˆ™]\›•\O\[ÙˆÜ™X]PYZ[ÛY[‹Ü™Ø[š^˜][Û’Yˆİš[™Ë^[ØYˆ™XÛÜ™İš[™Ë[šÛ›İÛŠHÃBˆÛÛœİY˜][Ø\XÚ]SZ[]\ÈH›Û“™YØ]]™R[YÙ\Š^[ØY™Y˜][Ø\XÚ]SZ[]\Ë˜Ø\XÚYYHY°èÛÈ‹
+NÃBˆYˆ
+Y˜][Ø\XÚ]SZ[]\ÈˆM
+H›İÈ˜Y™\]Y\İ
+HØ\XÚYYHY°èÛÈ°èÛÈÙH[˜\\ÜØ\ˆMZ[]ÜÈÜˆXKˆŠNÃBˆYˆ
+P\œ˜^Kš\Ğ\œ˜^J^[ØYœ[\ÊH^[ØYœ[\Ë›[™İOOHÊH›İÈ˜Y™\]Y\İ
+’[™›Ü›YHH™YÜ˜HH˜X˜[È\˜HØYHXHHÙ[X[˜KˆŠNÃBˆÛÛœİÙY[•ÙYZÙ^\ÈH™]ÈÙ][X™\Š
+NÃBˆÛÛœİ[\ÈH^[ØYœ[\Ë›X\
+
+˜[YJHOˆÃBˆYˆ
+]˜[YH\[Ùˆ˜[YHOOH›Øš™XİŠH›İÈ˜Y™\]Y\İ
+”™YÜ˜HÙ[X[˜[[°è[YKˆŠNÃBˆÛÛœİ[HH˜[YH\È™XÛÜ™İš[™Ë[šÛ›İÛÃBˆÛÛœİÙYZÙ^HH[X™\Š[KÙYZÙ^JNÃBˆYˆ
+S[X™\‹š\Ò[YÙ\ŠÙYZÙ^JHÙYZÙ^HÙYZÙ^HˆˆÙY[•ÙYZÙ^\Ëš\ÊÙYZÙ^JJH›İÈ˜Y™\]Y\İ
+ØYHXHHÙ[X[˜H]™H\\™XÙ\ˆ[XH0î›šXØH™^‹ˆŠNÃBˆÙY[•ÙYZÙ^\Ë˜Y
+ÙYZÙ^JNÃBˆÛÛœİ\ÕÛÜšÚ[™ÈH›ÛÛX[•˜[YJ[Kš\ÕÛÜšÚ[™Ë˜[ÙJNÃBˆÛÛœİØ\XÚ]SZ[]\ÈH›Û“™YØ]]™R[YÙ\Š[K˜Ø\XÚ]SZ[]\Ë˜Ø\XÚYYHÈXH‹Y˜][Ø\XÚ]SZ[]\ÊNÃBˆYˆ
+Ø\XÚ]SZ[]\ÈˆM
+H›İÈ˜Y™\]Y\İ
+HØ\XÚYYHpè\šXH°èÛÈÙH[˜\\ÜØ\ˆMZ[]ÜËˆŠNÃBˆ™]\›ˆÃBˆÜ™Ø[š^˜][Û—ÚYˆÜ™Ø[š^˜][Û’YBˆÙYZÙ^KBˆ\×İÛÜšÚ[™Îˆ\ÕÛÜšÚ[™ËBˆØ\XÚ]WÛZ[]\Îˆ\ÕÛÜšÚ[™ÈÈØ\XÚ]SZ[]\ÈˆBˆNÃBˆJNÃBˆÛÛœİØ\İ[™Ôİ\İ\•˜[YHH^[ØY˜Ø\İ[™Ôİ\İ\ÃBˆ]Ø\İ[™Ôİ\İ\ˆ[X™\ˆ[H[ÃBˆYˆ
+Ø\İ[™Ôİ\İ\•˜[YHOOH[™Yš[™Y	‰ˆØ\İ[™Ôİ\İ\•˜[YHOOH[	‰ˆØ\İ[™Ôİ\İ\•˜[YHOOHˆŠHÃBˆØ\İ[™Ôİ\İ\ˆH[X™\ŠØ\İ[™Ôİ\İ\•˜[YJNÃBˆYˆ
+S[X™\‹š\Ò[YÙ\ŠØ\İ[™Ôİ\İ\ŠHØ\İ[™Ôİ\İ\ˆØ\İ[™Ôİ\İ\ˆˆŒÊHÃBˆ›İÈ˜Y™\]Y\İ
+“ÈÜ°è\š[ÈH[°ëXÚ[ÈHÛÛ˜Ü™]YÙ[H]™H\İ\ˆ[™HŒHŒÎŒˆŠNÃBˆCBˆCBˆÛÛœİŞÈ\œ›ÜˆÙ][™ÜÑ\œ›ÜˆKÈ\œ›Üˆ[\Ñ\œ›ÜˆWHH]ØZ]›ÛZ\ÙK˜[
+ÃBˆ‹™œ›ÛJ˜Ø[[™\—ÜÙ][™ÜÈŠK\Ù\
+ÈÜ™Ø[š^˜][Û—ÚYˆÜ™Ø[š^˜][Û’YY˜][ØØ\XÚ]WÛZ[]\ÎˆY˜][Ø\XÚ]SZ[]\ÈKÈÛÛÛ™›Xİˆ›Ü™Ø[š^˜][Û—ÚYˆJKBˆ‹™œ›ÛJ˜Ø[[™\—İÛÜšÚ[™×Ü[\ÈŠK\Ù\
+[\ËÈÛÛÛ™›Xİˆ›Ü™Ø[š^˜][Û—ÚYÙYZÙ^HˆJKBˆJNÃBˆYˆ
+Ù][™ÜÑ\œ›ÜŠH›İÈÙ][™ÜÑ\œ›ÜÃBˆYˆ
+[\Ñ\œ›ÜŠH›İÈ[\Ñ\œ›ÜÃBˆYˆ
+Ø\İ[™Ôİ\İ\ˆOOH[
+HÃBˆÛÛœİÈ\œ›ÜˆHH]ØZ]‹™œ›ÛJ˜Ø[İ[][Û—ØÛÛœİ[ÈŠK\Ù\
+ÃBˆÜ™Ø[š^˜][Û—ÚYˆÜ™Ø[š^˜][Û’YBˆÛÛœİ[ÚÙ^Nˆ˜Ø\İ[™×Üİ\Úİ\ˆ‹Bˆ[Y\šX×İ˜[YNˆØ\İ[™Ôİ\İ\‹Bˆ[š]ˆš‹BˆKÈÛÛÛ™›Xİˆ›Ü™Ø[š^˜][Û—ÚYÛÛœİ[ÚÙ^HˆJNÃBˆYˆ
+\œ›ÜŠH›İÈ\œ›ÜÃBˆCBˆ™]\›ˆ™XYØ[[™\”Ù][™ÜÊ‹Ü™Ø[š^˜][Û’Y
+NÃBŸCBƒB˜\Ş[˜È[˜İ[Ûˆ[™\Š™\]Y\İˆ™\]Y\İ
+HÃBˆHÃBˆÛÛœİY]ÙH[œİ\™TÜİ
+™\]Y\İ
+NÃBˆYˆ
+Y]ÙOOH›Ü[ÛœÈŠH™]\›ˆœÛÛŠÈÚÎˆYHJNÃBˆÛÛœİÛÛ™šYÈHÙ]Ù\™\ÛÛ™šYÊ
+NÃBˆÛÛœİ^[ØYH]ØZ]™XYœÛÛŠ™\]Y\İ
+NÃBˆÛÛœİˆHÜ™X]PYZ[ÛY[
+ÛÛ™šYÊNÃBˆÛÛœİXİ[ÛˆHİš[™Ê^[ØY˜Xİ[Ûˆ™Ù]ŠNÃBˆYˆ
+Xİ[ÛˆOOH™Ù]ŠHÃBˆÛÛœİ˜[™ÙHH˜[™ÙQœ›ÛT^[ØY
+^[ØY
+NÃBˆ™]\›ˆœÛÛŠÈÚÎˆYK˜[™ÙK‹‹Š]ØZ]™XYØ[[™\Š‹ÛÛ™šYË›Ü™Ø[š^˜][Û’Y˜[™ÙKœİ\]K˜[™ÙK™[™]JJHJNÃBˆCBˆYˆ
+Xİ[ÛˆOOHœ[›š[™×Ù]HŠHÃBˆÛÛœİ˜[™ÙHH˜[™ÙQœ›ÛT^[ØY
+^[ØY
+NÃBˆ™]\›ˆœÛÛŠÈÚÎˆYK˜[™ÙK‹‹Š]ØZ]™XY[›š[™Ñ]J‹ÛÛ™šYË›Ü™Ø[š^˜][Û’Y˜[™ÙKœİ\]K˜[™ÙK™[™]JJHJNÃBˆCBˆYˆ
+Xİ[ÛˆOOH™Ù]ÜÙ][™ÜÈŠHÃBˆ™]\›ˆœÛÛŠÈÚÎˆYK‹‹Š]ØZ]™XYØ[[™\”Ù][™ÜÊ‹ÛÛ™šYË›Ü™Ø[š^˜][Û’Y
+JHJNÃBˆCBˆYˆ
+Xİ[ÛˆOOHœØ]™WÜÙ][™ÜÈŠHÃBˆ™]\›ˆœÛÛŠÈÚÎˆYK‹‹Š]ØZ]Ø]™PØ[[™\”Ù][™ÜÊ‹ÛÛ™šYË›Ü™Ø[š^˜][Û’Y^[ØY
+JHJNÃBˆCBˆYˆ
+Xİ[ÛˆOOHœØ]™WØXİ]š]HˆXİ[ÛˆOOHœØ]™WÙ^HŠHÃBˆ™]\›ˆœÛÛŠÈÚÎˆYK‹‹Š]ØZ]Ø]™PXİ]š]J‹ÛÛ™šYË›Ü™Ø[š^˜][Û’Y^[ØYXİ[ÛˆOOHœØ]™WÙ^HŠJHJNÃBˆCBˆYˆ
+Xİ[ÛˆOOH™[]WØXİ]š]HŠHÃBˆ™]\›ˆœÛÛŠÈÚÎˆYK‹‹Š]ØZ][]PXİ]š]J‹ÛÛ™šYË›Ü™Ø[š^˜][Û’Y^[ØY
+JHJNÃBˆCBˆ›İÈ˜Y™\]Y\İ
+péğèÛÈHØ[[™0è\š[È[°è[YKˆŠNÃBˆHØ]Ú
+\œ›ÜŠHÃBˆ™]\›ˆ[™Q\œ›ÜŠ\œ›ÜŠNÃBˆCBŸCBƒB‘[›ËœÙ\™J[™\ŠNÃB

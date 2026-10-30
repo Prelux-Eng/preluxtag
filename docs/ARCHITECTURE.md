@@ -1,97 +1,6 @@
-# Como o PRELUX estÃ¡ organizado
-
-Este documento explica o caminho dos dados e a responsabilidade de cada arquivo principal. A aplicaÃ§Ã£o Ã© um **monÃ³lito modular**: existe uma Ãºnica experiÃªncia publicada, separada em mÃ³dulos por Ã¡rea.
-
-## VisÃ£o geral
-
-```mermaid
-flowchart LR
-  UI[Interface em dist/index.html]
-  NAV[core/navigation.js]
-  LABEL[modules/label-emitter.js]
-  PLAN[modules/production-calendar.js]
-  OPS[modules/operations-admin.js]
-  DOMAIN[domain/mold-compatibility.js]
-  PREPO[repositories/planning-repository.js]
-  OREPO[repositories/operations-repository.js]
-  API[core/api.js]
-  EDGE[Supabase Edge Functions]
-  SHARED[functions/_shared]
-  DB[(Supabase PostgreSQL)]
-  LOCAL[(localStorage do navegador)]
-
-  UI --> NAV
-  UI --> LABEL
-  UI --> PLAN
-  UI --> OPS
-  OPS --> DOMAIN
-  PLAN --> PREPO
-  OPS --> OREPO
-  PREPO --> API
-  OREPO --> API
-  API --> EDGE
-  EDGE --> SHARED
-  SHARED --> DB
-  LABEL --> LOCAL
-```
-
-## Arquivos do navegador
-
-| Arquivo | Responsabilidade |
-| --- | --- |
-| `dist/index.html` | Define as trÃªs abas e os elementos da pÃ¡gina. TambÃ©m fornece a configuraÃ§Ã£o pÃºblica do Supabase antes de carregar os mÃ³dulos. |
-| `dist/css/app.css` | Estilos gerais, da etiqueta e do calendÃ¡rio. |
-| `dist/css/operations.css` | Estilos adicionais dos cadastros e operaÃ§Ãµes. |
-| `dist/js/core/navigation.js` | Ãšnico lugar que alterna Etiquetas, Planejamento e Cadastros. Atualiza tÃ­tulo, acessibilidade e envia eventos para a aba aberta. |
-| `dist/js/core/api.js` | Transporte HTTP comum para as Edge Functions e conversÃ£o de respostas invÃ¡lidas em `PreluxApiError`. |
-| `dist/js/domain/mold-compatibility.js` | EstratÃ©gias puras de escolha de moldes: braÃ§o usa o catÃ¡logo fixo BRACO; pilar e viga usam LEITO Ã— LATERAL. Inclui fallback local para a view do banco. |
-| `dist/js/repositories/planning-repository.js` | Endpoints de calendÃ¡rio, planejamento e simulaÃ§Ã£o/confirmaÃ§Ã£o dos pedidos. |
-| `dist/js/repositories/operations-repository.js` | Endpoints de leitura e gravaÃ§Ã£o de obras, pedidos, peÃ§as, moldes, posiÃ§Ãµes e alocaÃ§Ãµes. |
-| `dist/js/modules/label-emitter.js` | Desenha etiquetas, salva o histÃ³rico no navegador, exporta PNG/ZIP e prepara a impressÃ£o. |
-| `dist/js/modules/production-calendar.js` | Apresenta backlog, calendÃ¡rio mensal/semanal, Gantt e ediÃ§Ã£o da programaÃ§Ã£o. |
-| `dist/js/modules/operations-admin.js` | Apresenta cadastros e formulÃ¡rios, mantÃ©m o estado da aba interna e envia mudanÃ§as ao repositÃ³rio. |
-
-### Ordem de carregamento
-
-O final do `index.html` carrega, nesta ordem: cliente HTTP, emissor, repositÃ³rios, regras de compatibilidade, navegaÃ§Ã£o, planejamento e cadastros. Os arquivos sÃ£o scripts clÃ¡ssicos para manter a aplicaÃ§Ã£o sem compilador; por isso cada mÃ³dulo publica uma API pequena em `window.PRELUX_*`.
-
-## Fluxos principais
-
-### Etiquetas
-
-O formulÃ¡rio atualiza o canvas. Ao salvar, o registro vai para `localStorage` do navegador, nÃ£o para a base Supabase. PNG, ZIP e impressÃ£o tambÃ©m sÃ£o processados no navegador. Esse comportamento foi mantido como estava.
-
-### Planejamento e cadastros
-
-1. A tela chama o repositÃ³rio da sua Ã¡rea.
-2. O repositÃ³rio escolhe a Edge Function e a aÃ§Ã£o correspondente.
-3. `core/api.js` adiciona os cabeÃ§alhos pÃºblicos, envia JSON e trata o resultado HTTP.
-4. A Edge Function valida a entrada e usa funÃ§Ãµes de `supabase/functions/_shared`.
-5. O backend usa o cliente administrativo do Supabase para persistir no PostgreSQL.
-
-A chave `service_role` permanece no servidor. A chave anÃ´nima que existe no HTML Ã© pÃºblica e nÃ£o substitui as polÃ­ticas de acesso do banco.
-
-### Compatibilidade entre peÃ§a e molde
-
-O serviÃ§o `mold-compatibility.js` implementa o padrÃ£o Strategy. A estratÃ©gia depende do tipo selecionado:
-
-- **BraÃ§o:** lista apenas registros do catÃ¡logo `BRACO`.
-- **Pilar e Viga:** lista combinaÃ§Ãµes da view `piece_mold_combinations`; se ela nÃ£o puder ser carregada, gera LEITO Ã— LATERAL a partir do catÃ¡logo jÃ¡ carregado.
-
-O backend continua validando os vÃ­nculos no salvamento. A lista do navegador Ã© para orientar a escolha, nÃ£o para substituir a validaÃ§Ã£o do servidor.
-
-### NavegaÃ§Ã£o entre mÃ³dulos
-
-`navigation.js` controla o estado visÃ­vel das trÃªs abas e dispara `prelux:planning:open` ou `prelux:operations:open`. Os mÃ³dulos escutam esses eventos e atualizam seus prÃ³prios dados. Assim, um mÃ³dulo nÃ£o precisa importar nem chamar diretamente as funÃ§Ãµes internas do outro.
-
-## Supabase e regras de negÃ³cio
-
-- `supabase/functions/operations-admin/index.ts` atende as operaÃ§Ãµes de cadastro e reutiliza `piece-metrics.js` e `order-planning.js`.
-- `calendar-admin`, `plan-order`, `commit-order-plan` e `rebuild-calendar` compÃµem o fluxo de planejamento.
-- `planner.js`, `calendar.js`, `order-planning.js` e `piece-metrics.js` guardam regras reutilizadas no servidor.
-- As migraÃ§Ãµes em `database/` sÃ£o histÃ³ricas e nÃ£o foram alteradas nesta reorganizaÃ§Ã£o.
-- Os status existentes continuam aceitos como antes. NÃ£o foi criada uma matriz de transiÃ§Ãµes porque o cÃ³digo atual nÃ£o define quais mudanÃ§as de status devem ser proibidas.
-
-## Cache do aplicativo
-
-`dist/sw.js` lista os arquivos necessÃ¡rios para abrir o app e usa o nome do cache para identificar uma versÃ£o. Ao alterar arquivos publicados, atualize os parÃ¢metros de versÃ£o no HTML e o nome do cache no service worker; isso faz os navegadores baixarem os arquivos novos.
+YªçŠx³¬uç%j·Â+ar‰ì¶ë•ë_¢ºŞjË"‚v›•ëÚ®&›•ëÈÛÛ[ÈÈ‘SV\İ0èHÜ™Ø[š^˜YÂ‚‘\İHØİ[Y[È^XØHÈØ[Z[šÈÜÈYÜÈHH™\ÜÛœØXš[YYHHØYH\œ]Z]›Èš[˜Ú\[ˆH\XØpéğèÛÈ0êH[H
+Š›[Û°ìÛ]È[Ù[\ŠŠˆ^\İH[XH0î›šXØH^\špê›˜ÚXHX›XØYKÙ\\˜YH[HpìÙ[ÜÈÜˆ0è\™XK‚‚ˆÈÈš\ğèÛÈÙ\˜[‚˜Y\›XZY™›İØÚ\‚ˆRVÒ[\™˜XÙH[H\İÚ[™^š[BˆU–ØÛÜ™KÛ˜]šYØ][Û‹šœ×BˆP‘SÛ[Ù[\ËÛX™[Y[Z]\‹šœ×BˆS–Û[Ù[\ËÜ›ÙXİ[Û‹XØ[[™\‹šœ×BˆÔÖÛ[Ù[\ËÛÜ\˜][ÛœËXYZ[‹šœ×BˆÓPRS–ÙÛXZ[‹Û[ÛXÛÛ\]Xš[]Kšœ×BˆÔÑÓVÛÜ\˜][ÛœËXYZ[ˆÛXZ[ˆ[\×Bˆ‘TÖÜ™\ÜÚ]ÜšY\ËÜ[›š[™Ë\™\ÜÚ]ÜKšœ×BˆÔ‘TÖÜ™\ÜÚ]ÜšY\ËÛÜ\˜][ÛœË\™\ÜÚ]ÜKšœ×BˆTVØÛÜ™KØ\Kšœ×BˆQÑVÔİ\X˜\ÙHYÙH[˜İ[Ûœ×BˆÒT‘QÙ[˜İ[ÛœË×ÜÚ\™YBˆTÑTÖÜ›ÙXİ[Û‹\\Ù\Ëšœ×BˆUVÜ]K[Y]šXÜËšœ×Bˆ–Êİ\X˜\ÙHÜİÜ™TÔS
+WBˆĞĞSÊØØ[İÜ˜YÙHÈ˜]™YØYÜŠWB‚ˆRHKOˆU‚ˆRHKOˆP‘SˆRHKOˆS‚ˆRHKOˆÔÂˆÔÈKOˆÓPRS‚ˆSˆKOˆ‘TÂˆÔÈKOˆÔ‘TÂˆ‘TÈKOˆTBˆÔ‘TÈKOˆTBˆTHKOˆQÑBˆQÑHKOˆÒT‘QˆÒT‘QKOˆ‚ˆÒT‘QKOˆTÑTÂˆÒT‘QKOˆUBˆP‘SKOˆĞĞS˜‚ˆÈÈ\œ]Z]›ÜÈÈ˜]™YØYÜ‚‚Ÿ\œ]Z]›È™\ÜÛœØXš[YYHŸKKHKKHŸ\İÚ[™^š[Yš[™H\È°êœÈX˜\ÈHÜÈ[[Y[ÜÈH0èYÚ[˜Kˆ[X°ê[H›Ü›™XÙHHÛÛ™šYİ\˜péğèÛÈ0î˜›XØHÈİ\X˜\ÙH[\ÈHØ\œ™YØ\ˆÜÈpìÙ[ÜËˆŸ\İØÜÜËØ\˜ÜÜØ\İ[ÜÈÙ\˜Z\ËH]\]Y]HHÈØ[[™0è\š[ËˆŸ\İØÜÜËÛÜ\˜][ÛœË˜ÜÜØ\İ[ÜÈYXÚ[Û˜Z\ÈÜÈØY\İ›ÜÈHÜ\˜péğíY\ËˆŸ\İÚœËØÛÜ™KÛ˜]šYØ][Û‹šœØ0æ›šXÛÈYØ\ˆ]YH[\›˜H]\]Y]\Ë[™Z˜[Y[ÈHØY\İ›ÜËˆ]X[^˜H0ë][ËXÙ\ÜÚXš[YYHH[šXH]™[ÜÈ\˜HHX˜HX™\KˆŸ\İÚœËØÛÜ™KØ\KšœØ˜[œÜÜHÛÛ][H\˜H\ÈYÙH[˜İ[ÛœÈHÛÛ™\œğèÛÈH™\ÜÜİ\È[°è[Y\È[H™[^\Q\œ›Ü˜ˆŸ\İÚœËÙÛXZ[‹Û[ÛXÛÛ\]Xš[]KšœØ\İ˜]0êYÚX\È\˜\ÈH\ØÛÛHH›Ü›X\Îˆœ˜péÛÈ\ØHÈØ]0è[ÙÛÈš^È”PÓÎÈ[\ˆHšYØH\Ø[HRUÈ0åÈUTSˆXØH\ØH[XH˜[˜ØYH[˜HÙ[H›Ü›XKˆŸ\İÚœËÜ™\ÜÚ]ÜšY\ËÜ[›š[™Ë\™\ÜÚ]ÜKšœØ[™Ú[ÈHØ[[™0è\š[Ë[™Z˜[Y[ÈHÚ[][péğèÛËØÛÛ™š\›XpéğèÛÈÜÈYYÜËˆŸ\İÚœËÜ™\ÜÚ]ÜšY\ËÛÜ\˜][ÛœË\™\ÜÚ]ÜKšœØ[™Ú[ÈHZ]\˜HHÜ˜]˜péğèÛÈHØœ˜\ËYYÜË›Ú™]ÜÈH[™Ù[š\šXKpéØ\Ë›Ü›X\ËÜÚpéğíY\ÈH[ØØpéğíY\ËˆŸ\İÚœËÛ[Ù[\ËÛX™[Y[Z]\‹šœØ\Ù[šH]\]Y]\ËØ[˜HÈ\İ0ìÜšXÛÈ›È˜]™YØYÜ‹^ÜH‘ËÖ’TH™\\˜HH[\™\ÜğèÛËˆŸ\İÚœËÛ[Ù[\ËÜ›ÙXİ[Û‹XØ[[™\‹šœØ\™\Ù[H˜XÚÛÙËØ[[™0è\š[ÈY[œØ[ÜÙ[X[˜[Ø[HYpéğèÛÈH›ÙÜ˜[XpéğèÛËˆŸ\İÚœËÛ[Ù[\ËÛÜ\˜][ÛœËXYZ[‹šœØ\™\Ù[HØœ˜\ËYYÜË›Ú™]ÜËpéØ\Ë›Ü›X\ÈHÜÚpéğíY\ÎÈX[0ê[HÈ\İYÈHX˜H[\›˜HH[šXH]Y[°éØ\È[È™\ÜÚ]0ìÜš[ËˆŸİ\X˜\ÙKÙ[˜İ[ÛœË×ÜÚ\™YÜ›ÙXİ[Û‹\\Ù\ËšœØ™YÜ˜H\˜H\˜HÜ°è\š[ÜÈHÛÛ˜Ü™]YÙ[Kİ\˜HH[\˜[ÈHØİ\péğèÛË™\ÜZ][™ÈÈ\ÛÈH[šYYKˆŸİ\X˜\ÙKÙ[˜İ[ÛœË×ÜÚ\™YÜ]K[Y]šXÜËšœØpê]šXØ\ÈHXØNˆ0åÖHYš[™H0è\™XKˆYš[™H\Ü\Üİ\˜HHÈ\ÛÈ\ØHH[œÚYYHš^H°èH\XØYH0èÈpéØ\È]XZ\Ëˆ‚ˆÈÈÈÜ™[HHØ\œ™YØ[Y[Â‚“Èš[˜[È[™^š[Ø\œ™YØK™\İHÜ™[NˆÛY[H[Z\ÜÛÜ‹™\ÜÚ]0ìÜš[ÜË™YÜ˜\ÈHÛÛ\]Xš[YYK˜]™YØpéğèÛË[™Z˜[Y[ÈHØY\İ›ÜËˆÜÈ\œ]Z]›ÜÈğèÛÈØÜš\ÈÛ0è\ÜÚXÛÜÈ\˜HX[\ˆH\XØpéğèÛÈÙ[HÛÛ\[YÜÈÜˆ\ÜÛÈØYHpìÙ[ÈX›XØH[XHTH\]Y[˜H[HÚ[™İË”‘SVÊ˜‚‚ˆÈÈ›^ÜÈš[˜Ú\Z\Â‚ˆÈÈÈ]\]Y]\Â‚“È›Ü›][0è\š[È]X[^˜HÈØ[˜\Ëˆ[ÈØ[˜\‹È™YÚ\İ›È˜ZH\˜HØØ[İÜ˜YÙXÈ˜]™YØYÜ‹°èÛÈ\˜HH˜\ÙHİ\X˜\ÙKˆ‘Ë’TH[\™\ÜğèÛÈ[X°ê[HğèÛÈ›ØÙ\ÜØYÜÈ›È˜]™YØYÜ‹ˆ\ÜÙHÛÛ\Ü[Y[È›ÚHX[YÈÛÛ[È\İ]˜K‚‚ˆÈÈÈ[™Z˜[Y[ÈHØY\İ›ÜÂ‚ŒKˆH[HÚ[XHÈ™\ÜÚ]0ìÜš[ÈHİXH0è\™XK‚Œ‹ˆÈ™\ÜÚ]0ìÜš[È\ØÛÛHHYÙH[˜İ[ÛˆHHpéğèÛÈÛÜœ™\ÜÛ™[K‚ŒËˆÛÜ™KØ\KšœØYXÚ[Û˜HÜÈØX™péØ[ÜÈ0î˜›XÛÜË[šXH”ÓÓˆH˜]HÈ™\İ[YÈ‚ˆHYÙH[˜İ[Ûˆ˜[YHH[˜YHH\ØH[°éğíY\ÈHİ\X˜\ÙKÙ[˜İ[ÛœË×ÜÚ\™Y‚KˆÈ˜XÚÙ[™\ØHÈÛY[HYZ[š\İ˜]]›ÈÈİ\X˜\ÙH\˜H\œÚ\İ\ˆ›ÈÜİÜ™TÔS‚‚HÚ]™HÙ\šXÙWÜ›ÛX\›X[™XÙH›ÈÙ\šYÜ‹ˆHÚ]™H[°íš[XH]YH^\İH›ÈS0êH0î˜›XØHH°èÛÈİXœİ]ZH\ÈÛ0ë]XØ\ÈHXÙ\ÜÛÈÈ˜[˜ÛË‚‚ˆÈÈÈÛÛ\]Xš[YYH[™HpéØHH[ÛB‚“ÈÙ\špéÛÈ[ÛXÛÛ\]Xš[]KšœØ[\[Y[HÈY°èÛÈİ˜]YŞKˆH\İ˜]0êYÚXH\[™HÈ\ÈÙ[XÚ[Û˜YÎ‚‚‹H
+Šœ˜péÛÎŠŠˆ\İH\[˜\È™YÚ\İ›ÜÈÈØ]0è[ÙÛÈ”PÓØ‚‹H
+Š”[\ˆHšYØNŠŠˆ\İHÛÛXš[˜péğíY\ÈHšY]ÈYXÙWÛ[ÛØÛÛXš[˜][ÛœØÈÙH[H°èÛÈY\ˆÙ\ˆØ\œ™YØYKÙ\˜HRUÈ0åÈUTSH\\ˆÈØ]0è[ÙÛÈ°èHØ\œ™YØYË‚‹H
+Š”XØNŠŠˆ°èÛÈš[˜İ[H›Ü›XNÈğìÈ0êH[™Z˜YH[H[XHÜÚpéğèÛÈXØX]YH™\™\Ù[HH˜[˜ØYH[˜K‚‚“È˜XÚÙ[™ÛÛ[XH˜[Y[™ÈÜÈ°ë[˜İ[ÜÈ›ÈØ[˜[Y[ËˆH\İHÈ˜]™YØYÜˆ0êH\˜HÜšY[\ˆH\ØÛÛK°èÛÈ\˜HİXœİ]Z\ˆH˜[YpéğèÛÈÈÙ\šYÜ‹‚‚ˆÈÈÈ˜]™YØpéğèÛÈ[™HpìÙ[ÜÂ‚˜˜]šYØ][Û‹šœØÛÛ›ÛHÈ\İYÈš\ğë]™[\È°êœÈX˜\ÈH\Ü\˜H™[^œ[›š[™Î›Ü[˜İH™[^›Ü\˜][ÛœÎ›Ü[˜ˆÜÈpìÙ[ÜÈ\Øİ][H\ÜÙ\È]™[ÜÈH]X[^˜[HÙ]\È°ìÜš[ÜÈYÜËˆ\ÜÚ[K[HpìÙ[È°èÛÈ™XÚ\ØH[\Ü\ˆ™[HÚ[X\ˆ\™][Y[H\È[°éğíY\È[\›˜\ÈÈİ]›Ë‚‚ˆÈÈİ\X˜\ÙHH™YÜ˜\ÈH™YğìØÚ[Â‚‹Hİ\X˜\ÙKÙ[˜İ[ÛœËÛÜ\˜][ÛœËXYZ[‹Ú[™^Ø][™H\ÈÜ\˜péğíY\ÈHØY\İ›ÈH™]][^˜HYXÙK[Y]šXÜËšœØHÜ™\‹\[›š[™ËšœØ‚‹HÈY\Û[È[™Ú[Ø[˜HXØ\ÈšXHØ]™WÜ]Wİ\XHH]š\ğèÛÈÜˆÙpéğíY\ÈšXHØ]™WÙ[™Ú[™Y\š[™×Ü›Ú™XİÜİXİ\™XÈ\İHÜ˜]˜péğèÛÈ0êH˜[œØXÚ[Û˜[‚‹HØ[[™\‹XYZ[˜[‹[Ü™\˜ÛÛ[Z][Ü™\‹\[˜H™XZ[XØ[[™\˜ÛÛ\0íY[HÈ›^ÈH[™Z˜[Y[Ë‚‹H[›™\‹šœØØ[[™\‹šœØÜ™\‹\[›š[™ËšœØYXÙK[Y]šXÜËšœØ]K[Y]šXÜËšœØH›ÙXİ[Û‹\\Ù\ËšœØİX\™[H™YÜ˜\È™]][^˜Y\È›ÈÙ\šYÜ‹ˆÜÈğè[İ[ÜÈ^\İ[\ÈHœ˜péÛË[\ˆHšYØH\›X[™XÙ[H[˜[\˜YÜË‚‹H\ÈZYÜ˜péğíY\ÈXHğèÛÈ\İ0ìÜšXØ\ÎÈWÙ˜Xš[Ì—Ù›İ[™][Û‹œÜ[™YÚ\İ˜HH[™péğèÛÈHH[YÜ˜péğèÛÈH]\HH\˜H™]š\ğèÛËÙ[H\XØpéğèÛÈ›Èİ\X˜\ÙH]]›Ë‚‹HÈİ]\ÈÛÛ˜ÛZYØ°èÛÈ0êHXÙZ]È›È›^ÈHYYÜÎÈH\İH\›Z]YH0êHÜ°éØ[Y[Ë\›İ˜YË[H›ÙpéğèÛË[™YİYK]˜\ØYÈHØ[˜Ù[YËˆ™YÚ\İ›ÜÈ[YÛÜÈ\›X[™XÙ[H\[˜\È\˜HÛÛœİ[HHğèÛÈ˜]YÜÈÛÛ[È[˜Ù\œ˜YÜË‚‹HH™\\˜péğèÛÈH›Ü›X\È\ØHÚ[˜ÛÈX\È0îZ\È\Ú\ÈHZYÜ˜][ÛˆNÈH]Hš[˜[0êHØ[İ[YH[\È^ÙpéğíY\ÈÈØ[[™0è\š[Ë‚‹HÈ[°ëXÚ[ÈY°èÛÈHÛÛ˜Ü™]YÙ[H0êHŒ›È\ÛÈH[šYYHHÙHÙ\ˆZ\İYÈ[HØ[İ[][Û—ØÛÛœİ[Ë˜Ø\İ[™×Üİ\Úİ\˜ˆXØX˜[Y[Ë[œÜpéğèÛÈHX™\˜péğèÛÈšXØ[H[™[\È]0êH]YHH[™Ù[š\šXH[™›Ü›YH\È\˜péğíY\Ë‚‹HH\XØpéğèÛÈHHYÙH[˜İ[Ûˆ›Ü˜[H[YÜ˜Y\È[ÈÛÛ˜]ÈHZYÜ˜][ÛˆKX\ÈHZYÜ˜][Ûˆ°èÛÈ›ÚH\XØYHH\È[°éğíY\È°èÛÈ›Ü˜[H[\[Y\È›È›Ú™]Èİ\X˜\ÙH]]›Ë‚‚ˆÈÈØXÚHÈ\XØ]]›Â‚˜\İÜİËšœØ\İHÜÈ\œ]Z]›ÜÈ™XÙ\Üğè\š[ÜÈ\˜HXœš\ˆÈ\H\ØHÈ›ÛYHÈØXÚH\˜HY[YšXØ\ˆ[XH™\œğèÛËˆ[È[\˜\ˆ\œ]Z]›ÜÈX›XØYÜË]X[^™HÜÈ\°è›Y]›ÜÈH™\œğèÛÈ›ÈSHÈ›ÛYHÈØXÚH›ÈÙ\šXÙHÛÜšÙ\È\ÜÛÈ˜^ˆÜÈ˜]™YØYÜ™\È˜Z^\™[HÜÈ\œ]Z]›ÜÈ›İ›ÜË‚
