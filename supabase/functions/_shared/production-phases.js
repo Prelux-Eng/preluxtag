@@ -1,60 +1,127 @@
-YªçŠx³¬uç%j·Â+ar‰ì¶ë•ë_¢ºŞjË"‚v›•ëÚ®&›•ëÊ‚ˆ
-ˆÙ\˜HÜÈX\˜ÛÜÈÜ°è\š[ÜÈ]YHXÛÛ\[š[HØYH[šYYH›ÙÜ˜[XYK‚ˆ
-‚ˆ
-ˆÈÜ°è\š[ËX˜\ÙH0êH[XHÛÛ™šYİ\˜péğèÛÈÜ\˜XÚ[Û˜[[œ]X[È\˜péğèÛÈBˆ
-ˆÛÛ˜Ü™]YÙ[HHİ\˜H°ê›HÈØ]0è[ÙÛÈHÛÛœİ[\ÈHÜ™Ø[š^˜péğèÛËˆÈpìÙ[Âˆ
-ˆ°èÛÈÛÛœİ[Hİ\X˜\ÙH\˜HÙ\ˆÙ\ˆ^\˜Ú]YÈ\ÛÛY[Y[H[H›ÙKšœË‚ˆ
-‹Â‚˜ÛÛœİUWÔ‘HH×—ÍKWÌŸKWÌŸIÎÂ˜ÛÛœİSQWÔ‘HH×ŠÎ–ÌWW–ÌL×JN–ÌMWW	ÎÂ‚™[˜İ[Ûˆ˜Z[
-Y\ÜØYÙJHÂˆÛÛœİ\œ›ÜˆH™]È\œ›ÜŠY\ÜØYÙJNÂˆ\œ›Ü‹›˜[YHH”›ÙXİ[Û”\ÙQ\œ›ÜˆÂˆ›İÈ\œ›ÜÂŸB‚™[˜İ[Ûˆ\œÙTÜÚ]]™S[X™\Š˜[YKX™[
-HÂˆÛÛœİ[X™\ˆH[X™\Š˜[YJNÂˆYˆ
-S[X™\‹š\Ñš[š]J[X™\ŠH[X™\ˆH
-H˜Z[
-	ÛX™[H]™HÙ\ˆXZ[Üˆ]YH™\›Ë˜
-NÂˆ™]\›ˆ[X™\ÂŸB‚™[˜İ[Ûˆ]U[YQ›Ü›X]\Š[YV›Û™JHÂˆHÂˆ™]\›ˆ™]È[‘]U[YQ›Ü›X]
-™[‹PĞH‹Âˆ[YV›Û™KˆYX\ˆ›[Y\šXÈ‹ˆ[ÛˆŒ‹YYÚ]‹ˆ^NˆŒ‹YYÚ]‹ˆİ\ˆŒ‹YYÚ]‹ˆZ[]NˆŒ‹YYÚ]‹ˆÙXÛÛ™ˆŒ‹YYÚ]‹ˆİ\ŞXÛNˆšŒÈ‹ˆJNÂˆHØ]ÚÂˆ˜Z[
-\ÛÈÜ°è\š[È[°è[YÎˆ	İ[YV›Û™_K˜
-NÂˆBŸB‚™[˜İ[Ûˆ›Û™Y]U[YUÕ]Ê]K[YK[YV›Û™JHÂˆYˆ
-QUWÔ‘K\İ
-]JHUSQWÔ‘K\İ
-[YJJH˜Z[
-‘]HİHÜ˜HHÛÛ˜Ü™]YÙ[H[°è[YKˆŠNÂˆÛÛœİŞYX\‹[Û^WHH]KœÜ]
-‹HŠK›X\
-[X™\ŠNÂˆÛÛœİÚİ\‹Z[]WHH[YKœÜ]
-ˆŠK›X\
-[X™\ŠNÂˆÛÛœİ\™Ù]H]K•UÊYX\‹[ÛHK^Kİ\‹Z[]K
-NÂˆÛÛœİ›Ü›X]\ˆH]U[YQ›Ü›X]\Š[YV›Û™JNÂˆ]Ø[™Y]HH\™Ù]Â‚ˆËÈZ\İHÈ[œİ[HUÈ]0êH]YHİXH™\™\Ù[péğèÛÈ›È\ÛÈH°èXœšXØBˆËÈÛÚ[˜ÚYHÛÛHH]HHHÜ˜H[™›Ü›XY\È[ÈÜ\˜YÜ‹‚ˆ›Üˆ
-]][\HÈ][\È][\
-ÏHJHÂˆÛÛœİ\ÈHØš™Xİ™œ›ÛQ[šY\Ê›Ü›X]\‹™›Ü›X]Ô\Ê™]È]JØ[™Y]JJBˆ™š[\Š
-\
-HOˆ\\HOOH›]\˜[ŠBˆ›X\
+/*
+ * Gera os marcos horÃ¡rios que acompanham cada unidade programada.
+ *
+ * O horÃ¡rio-base Ã© uma configuraÃ§Ã£o operacional, enquanto duraÃ§Ã£o de
+ * concretagem e cura vÃªm do catÃ¡logo de constantes da organizaÃ§Ã£o. O mÃ³dulo
+ * nÃ£o consulta Supabase para poder ser exercitado isoladamente em Node.js.
+ */
 
-\
-HOˆÜ\\K[X™\Š\˜[YJWJJNÂˆÛÛœİ™\™\Ù[YH]K•UÊ\ËYX\‹\Ë›[ÛHK\Ë™^K\Ëšİ\‹\Ë›Z[]K\ËœÙXÛÛ™
-NÂˆÛÛœİY™™\™[˜ÙHH\™Ù]H™\™\Ù[YÂˆYˆ
-Y™™\™[˜ÙHOOH
-H™]\›ˆ™]È]JØ[™Y]JKÒTÓÔİš[™Ê
-NÂˆØ[™Y]H
-ÏHY™™\™[˜ÙNÂˆBˆ˜Z[
-“ÈÜ°è\š[ÈØØ[\ØÛÛYÈ°èÛÈ^\İH™\ÜÙH\ÛÈÜ°è\š[ËˆŠNÂŸB‚™[˜İ[Ûˆ]R[•[YV›Û™J[œİ[[YV›Û™JHÂˆÛÛœİ\ÈHØš™Xİ™œ›ÛQ[šY\Ê]U[YQ›Ü›X]\Š[YV›Û™JK™›Ü›X]Ô\Ê™]È]J[œİ[
-JBˆ™š[\Š
-\
-HOˆ\\HOOH›]\˜[ŠBˆ›X\
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+const TIME_RE = /^(?:[01]\d|2[0-3]):[0-5]\d$/;
 
-\
-HOˆÜ\\K\˜[YWJJNÂˆ™]\›ˆ	Ü\ËYX\ŸKIÜ\Ë›[ÛKIÜ\Ë™^_XÂŸB‚™[˜İ[ÛˆYZ[]\Ê[œİ[Z[]\ÊHÂˆ™]\›ˆ™]È]J]Kœ\œÙJ[œİ[
-H
-ÈZ[]\È
-ˆŒÌ
-KÒTÓÔİš[™Ê
-NÂŸB‚‹ÊŠˆÜšXHÜ°è\š[ÜÈ^]ÜÈHÈ[\˜[È[H]YHHÜÚpéğèÛÈšXØH™\Ù\˜YKˆ
-‹Â™^Ü[˜İ[ÛˆZ[›ÙXİ[Û”\Ù\ÊÂˆØ\İ]Kˆ[YV›Û™HH[Y\šXØKÔØ[×Ô][È‹ˆØ\İİ\[YHHŒŒ‹ˆØ\İ[™Ñ\˜][Û“Z[]\ÈHLŒˆİ\š[™Ñ\˜][Û’İ\œÈHL‹ŸHHßJHÂˆÛÛœİØ\İ[™ÓZ[]\ÈH\œÙTÜÚ]]™S[X™\ŠØ\İ[™Ñ\˜][Û“Z[]\ËH\˜péğèÛÈHÛÛ˜Ü™]YÙ[HŠNÂˆÛÛœİİ\š[™Òİ\œÈH\œÙTÜÚ]]™S[X™\Šİ\š[™Ñ\˜][Û’İ\œËH\˜péğèÛÈHİ\˜HŠNÂˆYˆ
-S[X™\‹š\Ò[YÙ\ŠØ\İ[™ÓZ[]\ÊHS[X™\‹š\Ò[YÙ\Šİ\š[™Òİ\œÊJHÂˆ˜Z[
-\È\˜péğíY\ÈHÛÛ˜Ü™]YÙ[HHİ\˜H™XÚ\Ø[HÙ\ˆ°î›Y\›ÜÈ[Z\›ÜËˆŠNÂˆB‚ˆÛÛœİØ\İ[™Ôİ\]H›Û™Y]U[YUÕ]ÊØ\İ]KØ\İİ\[YK[YV›Û™JNÂˆÛÛœİØ\İ[™Ñ[™]HYZ[]\ÊØ\İ[™Ôİ\]Ø\İ[™ÓZ[]\ÊNÂˆÛÛœİİ\š[™Ñ[™]HYZ[]\ÊØ\İ[™Ñ[™]İ\š[™Òİ\œÈ
-ˆŒ
-NÂ‚ˆ™]\›ˆÂˆØØİ\YYœ›ÛP]ˆØ\İ[™Ôİ\]ˆØØİ\YY[[]ˆİ\š[™Ñ[™]ˆİ\™Tİ\]Nˆ]R[•[YV›Û™JØ\İ[™Ñ[™][YV›Û™JKˆİ\™Q[™]Nˆ]R[•[YV›Û™Jİ\š[™Ñ[™][YV›Û™JKˆİ\ÎˆÂˆÂˆİ\Ú[™ˆ˜ÛÛ˜Ü™]YÙ[H‹ˆÙ\]Y[˜ÙNˆKˆ\˜][Û“Z[]\ÎˆØ\İ[™ÓZ[]\Ëˆ[›™Yİ\]ˆØ\İ[™Ôİ\]ˆ[›™Y[™]ˆØ\İ[™Ñ[™]ˆİ]\Îˆœ[›™Y‹ˆKˆÂˆİ\Ú[™ˆ˜İ\˜H‹ˆÙ\]Y[˜ÙNˆ‹ˆ\˜][Û“Z[]\Îˆİ\š[™Òİ\œÈ
-ˆŒˆ[›™Yİ\]ˆØ\İ[™Ñ[™]ˆ[›™Y[™]ˆİ\š[™Ñ[™]ˆİ]\Îˆœ[›™Y‹ˆKˆËÈH[™Ù[š\šXHZ[™H°èÛÈ[™›Ü›[İH\˜péğèÛÈ\˜H\İ\È°êœÈ]\\Ë‚ˆËÈÜÈ™YÚ\İ›ÜÈ^\İ[H\˜H[Üİ˜\ˆHÙ\]pê›˜ÚXHH™XÙX™\ˆHYš[špéğèÛË‚ˆ‹‹–È˜XØX˜[Y[È‹š[œÜXØ[È‹›X™\˜XØ[È—K›X\
+function fail(message) {
+  const error = new Error(message);
+  error.name = "ProductionPhaseError";
+  throw error;
+}
 
-İ\Ú[™[™^
-HOˆ
-Âˆİ\Ú[™ˆÙ\]Y[˜ÙNˆ[™^
-ÈËˆ\˜][Û“Z[]\Îˆ[ˆ[›™Yİ\]ˆ[ˆ[›™Y[™]ˆ[ˆİ]\Îˆœ[›™Y‹ˆJJKˆKˆNÂŸB‚
+function parsePositiveNumber(value, label) {
+  const number = Number(value);
+  if (!Number.isFinite(number) || number <= 0) fail(`${label} deve ser maior que zero.`);
+  return number;
+}
+
+function dateTimeFormatter(timeZone) {
+  try {
+    return new Intl.DateTimeFormat("en-CA", {
+      timeZone,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hourCycle: "h23",
+    });
+  } catch {
+    fail(`Fuso horÃ¡rio invÃ¡lido: ${timeZone}.`);
+  }
+}
+
+function zonedDateTimeToUtc(date, time, timeZone) {
+  if (!DATE_RE.test(date) || !TIME_RE.test(time)) fail("Data ou hora de concretagem invÃ¡lida.");
+  const [year, month, day] = date.split("-").map(Number);
+  const [hour, minute] = time.split(":").map(Number);
+  const target = Date.UTC(year, month - 1, day, hour, minute, 0, 0);
+  const formatter = dateTimeFormatter(timeZone);
+  let candidate = target;
+
+  // Ajusta o instante UTC atÃ© que sua representaÃ§Ã£o no fuso da fÃ¡brica
+  // coincida com a data e a hora informadas pelo operador.
+  for (let attempt = 0; attempt < 4; attempt += 1) {
+    const parts = Object.fromEntries(formatter.formatToParts(new Date(candidate))
+      .filter((part) => part.type !== "literal")
+      .map((part) => [part.type, Number(part.value)]));
+    const represented = Date.UTC(parts.year, parts.month - 1, parts.day, parts.hour, parts.minute, parts.second);
+    const difference = target - represented;
+    if (difference === 0) return new Date(candidate).toISOString();
+    candidate += difference;
+  }
+  fail("O horÃ¡rio local escolhido nÃ£o existe nesse fuso horÃ¡rio.");
+}
+
+function dateInTimeZone(instant, timeZone) {
+  const parts = Object.fromEntries(dateTimeFormatter(timeZone).formatToParts(new Date(instant))
+    .filter((part) => part.type !== "literal")
+    .map((part) => [part.type, part.value]));
+  return `${parts.year}-${parts.month}-${parts.day}`;
+}
+
+function addMinutes(instant, minutes) {
+  return new Date(Date.parse(instant) + minutes * 60_000).toISOString();
+}
+
+/** Cria horÃ¡rios exatos e o intervalo em que a posiÃ§Ã£o fica reservada. */
+export function buildProductionPhases({
+  castDate,
+  timeZone = "America/Sao_Paulo",
+  castStartTime = "08:00",
+  castingDurationMinutes = 120,
+  curingDurationHours = 12,
+} = {}) {
+  const castingMinutes = parsePositiveNumber(castingDurationMinutes, "A duraÃ§Ã£o da concretagem");
+  const curingHours = parsePositiveNumber(curingDurationHours, "A duraÃ§Ã£o da cura");
+  if (!Number.isInteger(castingMinutes) || !Number.isInteger(curingHours)) {
+    fail("As duraÃ§Ãµes de concretagem e cura precisam ser nÃºmeros inteiros.");
+  }
+
+  const castingStartAt = zonedDateTimeToUtc(castDate, castStartTime, timeZone);
+  const castingEndAt = addMinutes(castingStartAt, castingMinutes);
+  const curingEndAt = addMinutes(castingEndAt, curingHours * 60);
+
+  return {
+    occupiedFromAt: castingStartAt,
+    occupiedUntilAt: curingEndAt,
+    cureStartDate: dateInTimeZone(castingEndAt, timeZone),
+    cureEndDate: dateInTimeZone(curingEndAt, timeZone),
+    steps: [
+      {
+        stepKind: "concretagem",
+        sequence: 1,
+        durationMinutes: castingMinutes,
+        plannedStartAt: castingStartAt,
+        plannedEndAt: castingEndAt,
+        status: "planned",
+      },
+      {
+        stepKind: "cura",
+        sequence: 2,
+        durationMinutes: curingHours * 60,
+        plannedStartAt: castingEndAt,
+        plannedEndAt: curingEndAt,
+        status: "planned",
+      },
+      // A engenharia ainda nÃ£o informou duraÃ§Ã£o para estas trÃªs etapas.
+      // Os registros existem para mostrar a sequÃªncia e receber a definiÃ§Ã£o.
+      ...["acabamento", "inspecao", "liberacao"].map((stepKind, index) => ({
+        stepKind,
+        sequence: index + 3,
+        durationMinutes: null,
+        plannedStartAt: null,
+        plannedEndAt: null,
+        status: "planned",
+      })),
+    ],
+  };
+}
+

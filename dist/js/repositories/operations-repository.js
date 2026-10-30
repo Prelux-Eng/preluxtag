@@ -1,48 +1,28 @@
-YªçŠx³¬uç%j·Â+ar‰ì¶ë•ë_¢ºÞjË"‚v›•ëÚ®&›•ëÊ‚ˆ
-ˆ™\ÜÚ]0ìÜš[ÈHØY\Ý›ÜÈHÜ\˜péðíY\Ë‚ˆ
-‚ˆ
-ˆX[0ê[H[\È\ÈÚ[XY\ÈHZ]\˜HHÜ˜]˜péðèÛÈHØœ˜\ËYYÜËpéØ\Ëˆ
-ˆ[Û\ËÜÚpéðíY\Ë™\\˜péðíY\ÈH[ØØpéðíY\ÈH™XÝ\œÛÜË‚ˆ
-‹ÂŠ[˜Ý[Ûˆ]XÚÜ\˜][ÛœÔ™\ÜÚ]ÜžJÛØ˜[
-HÂˆÛÛœÝ\HHÛØ˜[”‘SVÐTNÂˆÛÛœÝÜ\˜][ÛˆH
-XÝ[Û‹[œ]HßJHOˆ\Kš[›ÚÙJ›Ü\˜][ÛœËXYZ[ˆ‹ÈXÝ[Û‹‹‹š[œ]JNÂ‚ˆÛØ˜[”‘SVÔ‘TÔÒUÔ’QTÈHßNÂˆÛØ˜[”‘SVÔ‘TÔÒUÔ’QTË›Ü\˜][ÛœÈHØš™XÝ™œ™Y^™JÂˆØ[Ý[]TYXÙSY]šXÜÎˆ
-[œ]
-HOˆÜ\˜][ÛŠ˜Ø[Ý[]WÜYXÙWÛY]šXÜÈ‹[œ]
-KˆØ]™Q[^PY\ÝY[ˆ
-[œ]
-HOˆÜ\˜][ÛŠœØ]™WÙ[^WØY\ÝY[‹[œ]
-KˆÙ]Ü\˜][ÛœÑ]Nˆ
+/*
+ * RepositÃ³rio de cadastros e operaÃ§Ãµes.
+ *
+ * MantÃ©m juntas as chamadas de leitura e gravaÃ§Ã£o de obras, pedidos, peÃ§as,
+ * moldes, posiÃ§Ãµes, preparaÃ§Ãµes e alocaÃ§Ãµes de recursos.
+ */
+(function attachOperationsRepository(global) {
+  const api = global.PRELUX_API;
+  const operation = (action, input = {}) => api.invoke("operations-admin", { action, ...input });
 
-HOˆÜ\˜][ÛŠ˜›ÛÝÝ˜\ŠKˆØ]™UÛÜšÎˆ
-[œ]
-HOˆÜ\˜][ÛŠœØ]™WÝÛÜšÈ‹[œ]
-KˆØ]™SÜ™\Žˆ
-[œ]
-HOˆÜ\˜][ÛŠœØ]™WÛÜ™\ˆ‹[œ]
-KˆØ]™Q[™Ú[™Y\š[™Ô›Ú™XÝˆ
-[œ]
-HOˆÜ\˜][ÛŠœØ]™WÙ[™Ú[™Y\š[™×Ü›Ú™XÝ‹[œ]
-KˆØ]™TYXÙU\Nˆ
-[œ]
-HOˆÜ\˜][ÛŠœØ]™WÜYXÙWÝ\H‹[œ]
-KˆØ]™T]U\Nˆ
-[œ]
-HOˆÜ\˜][ÛŠœØ]™WÜ]WÝ\H‹[œ]
-KˆØ]™S[Ûˆ
-[œ]
-HOˆÜ\˜][ÛŠœØ]™WÛ[Û‹[œ]
-KˆØ]™S[ÛÜÚ][ÛŽˆ
-[œ]
-HOˆÜ\˜][ÛŠœØ]™WÜÜÚ][Ûˆ‹[œ]
-KˆØ]™S[Û™\\˜][ÛŽˆ
-[œ]
-HOˆÜ\˜][ÛŠœØ]™WÜ™\\˜][Ûˆ‹[œ]
-KˆØ[Ý[]S[Û™\\˜][Û‘[™ˆ
-[œ]
-HOˆÜ\˜][ÛŠ˜Ø[Ý[]WÜ™\\˜][Û—Ù[™‹[œ]
-KˆØ]™T™\ÛÝ\˜ÙP[ØØ][ÛŽˆ
-[œ]
-HOˆÜ\˜][ÛŠœØ]™WØ[ØØ][Ûˆ‹[œ]
-Kˆ\˜Ú]™SÜ\˜][Û”™XÛÜ™ˆ
-Ú[™Y
-HOˆÜ\˜][ÛŠ˜\˜Ú]™H‹ÈÚ[™YJKˆJNÂŸJJÚ[™ÝÊNÂ
+  global.PRELUX_REPOSITORIES ||= {};
+  global.PRELUX_REPOSITORIES.operations = Object.freeze({
+    calculatePieceMetrics: (input) => operation("calculate_piece_metrics", input),
+    saveDelayAdjustment: (input) => operation("save_delay_adjustment", input),
+    getOperationsData: () => operation("bootstrap"),
+    saveWork: (input) => operation("save_work", input),
+    saveOrder: (input) => operation("save_order", input),
+    saveEngineeringProject: (input) => operation("save_engineering_project", input),
+    savePieceType: (input) => operation("save_piece_type", input),
+    savePlateType: (input) => operation("save_plate_type", input),
+    saveMold: (input) => operation("save_mold", input),
+    saveMoldPosition: (input) => operation("save_position", input),
+    saveMoldPreparation: (input) => operation("save_preparation", input),
+    calculateMoldPreparationEnd: (input) => operation("calculate_preparation_end", input),
+    saveResourceAllocation: (input) => operation("save_allocation", input),
+    archiveOperationRecord: (kind, id) => operation("archive", { kind, id }),
+  });
+})(window);

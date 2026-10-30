@@ -1,291 +1,530 @@
-YªçŠx³¬uç%j·Â+ar‰ì¶ë•ë_¢ºŞjË"‚v›•ëÚ®&›•ëÊŠƒBˆ
-ˆ[™Z˜[Y[È[™X\ˆ‘SVƒBˆ
-ƒBˆ
-ˆHØ\XÚYYHHÛÛ˜Ü™]YÙ[H0êHYYYH[HÜÚpéğíY\ÈØİ\Y\ÈÜˆXH0î[ƒBˆ
-ˆÈ[\È[™›Ü›XYÈ›ÈØY\İ›È0êHX[YÈ\[˜\ÈÛÛ[ÈYÈH™Y™\°ê›˜ÚXKƒBˆ
-ˆÈpìÙ[È0êH\›È\˜H\›Z]\ˆÜÈY\Û[ÜÈğè[İ[ÜÈ˜\ÈYÙH[˜İ[ÛœÈH›ÜÃBˆ
-ˆ\İ\È›ÙKšœËƒBˆ
-‹ÃBƒBš[\ÜÈZ[›ÙXİ[Û”\Ù\ÈHœ›ÛH‹‹Ü›ÙXİ[Û‹\\Ù\ËšœÈÃBƒB˜ÛÛœİUWÔ‘HH×—ÍKWÌŸKWÌŸIÎÃB™^ÜÛÛœİQUSÔÔÒUSÓ—ĞÓÑTÈHØš™Xİ™œ™Y^™JÈ”H‹”ˆ‹”È‹”—JNÃBƒB™^ÜÛ\ÜÈ[›™\‘\œ›Üˆ^[™È\œ›ÜˆÃBˆÛÛœİXİÜŠY\ÜØYÙKİ]\ÈHŒ‹]Z[ÈH[
-HÃBˆİ\\ŠY\ÜØYÙJNÃBˆ\Ë›˜[YHH”[›™\‘\œ›ÜˆÃBˆ\Ëœİ]\ÈHİ]\ÎÃBˆ\Ë™]Z[ÈH]Z[ÎÃBˆCBŸCBƒB™^Ü[˜İ[Ûˆ›Ü›X[^™Q]J˜[YKšY[˜[YHH™]HŠHÃBˆÛÛœİ]HHİš[™Ê˜[YHÏÈˆŠKš[J
-NÃBˆYˆ
-QUWÔ‘K\İ
-]JJHÃBˆ›İÈ™]È[›™\‘\œ›ÜŠ	ÙšY[˜[Y_H]™H\İ\ˆ›È›Ü›X]ÈVVVKSSKQ˜
-NÃBˆCBƒBˆÛÛœİ\œÙYH™]È]J	Ù]_UŒŒŒ˜
-NÃBˆYˆ
-[X™\‹š\Ó˜SŠ\œÙY™Ù][YJ
-JHÒTÓÑ]J\œÙY
-HOOH]JHÃBˆ›İÈ™]È[›™\‘\œ›ÜŠ	ÙšY[˜[Y_H°èÛÈ0êH[XH]H°è[YK˜
-NÃBˆCBˆ™]\›ˆ]NÃBŸCBƒB™^Ü[˜İ[ÛˆÒTÓÑ]J]JHÃBˆ™]\›ˆ]KÒTÓÔİš[™Ê
-KœÛXÙJL
-NÃBŸCBƒB™^Ü[˜İ[ÛˆY^\Ê]U˜[YK[[İ[
-HÃBˆÛÛœİ^\ÈH[X™\Š[[İ[
-NÃBˆYˆ
-S[X™\‹š\Ò[YÙ\Š^\ÊJH›İÈ™]È[›™\‘\œ›ÜŠH]X[YYHHX\È]™HÙ\ˆ[Z\˜KˆŠNÃBˆÛÛœİ]HH™]È]J	Û›Ü›X[^™Q]J]U˜[YJ_UŒŒŒ˜
-NÃBˆ]KœÙ]UÑ]J]K™Ù]UÑ]J
-H
-È^\ÊNÃBˆ™]\›ˆÒTÓÑ]J]JNÃBŸCBƒB™^Ü[˜İ[Ûˆ]T˜[™ÙJİ\˜[YK[™˜[YJHÃBˆÛÛœİİ\H›Ü›X[^™Q]Jİ\˜[YK™]H[šXÚX[ŠNÃBˆÛÛœİ[™H›Ü›X[^™Q]J[™˜[YK™]Hš[˜[ŠNÃBˆYˆ
-[™İ\
-H›İÈ™]È[›™\‘\œ›ÜŠH]Hš[˜[°èÛÈÙHÙ\ˆ[\š[Üˆ0è]H[šXÚX[ˆŠNÃBƒBˆÛÛœİ™\İ[H×NÃBˆ›Üˆ
-]İ\œ™[Hİ\Èİ\œ™[H[™Èİ\œ™[HY^\Êİ\œ™[JJH™\İ[œ\Ú
-İ\œ™[
-NÃBˆ™]\›ˆ™\İ[ÃBŸCBƒB™[˜İ[Ûˆ™XYšY[
-Øš™XİØ[Y[˜[YKÛ˜ZÙS˜[YK˜[˜XÚÈH[
-HÃBˆ™]\›ˆØš™XİË–ØØ[Y[˜[YWHÏÈØš™XİË–ÜÛ˜ZÙS˜[YWHÏÈ˜[˜XÚÎÃBŸCBƒB™[˜İ[Ûˆ[YÙ\•˜[YJ˜[YKX™[ÈZ[š[][HH˜[˜XÚÈH[HHßJHÃBˆYˆ
+/**
+ * Planejamento linear PRELUX.
+ *
+ * A capacidade de concretagem Ã© medida em posiÃ§Ãµes ocupadas por dia Ãºtil.
+ * O tempo informado no cadastro Ã© mantido apenas como dado de referÃªncia.
+ * O mÃ³dulo Ã© puro para permitir os mesmos cÃ¡lculos nas Edge Functions e nos
+ * testes Node.js.
+ */
 
-˜[YHOOH[™Yš[™Y˜[YHOOH[˜[YHOOHˆŠH	‰ˆ˜[˜XÚÈOOH[
-H™]\›ˆ˜[˜XÚÎÃBˆÛÛœİ[X™\ˆH[X™\Š˜[YJNÃBˆYˆ
-S[X™\‹š\Ò[YÙ\Š[X™\ŠH[X™\ˆZ[š[][JHÃBˆ›İÈ™]È[›™\‘\œ›ÜŠ	ÛX™[H]™HÙ\ˆ[H°î›Y\›È[Z\›ÈXZ[ÜˆİHYİX[H	ÛZ[š[][_K˜
-NÃBˆCBˆ™]\›ˆ[X™\ÃBŸCBƒB™[˜İ[Ûˆ›Ü›X[^™YØ[[™\‘^J^JHÃBˆ™]\›ˆÃBˆ]Nˆ›Ü›X[^™Q]J™XYšY[
-^K™]H‹™]HŠK™XHÈØ[[™0è\š[ÈŠKBˆ\ÕÛÜšÚ[™Îˆ›ÛÛX[Š™XYšY[
-^Kš\ÕÛÜšÚ[™È‹š\×İÛÜšÚ[™È‹˜[ÙJJKBˆNÃBŸCBƒB™[˜İ[Ûˆ›Ü›X[^™YÜÚ][ÛŠÜÚ][ÛŠHÃBˆÛÛœİÛÙHHİš[™Ê™XYšY[
-ÜÚ][Û‹˜ÛÙH‹˜ÛÙH‹ˆŠJKš[J
-NÃBˆÛÛœİİ]\ÈHİš[™ÊÜÚ][ÛËœİ]\ÈÏÈ™\ÜÛš]™[ŠNÃBˆYˆ
-K×”ÌKMIË\İ
-ÛÙJJH›İÈ™]È[›™\‘\œ›ÜŠÜÚpéğèÛÈH[ÛH[°è[YNˆ	ØÛÙHœÙ[HğìÙYÛÈŸK˜
-NÃBˆÛÛœİÛÛ™šYİ\˜][Û’Ú[™H™XYšY[
-ÜÚ][Û‹˜ÛÛ™šYİ\˜][Û’Ú[™‹˜ÛÛ™šYİ\˜][Û—ÚÚ[™ŠNÃBˆÛÛœİØ][ÙĞÛÙ\ÈHÃBˆ™XYšY[
-ÜÚ][Û‹˜œ˜XÛĞØ][ÙĞÛÙH‹˜œ˜XÛ×ØØ][Ù×ØÛÙHŠKBˆ™XYšY[
-ÜÚ][Û‹›Z]ĞØ][ÙĞÛÙH‹›Z]×ØØ][Ù×ØÛÙHŠKBˆ™XYšY[
-ÜÚ][Û‹›]\˜[Ø][ÙĞÛÙH‹›]\˜[ØØ][Ù×ØÛÙHŠKBˆK™š[\Š›ÛÛX[ŠK›X\
+import { buildProductionPhases } from "./production-phases.js";
 
-˜[YJHOˆİš[™Ê˜[YJKš[J
-JNÃBˆ™]\›ˆÈÛÙKİ]\ËÛÛ™šYİ\˜][Û’Ú[™Ø][ÙĞÛÙ\ÈNÃBŸCBƒB™[˜İ[Ûˆ›Ü›X[^™Y][J][K[™^
-HÃBˆÛÛœİ][RYHİš[™Ê™XYšY[
-][Kš][RY‹š][WÚY‹ˆŠJKš[J
-NÃBˆÛÛœİYXÙU\RYHİš[™Ê™XYšY[
-][KœYXÙU\RY‹œYXÙWİ\WÚY‹ˆŠJKš[J
-NÃBˆÛÛœİ]X[]HH[YÙ\•˜[YJ™XYšY[
-][Kœ]X[]H‹œ]X[]HŠKH]X[YYH‹ÈZ[š[][NˆHJNÃBˆÛÛœİİ\š[™Ñ^\ÈH[YÙ\•˜[YJBˆ™XYšY[
-][K˜İ\š[™Ñ^\È‹˜İ\š[™×Ù^\È‹ŠKBˆ“È[\ÈHİ\˜H‹BˆÈZ[š[][NˆK˜[˜XÚÎˆˆKBˆ
-NÃBˆÛÛœİ›ÙXİ[Û“Z[]\Ô\•[š]H[YÙ\•˜[YJBˆ™XYšY[
-][Kœ›ÙXİ[Û“Z[]\ÔÛ˜\Úİ‹œ›ÙXİ[Û—ÛZ[]\×ÜÛ˜\Úİ‹
-KBˆ“È[\ÈH›ÙpéğèÛÈ™YÚ\İ˜YÈ‹BˆÈZ[š[][Nˆ˜[˜XÚÎˆKBˆ
-NÃBˆÛÛœİ˜]Ô™\]Z\™Y[ÛÛÙ\ÈH™XYšY[
-][Kœ™\]Z\™Y[ÛÛÙ\È‹œ™\]Z\™YÛ[ÛØÛÙ\È‹×JNÃBˆÛÛœİ™\]Z\™Y[ÛÛÙ\ÈH\œ˜^Kš\Ğ\œ˜^J˜]Ô™\]Z\™Y[ÛÛÙ\ÊCBˆÈ˜]Ô™\]Z\™Y[ÛÛÙ\Ë›X\
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+export const DEFAULT_POSITION_CODES = Object.freeze(["P01", "P02", "P03", "P04"]);
 
-˜[YJHOˆİš[™Ê˜[YJKš[J
-JK™š[\Š›ÛÛX[ŠKœÛÜ
+export class PlannerError extends Error {
+  constructor(message, status = 422, details = null) {
+    super(message);
+    this.name = "PlannerError";
+    this.status = status;
+    this.details = details;
+  }
+}
 
-CBˆˆ×NÃBˆÛÛœİ™\]Z\™\Ó[ÛÛÛ™šYÈH›ÛÛX[Š™XYšY[
-][Kœ™\]Z\™\Ó[ÛÛÛ™šYÈ‹œ™\]Z\™\×Û[ÛØÛÛ™šYÈ‹™\]Z\™Y[ÛÛÙ\Ë›[™İˆ
-JNÃBƒBˆYˆ
-Z][RY\YXÙU\RY
-HÃBˆ›İÈ™]È[›™\‘\œ›ÜŠÈ][H	Ú[™^
-È_H™XÚ\ØH\ˆY[YšXØYÜˆHpéØH°è[YÜË˜
-NÃBˆCBƒBˆ™]\›ˆÃBˆ][RYBˆYXÙU\RYBˆÛÙNˆ][K˜ÛÙHÏÈ[Bˆ˜[YNˆ][K›˜[YHÏÈ[BˆYXÙRÚ[™ˆ™XYšY[
-][KœYXÙRÚ[™‹œYXÙWÚÚ[™ŠKBˆ]X[]KBˆİ\š[™Ñ^\ËBˆ›ÙXİ[Û“Z[]\Ô\•[š]Bˆ™\]Z\™Y[ÛÛÙ\ËBˆ™\]Z\™\Ó[ÛÛÛ™šYËBˆNÃBŸCBƒB™[˜İ[ÛˆÜÚ][ÛØ[”›ÙXÙJÜÚ][Û‹][JHÃBˆYˆ
-][KœYXÙRÚ[™OOHœXØHŠH™]\›ˆÜÚ][Û‹˜ÛÛ™šYİ\˜][Û’Ú[™OOHœXØHÃBˆYˆ
-][KœYXÙRÚ[™OOH˜œ˜XÛÈˆ	‰ˆÜÚ][Û‹˜ÛÛ™šYİ\˜][Û’Ú[™OOH˜œ˜XÛÈŠH™]\›ˆ˜[ÙNÃBˆYˆ
-Èœ[\ˆ‹šYØH—Kš[˜ÛY\Ê][KœYXÙRÚ[™
-H	‰ˆÜÚ][Û‹˜ÛÛ™šYİ\˜][Û’Ú[™OOHœ[\—İšYØHŠH™]\›ˆ˜[ÙNÃBˆYˆ
-Z][Kœ™\]Z\™Y[ÛÛÙ\Ë›[™İ
-H™]\›ˆZ][Kœ™\]Z\™\Ó[ÛÛÛ™šYÎÃBˆÛÛœİÛÛ™šYİ\™YHË‹‹œÜÚ][Û‹˜Ø][ÙĞÛÙ\×KœÛÜ
+export function normalizeDate(value, fieldName = "data") {
+  const date = String(value ?? "").trim();
+  if (!DATE_RE.test(date)) {
+    throw new PlannerError(`${fieldName} deve estar no formato YYYY-MM-DD.`);
+  }
 
-NÃBˆ™]\›ˆÛÛ™šYİ\™Y›[™İOOH][Kœ™\]Z\™Y[ÛÛÙ\Ë›[™İ	‰ƒBˆÛÛ™šYİ\™Y™]™\J
-ÛÙK[™^
-HOˆÛÙHOOH][Kœ™\]Z\™Y[ÛÛÙ\ÖÚ[™^JNÃBŸCBƒB™[˜İ[ÛˆØÚY[Q]JØÚY[JHÃBˆ™]\›ˆ›Ü›X[^™Q]JBˆ™XYšY[
-ØÚY[K˜Ø\İ]H‹œ[›™YØØ\İÙ]HŠHÏÃBˆ™XYšY[
-ØÚY[KÛÜšÑ]H‹ÛÜš×Ù]HŠKBˆ™]HHÛÛ˜Ü™]YÙ[H‹Bˆ
-NÃBŸCBƒB™[˜İ[ÛˆØÚY[TÜÚ][ÛÛÙ\ÊØÚY[JHÃBˆÛÛœİ˜[YHH™XYšY[
-ØÚY[KœÜÚ][ÛÛÙ\È‹œÜÚ][Û—ØÛÙ\È‹[
-NÃBˆYˆ
-\œ˜^Kš\Ğ\œ˜^J˜[YJJH™]\›ˆ˜[YK›X\
+  const parsed = new Date(`${date}T00:00:00.000Z`);
+  if (Number.isNaN(parsed.getTime()) || toISODate(parsed) !== date) {
+    throw new PlannerError(`${fieldName} nÃ£o Ã© uma data vÃ¡lida.`);
+  }
+  return date;
+}
 
-ÛÙJHOˆİš[™ÊÛÙJKš[J
-JK™š[\Š›ÛÛX[ŠNÃBˆÛÛœİÛÙHH™XYšY[
-ØÚY[KœÜÚ][ÛÛÙH‹œÜÚ][Û—ØÛÙH‹[
-NÃBˆ™]\›ˆÛÙHÈÔİš[™ÊÛÙJKš[J
-WHˆ×NÃBŸCBƒB™[˜İ[Ûˆ™\Ù\™TÜÚ][ÛŠØØİ\YYQ]K]KÛÙK™\Ù\˜][Û‹ÛÛ™›XİÊHÃBˆÛÛœİTÜÚ][ÛˆHØØİ\YYQ]K™Ù]
-]JH™]ÈX\
+export function toISODate(date) {
+  return date.toISOString().slice(0, 10);
+}
 
-NÃBˆÛÛœİİ\œ™[HTÜÚ][Û‹™Ù]
-ÛÙJNÃBˆYˆ
-İ\œ™[
-HÃBˆÛÛ™›XİËœ\Ú
-ÃBˆ\NˆœÜÚ][Ûˆ‹Bˆ]KBˆÜÚ][ÛÛÙNˆÛÙKBˆY\ÜØYÙNˆHÜÚpéğèÛÈ	ØÛÙ_H°èH\İ0èHØİ\YH[H	Ù]_K˜Bˆ^\İ[™ÓÜ™\’Yˆİ\œ™[›Ü™\’YÏÈ[BˆÛÛ™›Xİ[™ÓÜ™\’Yˆ™\Ù\˜][Û‹›Ü™\’YÏÈ[BˆJNÃBˆ™]\›ˆ˜[ÙNÃBˆCBˆTÜÚ][Û‹œÙ]
-ÛÙK™\Ù\˜][ÛŠNÃBˆØØİ\YYQ]KœÙ]
-]KTÜÚ][ÛŠNÃBˆ™]\›ˆYNÃBŸCBƒB™[˜İ[ÛˆYØØİ\YY[\˜[
-[\˜[ĞTÜÚ][Û‹ÛÙKİ\][™]
-HÃBˆÛÛœİİ\H]Kœ\œÙJİ\]
-NÃBˆÛÛœİ[™H]Kœ\œÙJ[™]
-NÃBˆYˆ
-S[X™\‹š\Ñš[š]Jİ\
-HS[X™\‹š\Ñš[š]J[™
-H[™Hİ\
-H™]\›ˆ˜[ÙNÃBˆÛÛœİ[\˜[ÈH[\˜[ĞTÜÚ][Û‹™Ù]
-ÛÙJH×NÃBˆ[\˜[Ëœ\Ú
-Èİ\[™JNÃBˆ[\˜[ĞTÜÚ][Û‹œÙ]
-ÛÙK[\˜[ÊNÃBˆ™]\›ˆYNÃBŸCBƒB™[˜İ[Ûˆ[\˜[İ™\›\Ê[\˜[ĞTÜÚ][Û‹ÛÙKİ\][™]
-HÃBˆÛÛœİİ\H]Kœ\œÙJİ\]
-NÃBˆÛÛœİ[™H]Kœ\œÙJ[™]
-NÃBˆ™]\›ˆ
-[\˜[ĞTÜÚ][Û‹™Ù]
-ÛÙJH×JKœÛÛYJ
-[\˜[
-HOƒBˆİ\[\˜[™[™	‰ˆ[™ˆ[\˜[œİ\Bˆ
-NÃBŸCBƒB™[˜İ[Ûˆ™\Ù\™Q^\İ[™ĞØ\XÚ]JÃBˆ^\İ[™ÔØÚY[\ËBˆ^\İ[™Ğ[ØØ][ÛœËBˆÜÚ][ÛœËBˆØØİ\YYQ]KBˆ[\˜[ĞTÜÚ][Û‹Bˆİ\]KBˆØ\İÜš^›Û‘[™BˆÛÛ™›XİËBŸJHÃBˆ›Üˆ
-ÛÛœİ[ØØ][ÛˆÙˆ^\İ[™Ğ[ØØ][ÛœÊHÃBˆÛÛœİİ]\ÈHİš[™Ê[ØØ][Û‹œİ]\ÈÏÈœ[›™YŠNÃBˆYˆ
-È˜Ø[˜Ù[Y‹˜Ø[˜Ù[YÈ—Kš[˜ÛY\Êİ]\ÊJHÛÛ[YNÃBˆÛÛœİ]HH›Ü›X[^™Q]JBˆ™XYšY[
-[ØØ][Û‹œØÚY[Y]H‹œØÚY[YÙ]HŠKBˆ™]HH[ØØpéğèÛÈ^\İ[H‹Bˆ
-NÃBˆÛÛœİÛÙHHİš[™Ê™XYšY[
-[ØØ][Û‹œÜÚ][ÛÛÙH‹œÜÚ][Û—ØÛÙH‹ˆŠJKš[J
-NÃBˆYˆ
-\ÜÚ][ÛœËœÛÛYJ
-ÜÚ][ÛŠHOˆÜÚ][Û‹˜ÛÙHOOHÛÙJJHÃBˆÛÛ™›XİËœ\Ú
-È\NˆœÜÚ][Ûˆ‹]KÜÚ][ÛÛÙNˆÛÙH[Y\ÜØYÙNˆ[ØØpéğèÛÈ^\İ[H\ÛH\˜HÜÚpéğèÛÈ[°è[YH[H	Ù]_K˜JNÃBˆÛÛ[YNÃBˆCBˆÛÛœİØØİ\YYœ›ÛP]H™XYšY[
-[ØØ][Û‹›ØØİ\YYœ›ÛP]‹›ØØİ\YYÙœ›ÛWØ]‹[
-NÃBˆÛÛœİØØİ\YY[[]H™XYšY[
-[ØØ][Û‹›ØØİ\YY[[]‹›ØØİ\YYİ[[Ø]‹[
-NÃBˆYˆ
-ØØİ\YYœ›ÛP]ØØİ\YY[[]
-HÃBˆYˆ
-[ØØİ\YYœ›ÛP][ØØİ\YY[[]XYØØİ\YY[\˜[
-[\˜[ĞTÜÚ][Û‹ÛÙKØØİ\YYœ›ÛP]ØØİ\YY[[]
-JHÃBˆÛÛ™›XİËœ\Ú
-È\NˆœÜÚ][Ûˆ‹]KÜÚ][ÛÛÙNˆÛÙKY\ÜØYÙNˆH[ØØpéğèÛÈHÜÚpéğèÛÈ	ØÛÙ_HÛÛ0ê[H[H[\˜[ÈHØİ\péğèÛÈ[°è[YË˜JNÃBˆÛÛ[YNÃBˆCBˆCBˆYˆ
-]HHİ\]H	‰ˆ]HHØ\İÜš^›Û‘[™
-HÃBˆ™\Ù\™TÜÚ][ÛŠØØİ\YYQ]K]KÛÙKÃBˆÜ™\’Yˆ[ØØ][Û‹›Ü™\’YÏÈ[ØØ][Û‹›Ü™\—ÚYÏÈ[Bˆİ]\ËBˆÛİ\˜ÙNˆ˜[ØØ][Ûˆ‹BˆKÛÛ™›XİÊNÃBˆCBˆCBƒBˆ›Üˆ
-ÛÛœİØÚY[HÙˆ^\İ[™ÔØÚY[\ÊHÃBˆÛÛœİİ]\ÈHİš[™ÊØÚY[Kœİ]\ÈÏÈœ[›™YŠNÃBˆYˆ
-È˜Ø[˜Ù[Y‹˜Ø[˜Ù[YÈ—Kš[˜ÛY\Êİ]\ÊJHÛÛ[YNÃBˆÛÛœİ]HHØÚY[Q]JØÚY[JNÃBˆYˆ
-]Hİ\]H]HˆØ\İÜš^›Û‘[™
-HÛÛ[YNÃBƒBˆÛÛœİ™\]Y\İYÛÙ\ÈHØÚY[TÜÚ][ÛÛÙ\ÊØÚY[JNÃBˆÛÛœİ]X[]HH[YÙ\•˜[YJBˆ™XYšY[
-ØÚY[Kœ[›™Y]X[]H‹œ[›™YÜ]X[]H‹™\]Y\İYÛÙ\Ë›[™İJKBˆH]X[YYH°èH›ÙÜ˜[XYH‹BˆÈZ[š[][NˆHKBˆ
-NÃBˆÛÛœİÛÙ\ÈH™\]Y\İYÛÙ\Ë›[™İÈ™\]Y\İYÛÙ\ËœÛXÙJ]X[]JHˆ×NÃBˆ]™\Ù\™YHÃBƒBˆ›Üˆ
-ÛÛœİÛÙHÙˆÛÙ\ÊHÃBˆYˆ
-™\Ù\™TÜÚ][ÛŠØØİ\YYQ]K]KÛÙKÃBˆÜ™\’YˆØÚY[K›Ü™\’YÏÈØÚY[K›Ü™\—ÚYÏÈ[Bˆİ]\ËBˆÛİ\˜ÙNˆ›YØXŞWÜØÚY[H‹BˆKÛÛ™›XİÊJH™\Ù\™Y
-ÏHNÃBˆCBƒBˆÚ[H
-™\Ù\™Y]X[]JHÃBˆÛÛœİ\ÙYHØØİ\YYQ]K™Ù]
-]JH™]ÈX\
+export function addDays(dateValue, amount) {
+  const days = Number(amount);
+  if (!Number.isInteger(days)) throw new PlannerError("A quantidade de dias deve ser inteira.");
+  const date = new Date(`${normalizeDate(dateValue)}T00:00:00.000Z`);
+  date.setUTCDate(date.getUTCDate() + days);
+  return toISODate(date);
+}
 
-NÃBˆÛÛœİœ™YHHÜÚ][ÛœË™š[™
+export function dateRange(startValue, endValue) {
+  const start = normalizeDate(startValue, "data inicial");
+  const end = normalizeDate(endValue, "data final");
+  if (end < start) throw new PlannerError("A data final nÃ£o pode ser anterior Ã  data inicial.");
 
-ÜÚ][ÛŠHOˆ]\ÙYš\ÊÜÚ][Û‹˜ÛÙJJNÃBˆYˆ
-Yœ™YJHÃBˆÛÛ™›XİËœ\Ú
-ÃBˆ\Nˆ˜Ø\XÚ]H‹Bˆ]KBˆ™\]Y\İY]X[]Nˆ]X[]KBˆY\ÜØYÙNˆ0èHXZ\ÈH]X]›ÈÛÛ˜Ü™]YÙ[œÈ°èH›ÙÜ˜[XY\È[H	Ù]_K˜BˆJNÃBˆœ™XZÎÃBˆCBˆYˆ
-™\Ù\™TÜÚ][ÛŠØØİ\YYQ]K]Kœ™YK˜ÛÙKÃBˆÜ™\’YˆØÚY[K›Ü™\’YÏÈØÚY[K›Ü™\—ÚYÏÈ[Bˆİ]\ËBˆÛİ\˜ÙNˆ›YØXŞWÜØÚY[H‹BˆKÛÛ™›XİÊJH™\Ù\™Y
-ÏHNÃBˆCBˆCBŸCBƒB™[˜İ[Ûˆ™^ÛÜšÚ[™Ñ]PY\Š]KØ[[™\Q]K]\İ]JHÃBˆ›Üˆ
-]Ø[™Y]HHY^\Ê]KJNÈØ[™Y]HH]\İ]NÈØ[™Y]HHY^\ÊØ[™Y]KJJHÃBˆYˆ
-Ø[[™\Q]K™Ù]
-Ø[™Y]JOËš\ÕÛÜšÚ[™ÊH™]\›ˆØ[™Y]NÃBˆCBˆ™]\›ˆ[ÃBŸCBƒB‹ÊŠƒBˆ
-ˆ›ÙÜ˜[XHØYH[šYYH[H[XH\ÈÜÚpéğíY\Èx $ÔƒBˆ
-ƒBˆ
-ˆH]H[šXÚX[°èÛÈ0î[]˜[°éØH]0êHÈ°ìŞ[[ÈXH0î[ˆHİ\˜HÛÛHX\ÃBˆ
-ˆÛÜœšYÜÈH\\ˆÈXHÙYİZ[H0èÛÛ˜Ü™]YÙ[KˆÈXØX˜[Y[ÈØÛÜœ™H›ÃBˆ
-ˆ°ìŞ[[ÈXH0î[\0ìÜÈÈš[HHİ\˜KˆÜÚpéğèÛÈ0êHØİ\YHÛÛY[H˜H]HCBˆ
-ˆÛÛ˜Ü™]YÙ[KƒBˆ
-‹ÃB™^Ü[˜İ[Ûˆ[“Ü™\ŠÃBˆØ[[™\‘^\ÈH×KBˆ][\ÈH×KBˆ^\İ[™ÔØÚY[\ÈH×KBˆ^\İ[™Ğ[ØØ][ÛœÈH×KBˆÜÚ][ÛœÈHQUSÔÔÒUSÓ—ĞÓÑTË›X\
+  const result = [];
+  for (let current = start; current <= end; current = addDays(current, 1)) result.push(current);
+  return result;
+}
 
-ÛÙJHOˆ
-ÈÛÙKİ]\Îˆ™\ÜÛš]™[ˆJJKBˆİ\]KBˆYQ]HH[Bˆ[›š[™ÒÜš^›Û‘^\ÈHÌÌBˆ›ÙXİ[Û•[Z[™ÈH[BŸJHÃBˆÛÛœİ™\]Y\İYİ\]HH›Ü›X[^™Q]Jİ\]K™]HH[°ëXÚ[ÈŠNÃBˆÛÛœİYHHYQ]HÈ›Ü›X[^™Q]JYQ]Kœ˜^›ÈH[™YØHŠHˆ[ÃBˆYˆ
-YH	‰ˆYH™\]Y\İYİ\]JHÃBˆ›İÈ™]È[›™\‘\œ›ÜŠ“È˜^›ÈH[™YØH°èÛÈÙHÙ\ˆ[\š[Üˆ0è]HH[°ëXÚ[ËˆŠNÃBˆCBƒBˆÛÛœİÜš^›ÛˆH[YÙ\•˜[YJ[›š[™ÒÜš^›Û‘^\Ë“ÈÜš^›ÛHH[™Z˜[Y[È‹ÈZ[š[][NˆHJNÃBˆYˆ
-Üš^›ÛˆˆÌÌ
-H›İÈ™]È[›™\‘\œ›ÜŠ“ÈÜš^›ÛHpè^[[ÈH[™Z˜[Y[È0êHHÌÌX\ËˆŠNÃBƒBˆÛÛœİ^\ÈHØ[[™\‘^\Ë›X\
-›Ü›X[^™YØ[[™\‘^JKœÛÜ
+function readField(object, camelName, snakeName, fallback = null) {
+  return object?.[camelName] ?? object?.[snakeName] ?? fallback;
+}
 
-KŠHOˆK™]K›ØØ[PÛÛ\\™J‹™]JJNÃBˆÛÛœİØ[[™\Q]HH™]ÈX\
-^\Ë›X\
+function integerValue(value, label, { minimum = 0, fallback = null } = {}) {
+  if ((value === undefined || value === null || value === "") && fallback !== null) return fallback;
+  const number = Number(value);
+  if (!Number.isInteger(number) || number < minimum) {
+    throw new PlannerError(`${label} deve ser um nÃºmero inteiro maior ou igual a ${minimum}.`);
+  }
+  return number;
+}
 
-^JHOˆÙ^K™]K^WJJNÃBˆÛÛœİ]\İØ[[™\‘]HH^\Ë˜]
-LJOË™]HÏÈ[ÃBˆYˆ
-[]\İØ[[™\‘]HXØ[[™\Q]Kš\Ê™\]Y\İYİ\]JJHÃBˆ›İÈ™]È[›™\‘\œ›ÜŠ“ÈØ[[™0è\š[È°èÛÈÛÛ0ê[HH]H[šXÚX[ÛÛXÚ]YKˆ‹JNÃBˆCBƒBˆÛÛœİÜÚ][Û“\İHÜÚ][ÛœÃBˆ›X\
-›Ü›X[^™YÜÚ][ÛŠCBˆ™š[\Š
-ÜÚ][ÛŠHOˆÜÚ][Û‹œİ]\ÈOOH™[WÛX[][˜Ø[ÈŠCBˆœÛÜ
+function normalizedCalendarDay(day) {
+  return {
+    date: normalizeDate(readField(day, "date", "date"), "dia do calendÃ¡rio"),
+    isWorking: Boolean(readField(day, "isWorking", "is_working", false)),
+  };
+}
 
-KŠHOˆK˜ÛÙK›ØØ[PÛÛ\\™J‹˜ÛÙJJNÃBˆYˆ
-\ÜÚ][Û“\İ›[™İ
-H›İÈ™]È[›™\‘\œ›ÜŠ“°èÛÈ0èHÜÚpéğèÛÈH[ÛH\ÜÛ°ë]™[\˜H›ÙÜ˜[XpéğèÛËˆ‹JNÃBˆYˆ
-™]ÈÙ]
-ÜÚ][Û“\İ›X\
+function normalizedPosition(position) {
+  const code = String(readField(position, "code", "code", "")).trim();
+  const status = String(position?.status ?? "disponivel");
+  if (!/^P0[1-4]$/.test(code)) throw new PlannerError(`PosiÃ§Ã£o de molde invÃ¡lida: ${code || "sem cÃ³digo"}.`);
+  const configurationKind = readField(position, "configurationKind", "configuration_kind");
+  const catalogCodes = [
+    readField(position, "bracoCatalogCode", "braco_catalog_code"),
+    readField(position, "leitoCatalogCode", "leito_catalog_code"),
+    readField(position, "lateralCatalogCode", "lateral_catalog_code"),
+  ].filter(Boolean).map((value) => String(value).trim());
+  return { code, status, configurationKind, catalogCodes };
+}
 
-ÜÚ][ÛŠHOˆÜÚ][Û‹˜ÛÙJJKœÚ^™HOOHÜÚ][Û“\İ›[™İ
-HÃBˆ›İÈ™]È[›™\‘\œ›ÜŠ“ÈØ]0è[ÙÛÈÛÛ0ê[HÜÚpéğíY\ÈH[ÛH\XØY\ËˆŠNÃBˆCBƒBˆ]Y™™Xİ]™Tİ\]HH™\]Y\İYİ\]NÃBˆÚ[H
-Y™™Xİ]™Tİ\]HH]\İØ[[™\‘]H	‰ˆXØ[[™\Q]K™Ù]
-Y™™Xİ]™Tİ\]JOËš\ÕÛÜšÚ[™ÊHÃBˆY™™Xİ]™Tİ\]HHY^\ÊY™™Xİ]™Tİ\]KJNÃBˆCBˆYˆ
-Y™™Xİ]™Tİ\]Hˆ]\İØ[[™\‘]JHÃBˆ›İÈ™]È[›™\‘\œ›ÜŠ“°èÛÈ0èHXH0î[\ÜÛ°ë]™[\0ìÜÈH]H[šXÚX[[™›Ü›XYKˆ‹JNÃBˆCBƒBˆÛÛœİØ\İÜš^›Û‘[™HY^\ÊY™™Xİ]™Tİ\]KÜš^›ÛˆHJNÃBˆYˆ
-Ø\İÜš^›Û‘[™ˆ]\İØ[[™\‘]JHÃBˆ›İÈ™]È[›™\‘\œ›ÜŠ“ÈØ[[™0è\š[È°èÛÈÛØœ™HÈÜš^›ÛHH[™Z˜[Y[ÈÛÛ\]Ëˆ‹KÃBˆ™\]Z\™Y›İYÚˆY^\ÊØ\İÜš^›Û‘[™L
-KBˆ]˜Z[X›U›İYÚˆ]\İØ[[™\‘]KBˆJNÃBˆCBƒBˆÛÛœİ›Ü›X[^™Y][\ÈH][\Ë›X\
-›Ü›X[^™Y][JNÃBˆYˆ
-[›Ü›X[^™Y][\Ë›[™İ
-H›İÈ™]È[›™\‘\œ›ÜŠ“ÈYYÈ™XÚ\ØH\ˆ[ÈY[›ÜÈ[H][KˆŠNÃBƒBˆÛÛœİÛÛ™›XİÈH×NÃBˆÛÛœİ][\ÕÚ]İ]ÜÚ][ÛˆH›Ü›X[^™Y][\Ë™š[\Š
-][JHOˆ\ÜÚ][Û“\İœÛÛYJ
-ÜÚ][ÛŠHOˆÜÚ][ÛØ[”›ÙXÙJÜÚ][Û‹][JJJNÃBˆ›Üˆ
-ÛÛœİ][HÙˆ][\ÕÚ]İ]ÜÚ][ÛŠHÃBˆÛÛ™›XİËœ\Ú
-ÃBˆ\Nˆ›[ÛØÛÛ™šYİ\˜][Ûˆ‹BˆYXÙU\RYˆ][KœYXÙU\RYBˆY\ÜØYÙNˆ™[š[XHÜÚpéğèÛÈ[HHÛÛ™šYİ\˜péğèÛÈH[Û\ÈØY\İ˜YH\˜H	Ú][K˜ÛÙH][K›˜[YH™\İHpéØHŸK˜BˆJNÃBˆCBˆÛÛœİØØİ\YYQ]HH™]ÈX\
+function normalizedItem(item, index) {
+  const itemId = String(readField(item, "itemId", "item_id", "")).trim();
+  const pieceTypeId = String(readField(item, "pieceTypeId", "piece_type_id", "")).trim();
+  const quantity = integerValue(readField(item, "quantity", "quantity"), "A quantidade", { minimum: 1 });
+  const curingDays = integerValue(
+    readField(item, "curingDays", "curing_days", 2),
+    "O tempo de cura",
+    { minimum: 1, fallback: 2 },
+  );
+  const productionMinutesPerUnit = integerValue(
+    readField(item, "productionMinutesSnapshot", "production_minutes_snapshot", 0),
+    "O tempo de produÃ§Ã£o registrado",
+    { minimum: 0, fallback: 0 },
+  );
+  const rawRequiredMoldCodes = readField(item, "requiredMoldCodes", "required_mold_codes", []);
+  const requiredMoldCodes = Array.isArray(rawRequiredMoldCodes)
+    ? rawRequiredMoldCodes.map((value) => String(value).trim()).filter(Boolean).sort()
+    : [];
+  const requiresMoldConfig = Boolean(readField(item, "requiresMoldConfig", "requires_mold_config", requiredMoldCodes.length > 0));
 
-NÃBˆÛÛœİ[\˜[ĞTÜÚ][ÛˆH™]ÈX\
+  if (!itemId || !pieceTypeId) {
+    throw new PlannerError(`O item ${index + 1} precisa ter identificador e peÃ§a vÃ¡lidos.`);
+  }
 
-NÃBˆ™\Ù\™Q^\İ[™ĞØ\XÚ]JÃBˆ^\İ[™ÔØÚY[\ËBˆ^\İ[™Ğ[ØØ][ÛœËBˆÜÚ][ÛœÎˆÜÚ][Û“\İBˆØØİ\YYQ]KBˆ[\˜[ĞTÜÚ][Û‹Bˆİ\]NˆY™™Xİ]™Tİ\]KBˆØ\İÜš^›Û‘[™BˆÛÛ™›XİËBˆJNÃBƒBˆÛÛœİÛÜšÚ[™Ñ]\ÈH^\ÃBˆ™š[\Š
-^JHOˆ^Kš\ÕÛÜšÚ[™È	‰ˆ^K™]HHY™™Xİ]™Tİ\]H	‰ˆ^K™]HHØ\İÜš^›Û‘[™
-CBˆ›X\
+  return {
+    itemId,
+    pieceTypeId,
+    code: item.code ?? null,
+    name: item.name ?? null,
+    pieceKind: readField(item, "pieceKind", "piece_kind"),
+    quantity,
+    curingDays,
+    productionMinutesPerUnit,
+    requiredMoldCodes,
+    requiresMoldConfig,
+  };
+}
 
-^JHOˆ^K™]JNÃBˆÛÛœİ[š]ÈH×NÃBˆÛÛœİ][T[œÈH×NÃBƒBˆ›Üˆ
-ÛÛœİ][HÙˆ›Ü›X[^™Y][\ÊHÃBˆÛÛœİ][U[š]ÈH×NÃBˆ][š]Ù\]Y[˜ÙHHÃBƒBˆ›Üˆ
-ÛÛœİØ\İ]HÙˆÛÜšÚ[™Ñ]\ÊHÃBˆYˆ
-][U[š]Ë›[™İH][Kœ]X[]JHœ™XZÎÃBˆÛÛœİ\Ù\ÈH›ÙXİ[Û•[Z[™ÃBˆÈZ[›ÙXİ[Û”\Ù\ÊÈØ\İ]K‹‹œ›ÙXİ[Û•[Z[™ÈJCBˆˆ[ÃBˆÛÛœİØØİ\YYHØØİ\YYQ]K™Ù]
-Ø\İ]JH™]ÈX\
+function positionCanProduce(position, item) {
+  if (item.pieceKind === "placa") return position.configurationKind === "placa";
+  if (item.pieceKind === "braco" && position.configurationKind !== "braco") return false;
+  if (["pilar", "viga"].includes(item.pieceKind) && position.configurationKind !== "pilar_viga") return false;
+  if (!item.requiredMoldCodes.length) return !item.requiresMoldConfig;
+  const configured = [...position.catalogCodes].sort();
+  return configured.length === item.requiredMoldCodes.length &&
+    configured.every((code, index) => code === item.requiredMoldCodes[index]);
+}
 
-NÃBˆÛÛœİœ™YTÜÚ][ÛœÈHÜÚ][Û“\İ™š[\Š
-ÜÚ][ÛŠHOƒBˆ[ØØİ\YYš\ÊÜÚ][Û‹˜ÛÙJH	‰ˆÜÚ][ÛØ[”›ÙXÙJÜÚ][Û‹][JH	‰ƒBˆ
-\\Ù\ÈZ[\˜[İ™\›\Ê[\˜[ĞTÜÚ][Û‹ÜÚ][Û‹˜ÛÙK\Ù\Ë›ØØİ\YYœ›ÛP]\Ù\Ë›ØØİ\YY[[]
-JCBˆ
-NÃBƒBˆ›Üˆ
-ÛÛœİÜÚ][ÛˆÙˆœ™YTÜÚ][ÛœÊHÃBˆYˆ
-][U[š]Ë›[™İH][Kœ]X[]JHœ™XZÎÃBˆÛÛœİİ\™Tİ\]HH\Ù\ÏË˜İ\™Tİ\]HÏÈY^\ÊØ\İ]KJNÃBˆÛÛœİİ\™Q[™]HH\Ù\ÏË˜İ\™Q[™]HÏÈY^\ÊØ\İ]K][K˜İ\š[™Ñ^\ÊNÃBˆÛÛœİš[š\Ú]HH™^ÛÜšÚ[™Ñ]PY\Šİ\™Q[™]KØ[[™\Q]K]\İØ[[™\‘]JNÃBˆYˆ
-Yš[š\Ú]JHÛÛ[YNÃBƒBˆ[š]Ù\]Y[˜ÙH
-ÏHNÃBˆÛÛœİ[š]HÃBˆ][RYˆ][Kš][RYBˆYXÙU\RYˆ][KœYXÙU\RYBˆ[š]Ù\]Y[˜ÙKBˆÜÚ][ÛÛÙNˆÜÚ][Û‹˜ÛÙKBˆØ\İ]KBˆÛÜšÑ]NˆØ\İ]KBˆİ\š[™Ñ^\Îˆ][K˜İ\š[™Ñ^\ËBˆİ\™Tİ\]KBˆİ\™Q[™]KBˆš[š\Ú]KBˆ[›™Y[™]Nˆš[š\Ú]KBˆ›ÙXİ[Û“Z[]\ÔÛ˜\Úİˆ][Kœ›ÙXİ[Û“Z[]\Ô\•[š]Bˆ‹‹Š\Ù\ÈÈÃBˆİ\Îˆ\Ù\Ëœİ\ËBˆØØİ\YYœ›ÛP]ˆ\Ù\Ë›ØØİ\YYœ›ÛP]BˆØØİ\YY[[]ˆ\Ù\Ë›ØØİ\YY[[]BˆHˆßJKBˆNÃBˆ][U[š]Ëœ\Ú
-[š]
-NÃBˆ[š]Ëœ\Ú
-[š]
-NÃBˆ™\Ù\™TÜÚ][ÛŠØØİ\YYQ]KØ\İ]KÜÚ][Û‹˜ÛÙKÃBˆÜ™\’Yˆ[Bˆİ]\Îˆœ[›™Y‹BˆÛİ\˜ÙNˆ˜İ\œ™[ÛÜ™\ˆ‹BˆKÛÛ™›XİÊNÃBˆYˆ
-\Ù\ÊHYØØİ\YY[\˜[
-[\˜[ĞTÜÚ][Û‹ÜÚ][Û‹˜ÛÙK\Ù\Ë›ØØİ\YYœ›ÛP]\Ù\Ë›ØØİ\YY[[]
-NÃBˆCBˆCBƒBˆÛÛœİ][Q[™]\ÈH][U[š]Ë›X\
+function scheduleDate(schedule) {
+  return normalizeDate(
+    readField(schedule, "castDate", "planned_cast_date") ??
+      readField(schedule, "workDate", "work_date"),
+    "data da concretagem",
+  );
+}
 
-[š]
-HOˆ[š]œ[›™Y[™]JKœÛÜ
+function schedulePositionCodes(schedule) {
+  const value = readField(schedule, "positionCodes", "position_codes", null);
+  if (Array.isArray(value)) return value.map((code) => String(code).trim()).filter(Boolean);
+  const code = readField(schedule, "positionCode", "position_code", null);
+  return code ? [String(code).trim()] : [];
+}
 
-NÃBˆ][T[œËœ\Ú
-ÃBˆ][RYˆ][Kš][RYBˆYXÙU\RYˆ][KœYXÙU\RYBˆÛÙNˆ][K˜ÛÙKBˆ˜[YNˆ][K›˜[YKBˆ™\]Y\İY]X[]Nˆ][Kœ]X[]KBˆ]X[]UÔ›ÙXÙNˆ][Kœ]X[]KBˆİ\š[™Ñ^\Îˆ][K˜İ\š[™Ñ^\ËBˆ›ÙXİ[Û“Z[]\Ô\•[š]ˆ][Kœ›ÙXİ[Û“Z[]\Ô\•[š]Bˆ[›™Y]X[]Nˆ][U[š]Ë›[™İBˆ™[XZ[š[™Ô]X[]Nˆ][Kœ]X[]HH][U[š]Ë›[™İBˆ[›™YZ[]\Îˆ][U[š]Ë›[™İ
-ˆ][Kœ›ÙXİ[Û“Z[]\Ô\•[š]Bˆ[›™Y[™]Nˆ][Q[™]\Ë˜]
-LJHÏÈ[Bˆ[š]Îˆ][U[š]ËBˆJNÃBˆCBƒBˆÛÛœİØÚY[\ĞRÙ^HH™]ÈX\
+function reservePosition(occupiedByDate, date, code, reservation, conflicts) {
+  const byPosition = occupiedByDate.get(date) || new Map();
+  const current = byPosition.get(code);
+  if (current) {
+    conflicts.push({
+      type: "position",
+      date,
+      positionCode: code,
+      message: `A posiÃ§Ã£o ${code} jÃ¡ estÃ¡ ocupada em ${date}.`,
+      existingOrderId: current.orderId ?? null,
+      conflictingOrderId: reservation.orderId ?? null,
+    });
+    return false;
+  }
+  byPosition.set(code, reservation);
+  occupiedByDate.set(date, byPosition);
+  return true;
+}
 
-NÃBˆ›Üˆ
-ÛÛœİ[š]Ùˆ[š]ÊHÃBˆÛÛœİÙ^HH	İ[š]š][RY_	İ[š]˜Ø\İ]_XÃBˆÛÛœİØÚY[HHØÚY[\ĞRÙ^K™Ù]
-Ù^JHÃBˆ][RYˆ[š]š][RYBˆYXÙU\RYˆ[š]œYXÙU\RYBˆÛÜšÑ]Nˆ[š]˜Ø\İ]KBˆØ\İ]Nˆ[š]˜Ø\İ]KBˆ[›™Y]X[]NˆBˆ[›™YZ[]\ÎˆBˆÜÚ][ÛÛÙ\Îˆ×KBˆİ\š[™Ñ^\Îˆ[š]˜İ\š[™Ñ^\ËBˆİ\™Tİ\]Nˆ[š]˜İ\™Tİ\]KBˆİ\™Q[™]Nˆ[š]˜İ\™Q[™]KBˆš[š\Ú]Nˆ[š]™š[š\Ú]KBˆ[›™Y[™]Nˆ[š]œ[›™Y[™]KBˆNÃBˆØÚY[Kœ[›™Y]X[]H
-ÏHNÃBˆØÚY[Kœ[›™YZ[]\È
-ÏH[š]œ›ÙXİ[Û“Z[]\ÔÛ˜\ÚİÃBˆØÚY[KœÜÚ][ÛÛÙ\Ëœ\Ú
-[š]œÜÚ][ÛÛÙJNÃBˆØÚY[\ĞRÙ^KœÙ]
-Ù^KØÚY[JNÃBˆCBƒBˆÛÛœİØÚY[\ÈHË‹‹œØÚY[\ĞRÙ^K˜[Y\Ê
-WKœÛÜ
+function addOccupiedInterval(intervalsByPosition, code, startAt, endAt) {
+  const start = Date.parse(startAt);
+  const end = Date.parse(endAt);
+  if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start) return false;
+  const intervals = intervalsByPosition.get(code) || [];
+  intervals.push({ start, end });
+  intervalsByPosition.set(code, intervals);
+  return true;
+}
 
-KŠHOƒBˆKÛÜšÑ]K›ØØ[PÛÛ\\™J‹ÛÜšÑ]JHKš][RY›ØØ[PÛÛ\\™J‹š][RY
-CBˆ
-NÃBˆÛÛœİİ[™\]Y\İY]X[]HH›Ü›X[^™Y][\Ëœ™YXÙJ
-İ[K][JHOˆİ[H
-È][Kœ]X[]K
-NÃBˆÛÛœİİ[[›™Y]X[]HH[š]Ë›[™İÃBˆÛÛœİİ[™[XZ[š[™Ô]X[]HHİ[™\]Y\İY]X[]HHİ[[›™Y]X[]NÃBˆÛÛœİ[›™YØ\İ]\ÈH[š]Ë›X\
+function intervalOverlaps(intervalsByPosition, code, startAt, endAt) {
+  const start = Date.parse(startAt);
+  const end = Date.parse(endAt);
+  return (intervalsByPosition.get(code) || []).some((interval) =>
+    start < interval.end && end > interval.start
+  );
+}
 
-[š]
-HOˆ[š]˜Ø\İ]JKœÛÜ
+function reserveExistingCapacity({
+  existingSchedules,
+  existingAllocations,
+  positions,
+  occupiedByDate,
+  intervalsByPosition,
+  startDate,
+  castHorizonEnd,
+  conflicts,
+}) {
+  for (const allocation of existingAllocations) {
+    const status = String(allocation.status ?? "planned");
+    if (["cancelled", "cancelado"].includes(status)) continue;
+    const date = normalizeDate(
+      readField(allocation, "scheduledDate", "scheduled_date"),
+      "data da alocaÃ§Ã£o existente",
+    );
+    const code = String(readField(allocation, "positionCode", "position_code", "")).trim();
+    if (!positions.some((position) => position.code === code)) {
+      conflicts.push({ type: "position", date, positionCode: code || null, message: `AlocaÃ§Ã£o existente aponta para posiÃ§Ã£o invÃ¡lida em ${date}.` });
+      continue;
+    }
+    const occupiedFromAt = readField(allocation, "occupiedFromAt", "occupied_from_at", null);
+    const occupiedUntilAt = readField(allocation, "occupiedUntilAt", "occupied_until_at", null);
+    if (occupiedFromAt || occupiedUntilAt) {
+      if (!occupiedFromAt || !occupiedUntilAt || !addOccupiedInterval(intervalsByPosition, code, occupiedFromAt, occupiedUntilAt)) {
+        conflicts.push({ type: "position", date, positionCode: code, message: `A alocaÃ§Ã£o da posiÃ§Ã£o ${code} contÃ©m um intervalo de ocupaÃ§Ã£o invÃ¡lido.` });
+        continue;
+      }
+    }
+    if (date >= startDate && date <= castHorizonEnd) {
+      reservePosition(occupiedByDate, date, code, {
+        orderId: allocation.orderId ?? allocation.order_id ?? null,
+        status,
+        source: "allocation",
+      }, conflicts);
+    }
+  }
 
-NÃBˆÛÛœİ[›™Y[™]\ÈH[š]Ë›X\
+  for (const schedule of existingSchedules) {
+    const status = String(schedule.status ?? "planned");
+    if (["cancelled", "cancelado"].includes(status)) continue;
+    const date = scheduleDate(schedule);
+    if (date < startDate || date > castHorizonEnd) continue;
 
-[š]
-HOˆ[š]œ[›™Y[™]JKœÛÜ
+    const requestedCodes = schedulePositionCodes(schedule);
+    const quantity = integerValue(
+      readField(schedule, "plannedQuantity", "planned_quantity", requestedCodes.length || 1),
+      "A quantidade jÃ¡ programada",
+      { minimum: 1 },
+    );
+    const codes = requestedCodes.length ? requestedCodes.slice(0, quantity) : [];
+    let reserved = 0;
 
-NÃBˆÛÛœİ[›™YØ\İ[™]HH[›™YØ\İ]\Ë˜]
-LJHÏÈ[ÃBˆÛÛœİ\X[[™]HH[›™Y[™]\Ë˜]
-LJHÏÈ[ÃBˆÛÛœİ[›™Y[™]HHİ[™[XZ[š[™Ô]X[]HOOHÈ\X[[™]Hˆ[ÃBˆÛÛœİYSY]HYYH
-[›™Y[™]HOOH[	‰ˆ[›™Y[™]HHYJNÃBƒBˆYˆ
-YYSY]	‰ˆİ[™[XZ[š[™Ô]X[]HOOH
-HÃBˆÛÛ™›XİËœ\Ú
-ÃBˆ\Nˆ™XY[™H‹BˆYQ]NˆYKBˆİYÙÙ\İYYQ]Nˆ[›™Y[™]KBˆ™[XZ[š[™Ô]X[]NˆBˆY\ÜØYÙNˆÈ˜^›ÈÛÛXÚ]YÈ0êH[špè]™[ˆH]Hšpè]™[XZ\È°ìŞ[XH0êH	Ü[›™Y[™]_K˜BˆJNÃBˆCBˆYˆ
-İ[™[XZ[š[™Ô]X[]Hˆ
-HÃBˆÛÛ™›XİËœ\Ú
-ÃBˆ\Nˆ][\ÕÚ]İ]ÜÚ][Û‹›[™İÈ›[ÛØÛÛ™šYİ\˜][ÛˆˆˆšÜš^›Ûˆ‹BˆYQ]NˆYKBˆİYÙÙ\İYYQ]Nˆ[Bˆ™[XZ[š[™Ô]X[]Nˆİ[™[XZ[š[™Ô]X[]KBˆY\ÜØYÙNˆ][\ÕÚ]İ]ÜÚ][Û‹›[™İBˆÈ0èH	İİ[™[XZ[š[™Ô]X[]_H[šYYJÊHÙ[HÜÚpéğèÛÈÛÛHHÛÛ™šYİ\˜péğèÛÈH[Û\È^YÚYNÈ™]š\ÙHÜÈ[Û\È˜\ÈÜÚpéğíY\Èx $Ô˜BˆˆÈÜš^›ÛH°èÛÈÛÛ\ÜH	İİ[™[XZ[š[™Ô]X[]_H[šYYJÊNÈ[\YHÈÜš^›ÛHİH™]š\ÙH\ÈÜÚpéğíY\È\ÜÛ°ë]™Z\Ë˜BˆJNÃBˆCBƒBˆÛÛœİİ[[›™YZ[]\ÈH[š]Ëœ™YXÙJ
-İ[K[š]
-HOˆİ[H
-È[š]œ›ÙXİ[Û“Z[]\ÔÛ˜\Úİ
-NÃBˆÛÛœİ™X\ÚX›HHİ[™[XZ[š[™Ô]X[]HOOH	‰ˆYSY]	‰ˆXÛÛ™›XİËœÛÛYJ
-][JHOƒBˆ][K\HOOH˜Ø\XÚ]Hˆ][K\HOOHœÜÚ][Ûˆˆ][K\HOOH›[ÛØÛÛ™šYİ\˜][ÛˆƒBˆ
-NÃBƒBˆ™]\›ˆÃBˆ™X\ÚX›KBˆ™\]Y\İYİ\]KBˆİ\]Nˆ™\]Y\İYİ\]KBˆY™™Xİ]™Tİ\]KBˆYQ]NˆYKBˆ[›™YØ\İ[™]KBˆ[›™Y[™]KBˆ\X[[™]KBˆ˜\Ù[[™Q[™]Nˆ[›™Y[™]KBˆ›Ü™XØ\İ[™]Nˆ[›™Y[™]KBˆİYÙÙ\İYYQ]NˆYSY]È[ˆ[›™Y[™]KBˆÛÜšÚ[™Ñ^\ÎˆÛÜšÚ[™Ñ]\Ë›[™İBˆØ\XÚ]T\•ÛÜšÚ[™Ñ^NˆÜÚ][Û“\İ›[™İBˆİ[™\]Y\İY]X[]KBˆİ[Ô›ÙXÙNˆİ[™\]Y\İY]X[]KBˆİ[[›™Y]X[]KBˆİ[[›™YZ[]\ËBˆİ[™[XZ[š[™Ô]X[]KBˆ][\Îˆ][T[œËBˆ[š]ËBˆØÚY[\ËBˆÛÛ™›XİËBˆNÃBŸCB
+    for (const code of codes) {
+      if (reservePosition(occupiedByDate, date, code, {
+        orderId: schedule.orderId ?? schedule.order_id ?? null,
+        status,
+        source: "legacy_schedule",
+      }, conflicts)) reserved += 1;
+    }
+
+    while (reserved < quantity) {
+      const used = occupiedByDate.get(date) || new Map();
+      const free = positions.find((position) => !used.has(position.code));
+      if (!free) {
+        conflicts.push({
+          type: "capacity",
+          date,
+          requestedQuantity: quantity,
+          message: `HÃ¡ mais de quatro concretagens jÃ¡ programadas em ${date}.`,
+        });
+        break;
+      }
+      if (reservePosition(occupiedByDate, date, free.code, {
+        orderId: schedule.orderId ?? schedule.order_id ?? null,
+        status,
+        source: "legacy_schedule",
+      }, conflicts)) reserved += 1;
+    }
+  }
+}
+
+function nextWorkingDateAfter(date, calendarByDate, latestDate) {
+  for (let candidate = addDays(date, 1); candidate <= latestDate; candidate = addDays(candidate, 1)) {
+    if (calendarByDate.get(candidate)?.isWorking) return candidate;
+  }
+  return null;
+}
+
+/**
+ * Programa cada unidade em uma das posiÃ§Ãµes P01â€“P04.
+ *
+ * A data inicial nÃ£o Ãºtil avanÃ§a atÃ© o prÃ³ximo dia Ãºtil. A cura conta dias
+ * corridos a partir do dia seguinte Ã  concretagem. O acabamento ocorre no
+ * prÃ³ximo dia Ãºtil apÃ³s o fim da cura. PosiÃ§Ã£o Ã© ocupada somente na data de
+ * concretagem.
+ */
+export function planOrder({
+  calendarDays = [],
+  items = [],
+  existingSchedules = [],
+  existingAllocations = [],
+  positions = DEFAULT_POSITION_CODES.map((code) => ({ code, status: "disponivel" })),
+  startDate,
+  dueDate = null,
+  planningHorizonDays = 730,
+  productionTiming = null,
+}) {
+  const requestedStartDate = normalizeDate(startDate, "data de inÃ­cio");
+  const due = dueDate ? normalizeDate(dueDate, "prazo de entrega") : null;
+  if (due && due < requestedStartDate) {
+    throw new PlannerError("O prazo de entrega nÃ£o pode ser anterior Ã  data de inÃ­cio.");
+  }
+
+  const horizon = integerValue(planningHorizonDays, "O horizonte de planejamento", { minimum: 1 });
+  if (horizon > 730) throw new PlannerError("O horizonte mÃ¡ximo de planejamento Ã© de 730 dias.");
+
+  const days = calendarDays.map(normalizedCalendarDay).sort((a, b) => a.date.localeCompare(b.date));
+  const calendarByDate = new Map(days.map((day) => [day.date, day]));
+  const latestCalendarDate = days.at(-1)?.date ?? null;
+  if (!latestCalendarDate || !calendarByDate.has(requestedStartDate)) {
+    throw new PlannerError("O calendÃ¡rio nÃ£o contÃ©m a data inicial solicitada.", 409);
+  }
+
+  const positionList = positions
+    .map(normalizedPosition)
+    .filter((position) => position.status !== "em_manutencao")
+    .sort((a, b) => a.code.localeCompare(b.code));
+  if (!positionList.length) throw new PlannerError("NÃ£o hÃ¡ posiÃ§Ã£o de molde disponÃ­vel para programaÃ§Ã£o.", 409);
+  if (new Set(positionList.map((position) => position.code)).size !== positionList.length) {
+    throw new PlannerError("O catÃ¡logo contÃ©m posiÃ§Ãµes de molde duplicadas.");
+  }
+
+  let effectiveStartDate = requestedStartDate;
+  while (effectiveStartDate <= latestCalendarDate && !calendarByDate.get(effectiveStartDate)?.isWorking) {
+    effectiveStartDate = addDays(effectiveStartDate, 1);
+  }
+  if (effectiveStartDate > latestCalendarDate) {
+    throw new PlannerError("NÃ£o hÃ¡ dia Ãºtil disponÃ­vel apÃ³s a data inicial informada.", 409);
+  }
+
+  const castHorizonEnd = addDays(effectiveStartDate, horizon - 1);
+  if (castHorizonEnd > latestCalendarDate) {
+    throw new PlannerError("O calendÃ¡rio nÃ£o cobre o horizonte de planejamento completo.", 409, {
+      requiredThrough: addDays(castHorizonEnd, 10),
+      availableThrough: latestCalendarDate,
+    });
+  }
+
+  const normalizedItems = items.map(normalizedItem);
+  if (!normalizedItems.length) throw new PlannerError("O pedido precisa ter ao menos um item.");
+
+  const conflicts = [];
+  const itemsWithoutPosition = normalizedItems.filter((item) => !positionList.some((position) => positionCanProduce(position, item)));
+  for (const item of itemsWithoutPosition) {
+    conflicts.push({
+      type: "mold_configuration",
+      pieceTypeId: item.pieceTypeId,
+      message: `Nenhuma posiÃ§Ã£o tem a configuraÃ§Ã£o de moldes cadastrada para ${item.code || item.name || "esta peÃ§a"}.`,
+    });
+  }
+  const occupiedByDate = new Map();
+  const intervalsByPosition = new Map();
+  reserveExistingCapacity({
+    existingSchedules,
+    existingAllocations,
+    positions: positionList,
+    occupiedByDate,
+    intervalsByPosition,
+    startDate: effectiveStartDate,
+    castHorizonEnd,
+    conflicts,
+  });
+
+  const workingDates = days
+    .filter((day) => day.isWorking && day.date >= effectiveStartDate && day.date <= castHorizonEnd)
+    .map((day) => day.date);
+  const units = [];
+  const itemPlans = [];
+
+  for (const item of normalizedItems) {
+    const itemUnits = [];
+    let unitSequence = 0;
+
+    for (const castDate of workingDates) {
+      if (itemUnits.length >= item.quantity) break;
+      const phases = productionTiming
+        ? buildProductionPhases({ castDate, ...productionTiming })
+        : null;
+      const occupied = occupiedByDate.get(castDate) || new Map();
+      const freePositions = positionList.filter((position) =>
+        !occupied.has(position.code) && positionCanProduce(position, item) &&
+        (!phases || !intervalOverlaps(intervalsByPosition, position.code, phases.occupiedFromAt, phases.occupiedUntilAt))
+      );
+
+      for (const position of freePositions) {
+        if (itemUnits.length >= item.quantity) break;
+        const cureStartDate = phases?.cureStartDate ?? addDays(castDate, 1);
+        const cureEndDate = phases?.cureEndDate ?? addDays(castDate, item.curingDays);
+        const finishDate = nextWorkingDateAfter(cureEndDate, calendarByDate, latestCalendarDate);
+        if (!finishDate) continue;
+
+        unitSequence += 1;
+        const unit = {
+          itemId: item.itemId,
+          pieceTypeId: item.pieceTypeId,
+          unitSequence,
+          positionCode: position.code,
+          castDate,
+          workDate: castDate,
+          curingDays: item.curingDays,
+          cureStartDate,
+          cureEndDate,
+          finishDate,
+          plannedEndDate: finishDate,
+          productionMinutesSnapshot: item.productionMinutesPerUnit,
+          ...(phases ? {
+            steps: phases.steps,
+            occupiedFromAt: phases.occupiedFromAt,
+            occupiedUntilAt: phases.occupiedUntilAt,
+          } : {}),
+        };
+        itemUnits.push(unit);
+        units.push(unit);
+        reservePosition(occupiedByDate, castDate, position.code, {
+          orderId: null,
+          status: "planned",
+          source: "current_order",
+        }, conflicts);
+        if (phases) addOccupiedInterval(intervalsByPosition, position.code, phases.occupiedFromAt, phases.occupiedUntilAt);
+      }
+    }
+
+    const itemEndDates = itemUnits.map((unit) => unit.plannedEndDate).sort();
+    itemPlans.push({
+      itemId: item.itemId,
+      pieceTypeId: item.pieceTypeId,
+      code: item.code,
+      name: item.name,
+      requestedQuantity: item.quantity,
+      quantityToProduce: item.quantity,
+      curingDays: item.curingDays,
+      productionMinutesPerUnit: item.productionMinutesPerUnit,
+      plannedQuantity: itemUnits.length,
+      remainingQuantity: item.quantity - itemUnits.length,
+      plannedMinutes: itemUnits.length * item.productionMinutesPerUnit,
+      plannedEndDate: itemEndDates.at(-1) ?? null,
+      units: itemUnits,
+    });
+  }
+
+  const schedulesByKey = new Map();
+  for (const unit of units) {
+    const key = `${unit.itemId}|${unit.castDate}`;
+    const schedule = schedulesByKey.get(key) || {
+      itemId: unit.itemId,
+      pieceTypeId: unit.pieceTypeId,
+      workDate: unit.castDate,
+      castDate: unit.castDate,
+      plannedQuantity: 0,
+      plannedMinutes: 0,
+      positionCodes: [],
+      curingDays: unit.curingDays,
+      cureStartDate: unit.cureStartDate,
+      cureEndDate: unit.cureEndDate,
+      finishDate: unit.finishDate,
+      plannedEndDate: unit.plannedEndDate,
+    };
+    schedule.plannedQuantity += 1;
+    schedule.plannedMinutes += unit.productionMinutesSnapshot;
+    schedule.positionCodes.push(unit.positionCode);
+    schedulesByKey.set(key, schedule);
+  }
+
+  const schedules = [...schedulesByKey.values()].sort((a, b) =>
+    a.workDate.localeCompare(b.workDate) || a.itemId.localeCompare(b.itemId)
+  );
+  const totalRequestedQuantity = normalizedItems.reduce((sum, item) => sum + item.quantity, 0);
+  const totalPlannedQuantity = units.length;
+  const totalRemainingQuantity = totalRequestedQuantity - totalPlannedQuantity;
+  const plannedCastDates = units.map((unit) => unit.castDate).sort();
+  const plannedEndDates = units.map((unit) => unit.plannedEndDate).sort();
+  const plannedCastEndDate = plannedCastDates.at(-1) ?? null;
+  const partialEndDate = plannedEndDates.at(-1) ?? null;
+  const plannedEndDate = totalRemainingQuantity === 0 ? partialEndDate : null;
+  const dueMet = !due || (plannedEndDate !== null && plannedEndDate <= due);
+
+  if (!dueMet && totalRemainingQuantity === 0) {
+    conflicts.push({
+      type: "deadline",
+      dueDate: due,
+      suggestedDueDate: plannedEndDate,
+      remainingQuantity: 0,
+      message: `O prazo solicitado Ã© inviÃ¡vel. A data viÃ¡vel mais prÃ³xima Ã© ${plannedEndDate}.`,
+    });
+  }
+  if (totalRemainingQuantity > 0) {
+    conflicts.push({
+      type: itemsWithoutPosition.length ? "mold_configuration" : "horizon",
+      dueDate: due,
+      suggestedDueDate: null,
+      remainingQuantity: totalRemainingQuantity,
+      message: itemsWithoutPosition.length
+        ? `HÃ¡ ${totalRemainingQuantity} unidade(s) sem posiÃ§Ã£o com a configuraÃ§Ã£o de moldes exigida; revise os moldes nas posiÃ§Ãµes P01â€“P04.`
+        : `O horizonte nÃ£o comporta ${totalRemainingQuantity} unidade(s); amplie o horizonte ou revise as posiÃ§Ãµes disponÃ­veis.`,
+    });
+  }
+
+  const totalPlannedMinutes = units.reduce((sum, unit) => sum + unit.productionMinutesSnapshot, 0);
+  const feasible = totalRemainingQuantity === 0 && dueMet && !conflicts.some((item) =>
+    item.type === "capacity" || item.type === "position" || item.type === "mold_configuration"
+  );
+
+  return {
+    feasible,
+    requestedStartDate,
+    startDate: requestedStartDate,
+    effectiveStartDate,
+    dueDate: due,
+    plannedCastEndDate,
+    plannedEndDate,
+    partialEndDate,
+    baselineEndDate: plannedEndDate,
+    forecastEndDate: plannedEndDate,
+    suggestedDueDate: dueMet ? null : plannedEndDate,
+    workingDays: workingDates.length,
+    capacityPerWorkingDay: positionList.length,
+    totalRequestedQuantity,
+    totalToProduce: totalRequestedQuantity,
+    totalPlannedQuantity,
+    totalPlannedMinutes,
+    totalRemainingQuantity,
+    items: itemPlans,
+    units,
+    schedules,
+    conflicts,
+  };
+}

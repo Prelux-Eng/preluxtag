@@ -1,41 +1,64 @@
-YªçŠx³¬uç%j·Â+ar‰ì¶ë•ë_¢ºÞjË"‚v›•ëÚ®&›•ëËÈH™\œðèÛÈ]YH[ÈÜÈ\œ]Z]›ÜÈÈ\\˜H]YHÙ[[\™\È˜Z^[HH\Ý]\˜H›Ý˜KƒB˜ÛÛœÝÐPÒWÓSQHH	Ü™[^Y[Z\ÜÛÜ‹Y]\]Y]\Ë]ŒM‰ÎÃB˜ÛÛœÝTÔÒSHÃBˆ	Ë‹ÉËBˆ	Ë‹Ú[™^š[	ËBˆ	Ë‹ØÜÜËØ\˜ÜÜÏÝLÉËBˆ	Ë‹ØÜÜËÛÜ\˜][ÛœË˜ÜÜÏÝM	ËBˆ	Ë‹ÚœËØÛÜ™KØ\KšœÏÝLMÉËBˆ	Ë‹ÚœËØÛÜ™KÛ˜]šYØ][Û‹šœÏÝLIËBˆ	Ë‹ÚœËÙÛXZ[‹Û[ÛXÛÛ\]Xš[]KšœÏÝLIËBˆ	Ë‹ÚœËÜ™\ÜÚ]ÜšY\ËÜ[›š[™Ë\™\ÜÚ]ÜžKšœÏÝLIËBˆ	Ë‹ÚœËÜ™\ÜÚ]ÜšY\ËÛÜ\˜][ÛœË\™\ÜÚ]ÜžKšœÏÝL‰ËBˆ	Ë‹ÚœËÛ[Ù[\ËÛX™[Y[Z]\‹šœÏÝLIËBˆ	Ë‹ÚœËÛ[Ù[\ËÜ›ÙXÝ[Û‹XØ[[™\‹šœÏÝLL	ËBˆ	Ë‹ÚœËÛ[Ù[\ËÛÜ\˜][ÛœËXYZ[‹šœÏÝN	ËBˆ	Ë‹ÛX[šY™\ÝÙX›X[šY™\Ý	ËBˆ	Ë‹Ø\ÜÙ]ËÔ‘WÔTÕ‘Kœ™ÉËBˆ	Ë‹ÚXÛÛœËÚXÛÛ‹LNL‹œ™ÉËBˆ	Ë‹ÚXÛÛœËÚXÛÛ‹MLL‹œ™ÉÃB—NÃBƒBœÙ[‹˜Y]™[\Ý[™\Š	Ú[œÝ[	Ë]™[OˆÃBˆ]™[ØZ][[
-ØXÚ\Ë›Ü[ŠÐPÒWÓSQJK[ŠØXÚHOˆØXÚK˜Y[
-TÔÒS
-JK[Š
+// A versÃ£o muda junto dos arquivos do app para que celulares baixem a estrutura nova.
+const CACHE_NAME = 'prelux-emissor-etiquetas-v16';
+const APP_SHELL = [
+  './',
+  './index.html',
+  './css/app.css?v=3',
+  './css/operations.css?v=4',
+  './js/core/api.js?v=17',
+  './js/core/navigation.js?v=1',
+  './js/domain/mold-compatibility.js?v=1',
+  './js/repositories/planning-repository.js?v=1',
+  './js/repositories/operations-repository.js?v=2',
+  './js/modules/label-emitter.js?v=1',
+  './js/modules/production-calendar.js?v=10',
+  './js/modules/operations-admin.js?v=8',
+  './manifest.webmanifest',
+  './assets/PRE_RASTRE.png',
+  './icons/icon-192.png',
+  './icons/icon-512.png'
+];
 
-HOˆÙ[‹œÚÚ\ØZ][™Ê
-JJNÃBŸJNÃBƒBœÙ[‹˜Y]™[\Ý[™\Š	ØXÝ]˜]IË]™[OˆÃBˆ]™[ØZ][[
-ØXÚ\ËšÙ^\Ê
-K[ŠÙ^\ÈOˆ›ÛZ\ÙK˜[
-Ù^\Ë™š[\ŠÙ^HOˆÙ^HOOHÐPÒWÓSQJK›X\
-Ù^HOˆØXÚ\Ë™[]JÙ^JJJJK[Š
+self.addEventListener('install', event => {
+  event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(APP_SHELL)).then(() => self.skipWaiting()));
+});
 
-HOˆÙ[‹˜ÛY[Ë˜ÛZ[J
-JJNÃBŸJNÃBƒBœÙ[‹˜Y]™[\Ý[™\Š	Ù™]Ú	Ë]™[OˆÃBˆYˆ
-]™[œ™\]Y\Ý›Y]ÙOOH	ÑÑU	ÊH™]\›ŽÃBƒBˆÛÛœÝ™\]Y\ÝH]™[œ™\]Y\ÝÃBˆÛÛœÝ\Ó˜]šYØ][ÛˆH™\]Y\Ý›[ÙHOOH	Û˜]šYØ]IÈ™\]Y\Ý™\Ý[˜][ÛˆOOH	ÙØÝ[Y[	ÎÃBˆÛÛœÝ\Õ™\œÚ[Û”Ù[œÚ]]™HHÃBˆ	ËÚœËØÛÜ™KØ\KšœÉËBˆ	ËÚœËØÛÜ™KÛ˜]šYØ][Û‹šœÉËBˆ	ËÚœËÙÛXZ[‹Û[ÛXÛÛ\]Xš[]KšœÉËBˆ	ËÚœËÜ™\ÜÚ]ÜšY\ËÉËBˆ	ËÚœËÛ[Ù[\ËÉËBˆ	ËØÜÜËØ\˜ÜÜÉËBˆ	ËØÜÜËÛÜ\˜][ÛœË˜ÜÜÉËBˆ	ËÜÝËšœÉËBˆKœÛÛYJ]Oˆ™\]Y\Ý\›š[˜ÛY\Ê]
-JNÃBƒBˆYˆ
-\Ó˜]šYØ][Ûˆ\Õ™\œÚ[Û”Ù[œÚ]]™JHÃBˆ]™[œ™\ÜÛ™Ú]
-™]Ú
-™\]Y\Ý
-K[Š™\ÜÛœÙHOˆÃBˆYˆ
-™\ÜÛœÙK›ÚÊHÃBˆÛÛœÝÛÜHH™\ÜÛœÙK˜ÛÛ™J
-NÃBˆØXÚ\Ë›Ü[ŠÐPÒWÓSQJK[ŠØXÚHOˆØXÚKœ]
-™\]Y\ÝÛÜJJNÃBˆCBˆ™]\›ˆ™\ÜÛœÙNÃBˆJK˜Ø]Ú
+self.addEventListener('activate', event => {
+  event.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(key => key !== CACHE_NAME).map(key => caches.delete(key)))).then(() => self.clients.claim()));
+});
 
+self.addEventListener('fetch', event => {
+  if (event.request.method !== 'GET') return;
 
-HOˆØXÚ\Ë›X]Ú
-™\]Y\Ý
-K[ŠØXÚYOˆØXÚYØXÚ\Ë›X]Ú
-	Ë‹Ú[™^š[	ÊJJJNÃBˆ™]\›ŽÃBˆCBƒBˆ]™[œ™\ÜÛ™Ú]
-ØXÚ\Ë›X]Ú
-™\]Y\Ý
-K[ŠØXÚYOˆØXÚY™]Ú
-™\]Y\Ý
-K[Š™\ÜÛœÙHOˆÃBˆYˆ
-™\ÜÛœÙK›ÚÊHÃBˆÛÛœÝÛÜHH™\ÜÛœÙK˜ÛÛ™J
-NÃBˆØXÚ\Ë›Ü[ŠÐPÒWÓSQJK[ŠØXÚHOˆØXÚKœ]
-™\]Y\ÝÛÜJJNÃBˆCBˆ™]\›ˆ™\ÜÛœÙNÃBˆJK˜Ø]Ú
+  const request = event.request;
+  const isNavigation = request.mode === 'navigate' || request.destination === 'document';
+  const isVersionSensitive = [
+    '/js/core/api.js',
+    '/js/core/navigation.js',
+    '/js/domain/mold-compatibility.js',
+    '/js/repositories/',
+    '/js/modules/',
+    '/css/app.css',
+    '/css/operations.css',
+    '/sw.js',
+  ].some(path => request.url.includes(path));
 
+  if (isNavigation || isVersionSensitive) {
+    event.respondWith(fetch(request).then(response => {
+      if (response.ok) {
+        const copy = response.clone();
+        caches.open(CACHE_NAME).then(cache => cache.put(request, copy));
+      }
+      return response;
+    }).catch(() => caches.match(request).then(cached => cached || caches.match('./index.html'))));
+    return;
+  }
 
-HOˆØXÚ\Ë›X]Ú
-	Ë‹Ú[™^š[	ÊJJJNÃBŸJNÃB
+  event.respondWith(caches.match(request).then(cached => cached || fetch(request).then(response => {
+    if (response.ok) {
+      const copy = response.clone();
+      caches.open(CACHE_NAME).then(cache => cache.put(request, copy));
+    }
+    return response;
+  }).catch(() => caches.match('./index.html'))));
+});

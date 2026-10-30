@@ -1,54 +1,89 @@
-YªçŠx³¬uç%j·Â+ar‰ì¶ë•ë_¢ºÞjË"‚v›•ëÚ®&›•ë[\Ü\ÜÙ\œ›ÛH››ÙN˜\ÜÙ\ÜÝšXÝŽÂš[\Ü\Ýœ›ÛH››ÙN\ÝŽÂ‚š[\ÜÈØ[Ý[]T]SY]šXÜÈHœ›ÛH‹‹‹ÜÝ\X˜\ÙKÙ[˜Ý[ÛœË×ÜÚ\™YÜ]K[Y]šXÜËšœÈŽÂš[\ÜÈZ[›ÙXÝ[Û”\Ù\ÈHœ›ÛH‹‹‹ÜÝ\X˜\ÙKÙ[˜Ý[ÛœË×ÜÚ\™YÜ›ÙXÝ[Û‹\\Ù\ËšœÈŽÂš[\ÜÈ[“Ü™\ˆHœ›ÛH‹‹‹ÜÝ\X˜\ÙKÙ[˜Ý[ÛœË×ÜÚ\™YÜ[›™\‹šœÈŽÂš[\ÜÈZ[Ø[[™\‘^\ÈHœ›ÛH‹‹‹ÜÝ\X˜\ÙKÙ[˜Ý[ÛœË×ÜÚ\™YØØ[[™\‹šœÈŽÂ‚\Ý
-œXØH\ØH0åÈH\˜H0è\™XHHˆ\˜H\Ü\ÜÝ\˜HH›Û[YH‹
+import assert from "node:assert/strict";
+import test from "node:test";
 
-HOˆÂˆÛÛœÝY]šXÜÈHØ[Ý[]T]SY]šXÜÊÈˆŒNˆÌŽˆLJNÂ‚ˆ\ÜÙ\™\]X[
-Y]šXÜË˜\™XSL‹ŠNÂˆ\ÜÙ\™\]X[
-Y]šXÜË›Û[YPÛLËŒÌ
-NÂˆ\ÜÙ\™\]X[
-Y]šXÜË›Û[YSLËŠNÂˆ\ÜÙ\™\]X[
-Y]šXÜËÙZYÚÙËWÍL
-NÂŸJNÂ‚\Ý
-œXØH™XÝ\ØH[Y[œðíY\È]\Ù[\Ë™YØ]]˜\ÈÝH°èÛÈ[pê\šXØ\È‹
+import { calculatePlateMetrics } from "../supabase/functions/_shared/plate-metrics.js";
+import { buildProductionPhases } from "../supabase/functions/_shared/production-phases.js";
+import { planOrder } from "../supabase/functions/_shared/planner.js";
+import { buildCalendarDays } from "../supabase/functions/_shared/calendar.js";
 
-HOˆÂˆ›Üˆ
-ÛÛœÝ[Y[œÚ[ÛœÈÙˆÞÈˆNˆLŽˆˆKÈˆLNˆLKŽˆˆKÈˆž‹NˆLŽˆˆWJHÂˆ\ÜÙ\›ÝÜÊ
+test("placa usa X Ã— Y para Ã¡rea e Z para espessura e volume", () => {
+  const metrics = calculatePlateMetrics({ x: 200, y: 300, z: 10 });
 
-HOˆØ[Ý[]T]SY]šXÜÊ[Y[œÚ[ÛœÊKÛXZ[Üˆ]YH™\›ËÊNÂˆBŸJNÂ‚\Ý
-šÜ°è\š[ÜÈ^]ÜÈ\Ø[H\ÛÈH[šYYHH™\Ù\˜[HÜÚpéðèÛÈ]0êHÈš[HHÝ\˜H‹
+  assert.equal(metrics.areaM2, 6);
+  assert.equal(metrics.volumeCm3, 600_000);
+  assert.equal(metrics.volumeM3, 0.6);
+  assert.equal(metrics.weightKg, 1_500);
+});
 
-HOˆÂˆÛÛœÝ\Ù\ÈHZ[›ÙXÝ[Û”\Ù\ÊÂˆØ\Ý]NˆŒŒ‹L‹Lˆ‹ˆØ\ÝÝ\[YNˆŒŒ‹ˆ[YV›Û™Nˆ[Y\šXØKÔØ[×Ô][È‹ˆØ\Ý[™Ñ\˜][Û“Z[]\ÎˆLŒˆÝ\š[™Ñ\˜][Û’Ý\œÎˆL‹ˆJNÂ‚ˆ\ÜÙ\™\]X[
-\Ù\Ë›ØØÝ\YYœ›ÛP]ŒŒ‹L‹L•LNŒŒŒˆŠNÂˆ\ÜÙ\™\]X[
-\Ù\ËœÝ\ÖÌKœ[›™Y[™]ŒŒ‹L‹L•LÎŒŒŒˆŠNÂˆ\ÜÙ\™\]X[
-\Ù\ËœÝ\ÖÌWKœ[›™Y[™]ŒŒ‹L‹LÕNŒŒŒˆŠNÂˆ\ÜÙ\™\]X[
-\Ù\Ë˜Ý\™Q[™]KŒŒ‹L‹LˆŠNÂˆ\ÜÙ\™\]X[
-\Ù\Ë›ØØÝ\YY[[]\Ù\ËœÝ\ÖÌWKœ[›™Y[™]
-NÂˆ\ÜÙ\™Y\\]X[
-\Ù\ËœÝ\ËœÛXÙJŠK›X\
+test("placa recusa dimensÃµes ausentes, negativas ou nÃ£o numÃ©ricas", () => {
+  for (const dimensions of [{ x: 0, y: 10, z: 2 }, { x: 10, y: -1, z: 2 }, { x: "x", y: 10, z: 2 }]) {
+    assert.throws(() => calculatePlateMetrics(dimensions), /maior que zero/);
+  }
+});
 
-Ý\
-HOˆÝ\™\˜][Û“Z[]\ÊKÛ[[[JNÂŸJNÂ‚\Ý
-™\˜péðèÛÈÛÛšXÚYH[[Y[H]HHX™\˜péðèÛÈÙ[H]Y\ˆHÝ\˜HYØYH]X[™È]\Ù[H‹
+test("horÃ¡rios exatos usam fuso da unidade e reservam posiÃ§Ã£o atÃ© o fim da cura", () => {
+  const phases = buildProductionPhases({
+    castDate: "2026-02-02",
+    castStartTime: "08:00",
+    timeZone: "America/Sao_Paulo",
+    castingDurationMinutes: 120,
+    curingDurationHours: 12,
+  });
 
-HOˆÂˆÛÛœÝØ[[™\‘^\ÈHZ[Ø[[™\‘^\ÊÂˆÝ\]NˆŒŒ‹L‹Lˆ‹ˆ[™]NˆŒŒ‹L‹L‹ˆÙ][™ÜÎˆÈY˜][ØØ\XÚ]WÛZ[]\ÎˆKˆ[\ÎˆÌK‹ËWK›X\
+  assert.equal(phases.occupiedFromAt, "2026-02-02T11:00:00.000Z");
+  assert.equal(phases.steps[0].plannedEndAt, "2026-02-02T13:00:00.000Z");
+  assert.equal(phases.steps[1].plannedEndAt, "2026-02-03T01:00:00.000Z");
+  assert.equal(phases.cureEndDate, "2026-02-02");
+  assert.equal(phases.occupiedUntilAt, phases.steps[1].plannedEndAt);
+  assert.deepEqual(phases.steps.slice(2).map((step) => step.durationMinutes), [null, null, null]);
+});
 
-ÙYZÙ^JHOˆ
-ÈÙYZÙ^K\×ÝÛÜšÚ[™ÎˆYKØ\XÚ]WÛZ[]\ÎˆJJKˆJNÂˆÛÛœÝÛYØXÞWHH[“Ü™\ŠÂˆØ[[™\‘^\ËˆÝ\]NˆŒŒ‹L‹Lˆ‹ˆ[›š[™ÒÜš^›Û‘^\Îˆ‹ˆ][\ÎˆÞÈ][RYˆšLH‹YXÙU\RYˆœH‹]X[]NˆKÝ\š[™Ñ^\ÎˆˆWKˆJK[š]ÎÂˆÛÛœÝÝ[YYHH[“Ü™\ŠÂˆØ[[™\‘^\ËˆÝ\]NˆŒŒ‹L‹Lˆ‹ˆ[›š[™ÒÜš^›Û‘^\Îˆ‹ˆ][\ÎˆÞÈ][RYˆšLH‹YXÙU\RYˆœH‹]X[]NˆKYXÙRÚ[™ˆœXØH‹™\]Z\™\Ó[ÛÛÛ™šYÎˆYHWKˆÜÚ][ÛœÎˆÞÈÛÙNˆ”H‹Ý]\Îˆ™\ÜÛš]™[‹ÛÛ™šYÝ\˜][Û—ÚÚ[™ˆœXØHˆWKˆ›ÙXÝ[Û•[Z[™ÎˆÈØ\ÝÝ\[YNˆŒŒ‹[YV›Û™Nˆ[Y\šXØKÔØ[×Ô][È‹Ø\Ý[™Ñ\˜][Û“Z[]\ÎˆLŒÝ\š[™Ñ\˜][Û’Ý\œÎˆLˆKˆJK[š]ÎÂ‚ˆ\ÜÙ\™\]X[
-YØXÞK˜Ý\™Q[™]KŒŒ‹L‹LŠNÂˆ\ÜÙ\™\]X[
-[YY˜Ý\™Q[™]KŒŒ‹L‹LˆŠNÂˆ\ÜÙ\™\]X[
-[YY™š[š\Ú]KŒŒ‹L‹LÈŠNÂˆ\ÜÙ\™\]X[
-[YYœÝ\Ë›[™ÝJNÂˆ\ÜÙ\™\]X[
-[YY›ØØÝ\YYœ›ÛP][YYœÝ\ÖÌKœ[›™YÝ\]
-NÂˆ\ÜÙ\™\]X[
-[YY›ØØÝ\YY[[][YYœÝ\ÖÌWKœ[›™Y[™]
-NÂŸJNÂ‚\Ý
-œÜÚpéðèÛÈ[˜HðìÈ™XÙX™HXØHH°èÛÈXÙZ]Hœ˜péÛÈÝH[\‹ÝšYØH‹
+test("duraÃ§Ã£o conhecida alimenta data de liberaÃ§Ã£o sem mudar a cura legada quando ausente", () => {
+  const calendarDays = buildCalendarDays({
+    startDate: "2026-02-02",
+    endDate: "2026-02-08",
+    settings: { default_capacity_minutes: 480 },
+    rules: [1, 2, 3, 4, 5].map((weekday) => ({ weekday, is_working: true, capacity_minutes: 480 })),
+  });
+  const [legacy] = planOrder({
+    calendarDays,
+    startDate: "2026-02-02",
+    planningHorizonDays: 2,
+    items: [{ itemId: "i1", pieceTypeId: "p1", quantity: 1, curingDays: 2 }],
+  }).units;
+  const [timed] = planOrder({
+    calendarDays,
+    startDate: "2026-02-02",
+    planningHorizonDays: 2,
+    items: [{ itemId: "i1", pieceTypeId: "p1", quantity: 1, pieceKind: "placa", requiresMoldConfig: true }],
+    positions: [{ code: "P01", status: "disponivel", configuration_kind: "placa" }],
+    productionTiming: { castStartTime: "08:00", timeZone: "America/Sao_Paulo", castingDurationMinutes: 120, curingDurationHours: 12 },
+  }).units;
 
-HOˆÂˆÛÛœÝØ[[™\‘^\ÈHZ[Ø[[™\‘^\ÊÂˆÝ\]NˆŒŒ‹L‹Lˆ‹ˆ[™]NˆŒŒ‹L‹L‹ˆÙ][™ÜÎˆÈY˜][ØØ\XÚ]WÛZ[]\ÎˆKˆ[\ÎˆÌK‹ËWK›X\
+  assert.equal(legacy.cureEndDate, "2026-02-04");
+  assert.equal(timed.cureEndDate, "2026-02-02");
+  assert.equal(timed.finishDate, "2026-02-03");
+  assert.equal(timed.steps.length, 5);
+  assert.equal(timed.occupiedFromAt, timed.steps[0].plannedStartAt);
+  assert.equal(timed.occupiedUntilAt, timed.steps[1].plannedEndAt);
+});
 
-ÙYZÙ^JHOˆ
-ÈÙYZÙ^K\×ÝÛÜšÚ[™ÎˆYKØ\XÚ]WÛZ[]\ÎˆJJKˆJNÂˆÛÛœÝ™\Ý[H[“Ü™\ŠÂˆØ[[™\‘^\ËˆÝ\]NˆŒŒ‹L‹Lˆ‹ˆ[›š[™ÒÜš^›Û‘^\Îˆ‹ˆÜÚ][ÛœÎˆÞÈÛÙNˆ”H‹Ý]\Îˆ™\ÜÛš]™[‹ÛÛ™šYÝ\˜][Û—ÚÚ[™ˆœXØHˆWKˆ][\ÎˆÞÈ][RYˆšLH‹YXÙU\RYˆœH‹]X[]NˆKYXÙRÚ[™ˆšYØH‹™\]Z\™Y[ÛÛÙ\ÎˆÈ“RU×ÌH‹“UTSÌÌ—K™\]Z\™\Ó[ÛÛÛ™šYÎˆYHWKˆJNÂ‚ˆ\ÜÙ\™\]X[
-™\Ý[[š]Ë›[™Ý
-NÂˆ\ÜÙ\™\]X[
-™\Ý[˜ÛÛ™›XÝËœÛÛYJ
-ÛÛ™›XÝ
-HOˆÛÛ™›XÝ\HOOH›[ÛØÛÛ™šYÝ\˜][ÛˆŠKYJNÂŸJNÂ‚
+test("posiÃ§Ã£o plana sÃ³ recebe placa e nÃ£o aceita braÃ§o ou pilar/viga", () => {
+  const calendarDays = buildCalendarDays({
+    startDate: "2026-02-02",
+    endDate: "2026-02-08",
+    settings: { default_capacity_minutes: 480 },
+    rules: [1, 2, 3, 4, 5].map((weekday) => ({ weekday, is_working: true, capacity_minutes: 480 })),
+  });
+  const result = planOrder({
+    calendarDays,
+    startDate: "2026-02-02",
+    planningHorizonDays: 2,
+    positions: [{ code: "P01", status: "disponivel", configuration_kind: "placa" }],
+    items: [{ itemId: "i1", pieceTypeId: "p1", quantity: 1, pieceKind: "viga", requiredMoldCodes: ["LEITO_25", "LATERAL_30"], requiresMoldConfig: true }],
+  });
+
+  assert.equal(result.units.length, 0);
+  assert.equal(result.conflicts.some((conflict) => conflict.type === "mold_configuration"), true);
+});
+

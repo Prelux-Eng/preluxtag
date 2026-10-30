@@ -1,6 +1,109 @@
-Y™Áäx≥¨uÁ%j∑ù¬+arâÏ∂ÎïÎ_¢∫ﬁjÀ"ÇvõïÎ⁄Æ&õïÎ»€€[»»ëSV\›0ËH‹ôÿ[ö^òY¬Çë\›Hÿ›[Y[ù»^XÿH»ÿ[Z[ö»‹»Y‹»HHô\‹€úÿXö[YYHHÿYH\ú]Z]õ»ö[ò⁄\[àH\XÿpÈË€»0ÍH[H
-äõ[€∞Ï€]»[Ÿ[\ääéà^\›H[XH0ÓõöXÿH^\öpÍõò⁄XHXõXÿYKŸ\\òYH[HpÏŸ[‹»‹à0Ë\ôXKÇÇà»»ö\Ë€»Ÿ\ò[ÇòY\õXZYôõ›ÿ⁄\ùÇàRV“[ù\ôòXŸH[H\›⁄[ô^ö[BàêUñÿ€‹ôK€ò]öYÿ][€ãöú◊BàPëS€[Ÿ[\À€Xô[Y[Z]\ãöú◊BàSñ€[Ÿ[\À‹õŸX›[€ãXÿ[[ô\ãöú◊Bà‘÷€[Ÿ[\À€‹\ò][€úÀXYZ[ãöú◊Bà”PRSñŸ€XZ[ã€[€X€€\]Xö[]Köú◊Bà‘—”V€‹\ò][€úÀXYZ[à€XZ[àù[\◊BàëT÷‹ô\‹⁄]‹öY\À‹[õö[ôÀ\ô\‹⁄]‹ûKöú◊Bà‘ëT÷‹ô\‹⁄]‹öY\À€‹\ò][€úÀ\ô\‹⁄]‹ûKöú◊BàTVÿ€‹ôKÿ\Köú◊BàQ—V‘›\Xò\ŸHYŸHù[ò›[€ú◊Bà“TëQŸù[ò›[€úÀ◊‹⁄\ôYBàT—T÷‹õŸX›[€ã\\Ÿ\Àöú◊BàUV‹]K[Y]öX‹Àöú◊Bàñ ›\Xò\ŸH‹›‹ôT‘S
-WBà––S ÿÿ[›‹òYŸH»ò]ôYÿY‹äWBÇàRHKOàêUÇàRHKOàPëSàRHKOàSÇàRHKOà‘¬à‘»KOà”PRSÇàSàKOàëT¬à‘»KOà‘ëT¬àëT»KOàTBà‘ëT»KOàTBàTHKOàQ—BàQ—HKOà“TëQà“TëQKOàÇà“TëQKOàT—T¬à“TëQKOàUBàPëSKOà––SòÇà»»\ú]Z]õ‹»»ò]ôYÿY‹ÇÇü\ú]Z]õ»ô\‹€úÿXö[YYHüKKHKKHü\›⁄[ô^ö[Yö[ôH\»∞Íú»Xò\»H‹»[[Y[ù‹»H0ËY⁄[òKà[X∞Í[Hõ‹õôXŸHH€€ôöY›\òpÈË€»0ÓòõXÿH»›\Xò\ŸH[ù\»Hÿ\úôYÿ\à‹»pÏŸ[‹Ààü\›ÿ‹‹Àÿ\ò‹‹ÿ\›[‹»Ÿ\òZ\ÀH]\]Y]HH»ÿ[[ô0Ë\ö[Ààü\›ÿ‹‹À€‹\ò][€úÀò‹‹ÿ\›[‹»YX⁄[€òZ\»‹»ÿY\›õ‹»H‹\òpÈÌY\Ààü\›⁄úÀÿ€‹ôK€ò]öYÿ][€ãöúÿ0ÊõöX€»Yÿ\à]YH[\õòH]\]Y]\À[ôZò[Y[ù»HÿY\›õ‹Àà]X[^òH0Î][ÀXŸ\‹⁄Xö[YYHH[ùöXH]ô[ù‹»\òHHXòHXô\ùKàü\›⁄úÀÿ€‹ôKÿ\Köúÿò[ú‹‹ùH€€][H\òH\»YŸHù[ò›[€ú»H€€ùô\úË€»Hô\‹‹›\»[ù∞Ë[Y\»[Hô[^\Q\úõ‹òàü\›⁄úÀŸ€XZ[ã€[€X€€\]Xö[]Köúÿ\›ò]0ÍY⁄X\»\ò\»H\ÿ€€HHõ‹õX\ŒàúòpÈ€»\ÿH»ÿ]0Ë[Ÿ€»ö^»îêP”Œ»[\àHöYÿH\ÿ[HRU»0Â»UTêSàXÿH\ÿH[XHò[òÿYH[òHŸ[Hõ‹õXKàü\›⁄úÀ‹ô\‹⁄]‹öY\À‹[õö[ôÀ\ô\‹⁄]‹ûKöúÿ[ô⁄[ù»Hÿ[[ô0Ë\ö[À[ôZò[Y[ù»H⁄[][pÈË€Àÿ€€ôö\õXpÈË€»‹»YY‹Ààü\›⁄úÀ‹ô\‹⁄]‹öY\À€‹\ò][€úÀ\ô\‹⁄]‹ûKöúÿ[ô⁄[ù»HZ]\òHH‹ò]òpÈË€»Hÿúò\ÀYY‹Àõ⁄ô]‹»H[ôŸ[ö\öXKpÈÿ\Àõ‹õX\À‹⁄pÈÌY\»H[ÿÿpÈÌY\Ààü\›⁄úÀ€[Ÿ[\À€Xô[Y[Z]\ãöúÿ\Ÿ[öH]\]Y]\Àÿ[òH»\›0Ï‹öX€»õ»ò]ôYÿY‹ã^‹ùHëÀ÷íTHô\\òHH[\ô\‹Ë€Ààü\›⁄úÀ€[Ÿ[\À‹õŸX›[€ãXÿ[[ô\ãöúÿ\ô\Ÿ[ùHòX⁄€ŸÀÿ[[ô0Ë\ö[»Y[úÿ[‹Ÿ[X[ò[ÿ[ùHYpÈË€»HõŸ‹ò[XpÈË€Ààü\›⁄úÀ€[Ÿ[\À€‹\ò][€úÀXYZ[ãöúÿ\ô\Ÿ[ùHÿúò\ÀYY‹Àõ⁄ô]‹ÀpÈÿ\Àõ‹õX\»H‹⁄pÈÌY\Œ»X[ù0Í[H»\›Y»HXòH[ù\õòHH[ùöXH]Y[∞Èÿ\»[»ô\‹⁄]0Ï‹ö[Ààü›\Xò\ŸKŸù[ò›[€úÀ◊‹⁄\ôY‹õŸX›[€ã\\Ÿ\ÀöúÿôY‹òH\òH\òH‹∞Ë\ö[‹»H€€ò‹ô]YŸ[K›\òHH[ù\ùò[»Hÿ›\pÈË€Àô\‹Z][ô»»ù\€»H[öYYKàü›\Xò\ŸKŸù[ò›[€úÀ◊‹⁄\ôY‹]K[Y]öX‹ÀöúÿpÍ]öXÿ\»HXÿNà0Â÷HYö[ôH0Ë\ôXKàYö[ôH\‹\‹›\òHH»\€»\ÿHH[ú⁄YYHö^H∞ËH\XÿYH0Ë»pÈÿ\»]XZ\ÀàÇà»»»‹ô[HHÿ\úôYÿ[Y[ù¬Çì»ö[ò[»[ô^ö[ÿ\úôYÿKô\›H‹ô[Nà€Y[ùH[Z\‹€‹ãô\‹⁄]0Ï‹ö[‹ÀôY‹ò\»H€€\]Xö[YYKò]ôYÿpÈË€À[ôZò[Y[ù»HÿY\›õ‹Àà‹»\ú]Z]õ‹»Ë€»ÿ‹ö\»€0Ë\‹⁄X€‹»\òHX[ù\àH\XÿpÈË€»Ÿ[H€€\[Y‹é»‹à\‹€»ÿYHpÏŸ[»XõXÿH[XHTH\]Y[òH[H⁄[ô›ÀîëSV òÇÇà»»õ^‹»ö[ò⁄\Z\¬Çà»»»]\]Y]\¬Çì»õ‹õ][0Ë\ö[»]X[^òH»ÿ[ùò\Àà[»ÿ[ò\ã»ôY⁄\›õ»òZH\òHÿÿ[›‹òYŸX»ò]ôYÿY‹ã∞Ë€»\òHHò\ŸH›\Xò\ŸKàëÀíTH[\ô\‹Ë€»[X∞Í[HË€»õÿŸ\‹ÿY‹»õ»ò]ôYÿY‹ãà\‹ŸH€€\‹ù[Y[ù»õ⁄HX[ùY»€€[»\›]òKÇÇà»»»[ôZò[Y[ù»HÿY\›õ‹¬ÇåKàH[H⁄[XH»ô\‹⁄]0Ï‹ö[»H›XH0Ë\ôXKÇåãà»ô\‹⁄]0Ï‹ö[»\ÿ€€HHYŸHù[ò›[€àHHpÈË€»€‹úô\‹€ô[ùKÇåÀà€‹ôKÿ\KöúÿYX⁄[€òH‹»ÿXôpÈÿ[‹»0ÓòõX€‹À[ùöXHî””àHò]H»ô\›[Y»ÇçàHYŸHù[ò›[€àò[YHH[ùòYHH\ÿHù[∞ÈÌY\»H›\Xò\ŸKŸù[ò›[€úÀ◊‹⁄\ôYÇçKà»òX⁄Ÿ[ô\ÿH»€Y[ùHYZ[ö\›ò]]õ»»›\Xò\ŸH\òH\ú⁄\›\àõ»‹›‹ôT‘SÇÇêH⁄]ôHŸ\ùöXŸW‹õ€X\õX[ôXŸHõ»Ÿ\ùöY‹ãàH⁄]ôH[∞Ìö[XH]YH^\›Hõ»S0ÍH0ÓòõXÿHH∞Ë€»›Xú›]ZH\»€0Î]Xÿ\»HXŸ\‹€»»ò[ò€ÀÇÇà»»»€€\]Xö[YYH[ùôHpÈÿHH[€BÇì»Ÿ\ùöpÈ€»[€X€€\]Xö[]Köúÿ[\[Y[ùH»Y∞Ë€»›ò]YﬁKàH\›ò]0ÍY⁄XH\[ôH»\»Ÿ[X⁄[€òYŒÇÇãH
-äêúòpÈ€Œääà\›H\[ò\»ôY⁄\›õ‹»»ÿ]0Ë[Ÿ€»îêP”ÿÇãH
-äî[\àHöYÿNääà\›H€€Xö[òpÈÌY\»HöY]»YXŸW€[€ÿ€€Xö[ò][€úÿ»ŸH[H∞Ë€»Y\àŸ\àÿ\úôYÿYKŸ\òHRU»0Â»UTêSH\ù\à»ÿ]0Ë[Ÿ€»∞ËHÿ\úôYÿYÀÇãH
-äîXÿNääà∞Ë€»ö[ò›[Hõ‹õXN»Ï»0ÍH[ôZòYH[H[XH‹⁄pÈË€»XÿX]YHô\ô\Ÿ[ùHHò[òÿYH[òKÇÇì»òX⁄Ÿ[ô€€ù[ùXHò[Y[ô»‹»∞Î[ò›[‹»õ»ÿ[ò[Y[ùÀàH\›H»ò]ôYÿY‹à0ÍH\òH‹öY[ù\àH\ÿ€€K∞Ë€»\òH›Xú›]Z\àHò[YpÈË€»»Ÿ\ùöY‹ãÇÇà»»»ò]ôYÿpÈË€»[ùôHpÏŸ[‹¬Çòò]öYÿ][€ãöúÿ€€ùõ€H»\›Y»ö\Î]ô[\»∞Íú»Xò\»H\‹\òHô[^ú[õö[ôŒõ‹[ò›Hô[^õ‹\ò][€úŒõ‹[òà‹»pÏŸ[‹»\ÿ›][H\‹Ÿ\»]ô[ù‹»H]X[^ò[HŸ]\»∞Ï‹ö[‹»Y‹Àà\‹⁄[K[HpÏŸ[»∞Ë€»ôX⁄\ÿH[\‹ù\àô[H⁄[X\à\ô][Y[ùH\»ù[∞ÈÌY\»[ù\õò\»»›]õÀÇÇà»»›\Xò\ŸHHôY‹ò\»HôYÏÿ⁄[¬ÇãH›\Xò\ŸKŸù[ò›[€úÀ€‹\ò][€úÀXYZ[ã⁄[ô^ùÿ][ôH\»‹\òpÈÌY\»HÿY\›õ»Hô]][^òHYXŸK[Y]öX‹ÀöúÿH‹ô\ã\[õö[ôÀöúÿÇãH»Y\€[»[ô⁄[ùÿ[òHXÿ\»öXHÿ]ôW‹]W›\XHH]ö\Ë€»‹àŸpÈÌY\»öXHÿ]ôWŸ[ô⁄[ôY\ö[ô◊‹õ⁄ôX›‹›ùX›\ôX»\›H‹ò]òpÈË€»0ÍHò[úÿX⁄[€ò[ÇãHÿ[[ô\ãXYZ[ò[ã[‹ô\ò€€[Z][‹ô\ã\[òHôXùZ[Xÿ[[ô\ò€€\0ÌY[H»õ^»H[ôZò[Y[ùÀÇãH[õô\ãöúÿÿ[[ô\ãöúÿ‹ô\ã\[õö[ôÀöúÿYXŸK[Y]öX‹Àöúÿ]K[Y]öX‹ÀöúÿHõŸX›[€ã\\Ÿ\Àöúÿ›X\ô[HôY‹ò\»ô]][^òY\»õ»Ÿ\ùöY‹ãà‹»Ë[›[‹»^\›[ù\»HúòpÈ€À[\àHöYÿH\õX[ôXŸ[H[ò[\òY‹ÀÇãH\»ZY‹òpÈÌY\»XHË€»\›0Ï‹öXÿ\Œ»WŸòXö[ÃóŸõ›[ô][€ãú‹[ôY⁄\›òHHù[ôpÈË€»HH[ùY‹òpÈË€»H]\HH\òHô]ö\Ë€ÀŸ[H\XÿpÈË€»õ»›\Xò\ŸH]]õÀÇãH»›]\»€€ò€ZYÿ∞Ë€»0ÍHXŸZ]»õ»õ^»HYY‹Œ»H\›H\õZ]YH0ÍH‹∞Èÿ[Y[ùÀ\õ›òYÀ[HõŸpÈË€À[ùôY›YK]ò\ÿY»Hÿ[òŸ[YÀàôY⁄\›õ‹»[ùY€‹»\õX[ôXŸ[H\[ò\»\òH€€ú›[HHË€»ò]Y‹»€€[»[òŸ\úòY‹ÀÇãHHô\\òpÈË€»Hõ‹õX\»\ÿH⁄[ò€»X\»0ÓùZ\»\⁄\»HZY‹ò][€àN»H]Hö[ò[0ÍHÿ[›[YH[\»^ŸpÈÌY\»»ÿ[[ô0Ë\ö[ÀÇãH»[∞ÎX⁄[»Y∞Ë€»H€€ò‹ô]YŸ[H0ÍHåõ»ù\€»H[öYYHHŸHŸ\àZù\›Y»[Hÿ[›[][€óÿ€€ú›[ùÀòÿ\›[ô◊‹›\ù⁄›\òàXÿXò[Y[ùÀ[ú‹pÈË€»HXô\òpÈË€»öXÿ[H[ô[ù\»]0ÍH]YHH[ôŸ[ö\öXH[ôõ‹õYH\»\òpÈÌY\ÀÇãHH\XÿpÈË€»HHYŸHù[ò›[€àõ‹ò[H[ùY‹òY\»[»€€ùò]»HZY‹ò][€àKX\»HZY‹ò][€à∞Ë€»õ⁄H\XÿYHH\»ù[∞ÈÌY\»∞Ë€»õ‹ò[H[\[ùY\»õ»õ⁄ô]»›\Xò\ŸH]]õÀÇÇà»»ÿX⁄H»\Xÿ]]õ¬Çò\›‹›Àöúÿ\›H‹»\ú]Z]õ‹»ôXŸ\‹Ë\ö[‹»\òHXúö\à»\H\ÿH»õ€YH»ÿX⁄H\òHY[ùYöXÿ\à[XHô\úË€Àà[»[\ò\à\ú]Z]õ‹»XõXÿY‹À]X[^ôH‹»\∞ËõY]õ‹»Hô\úË€»õ»SH»õ€YH»ÿX⁄Hõ»Ÿ\ùöXŸH€‹öŸ\é»\‹€»ò^à‹»ò]ôYÿY‹ô\»òZ^\ô[H‹»\ú]Z]õ‹»õ›õ‹ÀÇ
+# Como o PRELUX est√° organizado
+
+Este documento explica o caminho dos dados e a responsabilidade de cada arquivo principal. A aplica√ß√£o √© um **mon√≥lito modular**: existe uma √∫nica experi√™ncia publicada, separada em m√≥dulos por √°rea.
+
+## Vis√£o geral
+
+```mermaid
+flowchart LR
+  UI[Interface em dist/index.html]
+  NAV[core/navigation.js]
+  LABEL[modules/label-emitter.js]
+  PLAN[modules/production-calendar.js]
+  OPS[modules/operations-admin.js]
+  DOMAIN[domain/mold-compatibility.js]
+  OPSDOM[operations-admin domain rules]
+  PREPO[repositories/planning-repository.js]
+  OREPO[repositories/operations-repository.js]
+  API[core/api.js]
+  EDGE[Supabase Edge Functions]
+  SHARED[functions/_shared]
+  PHASES[production-phases.js]
+  PLATE[plate-metrics.js]
+  DB[(Supabase PostgreSQL)]
+  LOCAL[(localStorage do navegador)]
+
+  UI --> NAV
+  UI --> LABEL
+  UI --> PLAN
+  UI --> OPS
+  OPS --> DOMAIN
+  PLAN --> PREPO
+  OPS --> OREPO
+  PREPO --> API
+  OREPO --> API
+  API --> EDGE
+  EDGE --> SHARED
+  SHARED --> DB
+  SHARED --> PHASES
+  SHARED --> PLATE
+  LABEL --> LOCAL
+```
+
+## Arquivos do navegador
+
+| Arquivo | Responsabilidade |
+| --- | --- |
+| `dist/index.html` | Define as tr√™s abas e os elementos da p√°gina. Tamb√©m fornece a configura√ß√£o p√∫blica do Supabase antes de carregar os m√≥dulos. |
+| `dist/css/app.css` | Estilos gerais, da etiqueta e do calend√°rio. |
+| `dist/css/operations.css` | Estilos adicionais dos cadastros e opera√ß√µes. |
+| `dist/js/core/navigation.js` | √önico lugar que alterna Etiquetas, Planejamento e Cadastros. Atualiza t√≠tulo, acessibilidade e envia eventos para a aba aberta. |
+| `dist/js/core/api.js` | Transporte HTTP comum para as Edge Functions e convers√£o de respostas inv√°lidas em `PreluxApiError`. |
+| `dist/js/domain/mold-compatibility.js` | Estrat√©gias puras de escolha de formas: bra√ßo usa o cat√°logo fixo BRACO; pilar e viga usam LEITO √ó LATERAL. Placa usa uma bancada plana sem forma. |
+| `dist/js/repositories/planning-repository.js` | Endpoints de calend√°rio, planejamento e simula√ß√£o/confirma√ß√£o dos pedidos. |
+| `dist/js/repositories/operations-repository.js` | Endpoints de leitura e grava√ß√£o de obras, pedidos, projetos de engenharia, pe√ßas, formas, posi√ß√µes e aloca√ß√µes. |
+| `dist/js/modules/label-emitter.js` | Desenha etiquetas, salva o hist√≥rico no navegador, exporta PNG/ZIP e prepara a impress√£o. |
+| `dist/js/modules/production-calendar.js` | Apresenta backlog, calend√°rio mensal/semanal, Gantt e edi√ß√£o da programa√ß√£o. |
+| `dist/js/modules/operations-admin.js` | Apresenta obras, pedidos, projetos, pe√ßas, formas e posi√ß√µes; mant√©m o estado da aba interna e envia mudan√ßas ao reposit√≥rio. |
+| `supabase/functions/_shared/production-phases.js` | Regra pura para hor√°rios de concretagem, cura e intervalo de ocupa√ß√£o, respeitando o fuso da unidade. |
+| `supabase/functions/_shared/plate-metrics.js` | M√©tricas de placa: X√óY define √°rea, Z define espessura e o peso usa a densidade fixa j√° aplicada √†s pe√ßas atuais. |
+
+### Ordem de carregamento
+
+O final do `index.html` carrega, nesta ordem: cliente HTTP, emissor, reposit√≥rios, regras de compatibilidade, navega√ß√£o, planejamento e cadastros. Os arquivos s√£o scripts cl√°ssicos para manter a aplica√ß√£o sem compilador; por isso cada m√≥dulo publica uma API pequena em `window.PRELUX_*`.
+
+## Fluxos principais
+
+### Etiquetas
+
+O formul√°rio atualiza o canvas. Ao salvar, o registro vai para `localStorage` do navegador, n√£o para a base Supabase. PNG, ZIP e impress√£o tamb√©m s√£o processados no navegador. Esse comportamento foi mantido como estava.
+
+### Planejamento e cadastros
+
+1. A tela chama o reposit√≥rio da sua √°rea.
+2. O reposit√≥rio escolhe a Edge Function e a a√ß√£o correspondente.
+3. `core/api.js` adiciona os cabe√ßalhos p√∫blicos, envia JSON e trata o resultado HTTP.
+4. A Edge Function valida a entrada e usa fun√ß√µes de `supabase/functions/_shared`.
+5. O backend usa o cliente administrativo do Supabase para persistir no PostgreSQL.
+
+A chave `service_role` permanece no servidor. A chave an√¥nima que existe no HTML √© p√∫blica e n√£o substitui as pol√≠ticas de acesso do banco.
+
+### Compatibilidade entre pe√ßa e molde
+
+O servi√ßo `mold-compatibility.js` implementa o padr√£o Strategy. A estrat√©gia depende do tipo selecionado:
+
+- **Bra√ßo:** lista apenas registros do cat√°logo `BRACO`.
+- **Pilar e Viga:** lista combina√ß√µes da view `piece_mold_combinations`; se ela n√£o puder ser carregada, gera LEITO √ó LATERAL a partir do cat√°logo j√° carregado.
+- **Placa:** n√£o vincula forma; s√≥ √© planejada em uma posi√ß√£o `placa`, que representa a bancada plana.
+
+O backend continua validando os v√≠nculos no salvamento. A lista do navegador √© para orientar a escolha, n√£o para substituir a valida√ß√£o do servidor.
+
+### Navega√ß√£o entre m√≥dulos
+
+`navigation.js` controla o estado vis√≠vel das tr√™s abas e dispara `prelux:planning:open` ou `prelux:operations:open`. Os m√≥dulos escutam esses eventos e atualizam seus pr√≥prios dados. Assim, um m√≥dulo n√£o precisa importar nem chamar diretamente as fun√ß√µes internas do outro.
+
+## Supabase e regras de neg√≥cio
+
+- `supabase/functions/operations-admin/index.ts` atende as opera√ß√µes de cadastro e reutiliza `piece-metrics.js` e `order-planning.js`.
+- O mesmo endpoint salva placas via `save_plate_type` e a divis√£o por se√ß√µes via `save_engineering_project_structure`; esta grava√ß√£o √© transacional.
+- `calendar-admin`, `plan-order`, `commit-order-plan` e `rebuild-calendar` comp√µem o fluxo de planejamento.
+- `planner.js`, `calendar.js`, `order-planning.js`, `piece-metrics.js`, `plate-metrics.js` e `production-phases.js` guardam regras reutilizadas no servidor. Os c√°lculos existentes de bra√ßo, pilar e viga permanecem inalterados.
+- As migra√ß√µes `001` a `008` s√£o hist√≥ricas; `009_fabio2_foundation.sql` registra a funda√ß√£o e a integra√ß√£o da Etapa 5 para revis√£o, sem aplica√ß√£o no Supabase ativo.
+- O status `concluido` n√£o √© aceito no fluxo de pedidos; a lista permitida √© or√ßamento, aprovado, em produ√ß√£o, entregue, atrasado e cancelado. Registros antigos permanecem apenas para consulta e s√£o tratados como encerrados.
+- A prepara√ß√£o de formas usa cinco dias √∫teis depois da migration 009; a data final √© calculada pelas exce√ß√µes do calend√°rio.
+- O in√≠cio padr√£o da concretagem √© 08:00 no fuso da unidade e pode ser ajustado em `calculation_constants.casting_start_hour`. Acabamento, inspe√ß√£o e libera√ß√£o ficam pendentes at√© que a engenharia informe as dura√ß√µes.
+- A aplica√ß√£o e a Edge Function foram integradas ao contrato da migration 009, mas a migration n√£o foi aplicada e as fun√ß√µes n√£o foram implantadas no projeto Supabase ativo.
+
+## Cache do aplicativo
+
+`dist/sw.js` lista os arquivos necess√°rios para abrir o app e usa o nome do cache para identificar uma vers√£o. Ao alterar arquivos publicados, atualize os par√¢metros de vers√£o no HTML e o nome do cache no service worker; isso faz os navegadores baixarem os arquivos novos.

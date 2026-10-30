@@ -1,17 +1,44 @@
-YªçŠx³¬uç%j·Â+ar‰ì¶ë•ë_¢ºŞjË"‚v›•ëÚ®&›•ëÊ‚ˆ
-ˆpê]šXØ\ÈHXØ\ÈHÛÛ˜Ü™]Ë‚ˆ
-‚ˆ
-ˆ0åÈH™\™\Ù[HH0è\™XHHXØHHˆ0êHH\Ü\Üİ\˜Kˆ›Û[YHH\ÛÈÙYİY[HBˆ
-ˆY\ÛXH[œÚYYHH\ÈY\ÛX\È[šYY\È\ØY\ÈÜˆYXÙK[Y]šXÜËšœË‚ˆ
-‹Â‚˜ÛÛœİÓÓÔ‘UWÑS”ÒUWÑ×ĞÓLÈH‹NÂ‚™[˜İ[Ûˆ[Y[œÚ[ÛŠ˜[YKX™[
-HÂˆÛÛœİ[X™\ˆH[X™\Š˜[YJNÂˆYˆ
-S[X™\‹š\Ñš[š]J[X™\ŠH[X™\ˆH[X™\ˆˆWÌÌ
-HÂˆÛÛœİ\œ›ÜˆH™]È\œ›ÜŠ	ÛX™[H]™HÙ\ˆXZ[Üˆ]YH™\›ÈH[™›Ü›XYÈ[HÙ[0ë[Y]›ÜË˜
-NÂˆ\œ›Ü‹›˜[YHH”]SY]šXÜÑ\œ›ÜˆÂˆ›İÈ\œ›ÜÂˆBˆ™]\›ˆ[X™\ÂŸB‚™^Ü[˜İ[ÛˆØ[İ[]T]SY]šXÜÊÈK‹[Y[œÚ[Û–[Y[œÚ[Û–K[Y[œÚ[Û–ˆHHßJHÂˆÛÛœİ[Y[œÚ[ÛœĞÛHHÂˆˆ[Y[œÚ[ÛŠÏÈ[Y[œÚ[Û–‘[Y[œğèÛÈŠKˆNˆ[Y[œÚ[ÛŠHÏÈ[Y[œÚ[Û–K‘[Y[œğèÛÈHŠKˆˆ[Y[œÚ[ÛŠˆÏÈ[Y[œÚ[Û–‹‘\Ü\Üİ\˜HˆŠKˆNÂˆÛÛœİ\™XSLˆH
-[Y[œÚ[ÛœĞÛK
-ˆ[Y[œÚ[ÛœĞÛKJHÈLÌÂˆÛÛœİ›Û[YPÛLÈH[Y[œÚ[ÛœĞÛK
-ˆ[Y[œÚ[ÛœĞÛKH
-ˆ[Y[œÚ[ÛœĞÛKÂˆÛÛœİ›Û[YSLÈH›Û[YPÛLÈÈWÌÌÂˆÛÛœİÙZYÚÙÈH
-›Û[YPÛLÈ
-ˆÓÓÔ‘UWÑS”ÒUWÑ×ĞÓLÊHÈWÌÂˆYˆ
-VØ\™XSL‹›Û[YPÛLË›Û[YSLËÙZYÚÙ×K™]™\J[X™\‹š\Ñš[š]JJHÂˆÛÛœİ\œ›ÜˆH™]È\œ›ÜŠ\È[Y[œğíY\ÈHXØH^ÙY[HÈ[\˜[ÈHğè[İ[ÈXÙZ]ËˆŠNÂˆ\œ›Ü‹›˜[YHH”]SY]šXÜÑ\œ›ÜˆÂˆ›İÈ\œ›ÜÂˆBˆ™]\›ˆÂˆ[Y[œÚ[ÛœĞÛKˆ\™XSL‹ˆ›Û[YPÛLËˆ›Û[YSLËˆÙZYÚÙËˆ[œÚ]QÔ\ÛLÎˆÓÓÔ‘UWÑS”ÒUWÑ×ĞÓLËˆNÂŸB‚
+/*
+ * MÃ©tricas de placas de concreto.
+ *
+ * X Ã— Y representa a Ã¡rea da placa e Z Ã© a espessura. Volume e peso seguem a
+ * mesma densidade e as mesmas unidades usadas por piece-metrics.js.
+ */
+
+const CONCRETE_DENSITY_G_CM3 = 2.5;
+
+function dimension(value, label) {
+  const number = Number(value);
+  if (!Number.isFinite(number) || number <= 0 || number > 1_000_000) {
+    const error = new Error(`${label} deve ser maior que zero e informado em centÃ­metros.`);
+    error.name = "PlateMetricsError";
+    throw error;
+  }
+  return number;
+}
+
+export function calculatePlateMetrics({ x, y, z, dimensionX, dimensionY, dimensionZ } = {}) {
+  const dimensionsCm = {
+    x: dimension(x ?? dimensionX, "DimensÃ£o X"),
+    y: dimension(y ?? dimensionY, "DimensÃ£o Y"),
+    z: dimension(z ?? dimensionZ, "Espessura Z"),
+  };
+  const areaM2 = (dimensionsCm.x * dimensionsCm.y) / 10_000;
+  const volumeCm3 = dimensionsCm.x * dimensionsCm.y * dimensionsCm.z;
+  const volumeM3 = volumeCm3 / 1_000_000;
+  const weightKg = (volumeCm3 * CONCRETE_DENSITY_G_CM3) / 1_000;
+  if (![areaM2, volumeCm3, volumeM3, weightKg].every(Number.isFinite)) {
+    const error = new Error("As dimensÃµes da placa excedem o intervalo de cÃ¡lculo aceito.");
+    error.name = "PlateMetricsError";
+    throw error;
+  }
+  return {
+    dimensionsCm,
+    areaM2,
+    volumeCm3,
+    volumeM3,
+    weightKg,
+    densityGPerCm3: CONCRETE_DENSITY_G_CM3,
+  };
+}
+

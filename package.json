@@ -1,1 +1,9 @@
-YªçŠx³¬uç%j·Â+ar‰ì¶ë•ë_¢ºŞjË"‚v›•ëÚ®&›•ëÃBˆ›˜[YHˆœ™[^Y[Z\ÜÛÜ‹Y]\]Y]\È‹Bˆ™\ØÜš\[Ûˆˆ”ĞH‘SV\˜H[Z\ÜğèÛÈH]\]Y]\ÈH[™Z˜[Y[ÈÜ\˜XÚ[Û˜[‹Bˆœš]˜]HˆYKBˆ\Hˆ›[Ù[H‹BˆœØÜš\ÈˆÃBˆ\İˆ››ÙHK]\İƒBˆCBŸCB
+{
+  "name": "prelux-emissor-etiquetas",
+  "description": "PWA PRELUX para emissÃ£o de etiquetas e planejamento operacional",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test"
+  }
+}
