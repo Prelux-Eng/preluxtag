@@ -590,10 +590,22 @@
     ].join(" ");
     const previousEnd = order?.planned_end_date ? formatDateBR(order.planned_end_date) : "sem programação";
     const nextEnd = plan.plannedEndDate ? formatDateBR(plan.plannedEndDate) : "sem data calculada";
+    const timedUnits = (plan.units || []).filter((unit) => unit.steps?.length);
+    const formatLocalTime = (value) => value
+      ? new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo", dateStyle: "short", timeStyle: "short" }).format(new Date(value))
+      : "a definir";
+    const phaseRows = timedUnits.slice(0, 8).map((unit) => {
+      const casting = unit.steps.find((step) => step.stepKind === "concretagem");
+      const curing = unit.steps.find((step) => step.stepKind === "cura");
+      return `<li><strong>${escapeHtml(unit.positionCode)}</strong> · concretagem ${formatLocalTime(casting?.plannedStartAt)}–${formatLocalTime(casting?.plannedEndAt)} · cura até ${formatLocalTime(curing?.plannedEndAt)}</li>`;
+    }).join("");
+    const phasePreview = phaseRows
+      ? `<div class="plan-phases"><strong>Horários estimados</strong><ul>${phaseRows}</ul>${timedUnits.length > 8 ? `<span>Mostrando 8 de ${timedUnits.length} unidades.</span>` : ""}</div>`
+      : "";
     const shift = state.dragContext
       ? `<p>Data da atividade: ${formatDateBR(state.dragContext.sourceDate)} → ${formatDateBR(state.dragContext.targetDate)}. Início do pedido: ${formatDateBR(order?.start_date)} → ${formatDateBR(plan.startDate)}; prazo: ${order?.requested_due_date ? formatDateBR(order.requested_due_date) : "sem prazo"} → ${plan.dueDate ? formatDateBR(plan.dueDate) : "sem prazo"}; fim planejado: ${previousEnd} → ${nextEnd}.</p>`
       : `<p>Fim estimado: ${nextEnd}${plan.dueDate ? ` · prazo solicitado ${formatDateBR(plan.dueDate)}` : " · sem prazo solicitado"}.</p>`;
-    $('orderPlanPreview').innerHTML = `<h4>${escapeHtml(statusText)}</h4><div class="plan-summary-grid"><div><strong>${Number(plan.totalRequestedQuantity || 0)}</strong><span>unidades solicitadas</span></div><div><strong>${Number(plan.totalPlannedQuantity || 0)}</strong><span>unidades programadas</span></div><div><strong>${escapeHtml(plan.plannedEndDate ? formatDateBR(plan.plannedEndDate) : "—")}</strong><span>fim estimado</span></div></div><p>${escapeHtml(formatOrder(order))}</p>${shift}<ul>${itemRows || "<li>Não há itens para programar neste pedido.</li>"}</ul>${requiresConfirmation ? `<div class="plan-warning">${escapeHtml(conflictText || "A capacidade não atende ao pedido dentro do período calculado.")} Se confirmar, o sistema gravará as programações possíveis da fila.</div>` : ""}`;
+    $('orderPlanPreview').innerHTML = `<h4>${escapeHtml(statusText)}</h4><div class="plan-summary-grid"><div><strong>${Number(plan.totalRequestedQuantity || 0)}</strong><span>unidades solicitadas</span></div><div><strong>${Number(plan.totalPlannedQuantity || 0)}</strong><span>unidades programadas</span></div><div><strong>${escapeHtml(plan.plannedEndDate ? formatDateBR(plan.plannedEndDate) : "—")}</strong><span>fim estimado</span></div></div><p>${escapeHtml(formatOrder(order))}</p>${shift}<ul>${itemRows || "<li>Não há itens para programar neste pedido.</li>"}</ul>${phasePreview}${requiresConfirmation ? `<div class="plan-warning">${escapeHtml(conflictText || "A capacidade não atende ao pedido dentro do período calculado.")} Se confirmar, o sistema gravará as programações possíveis da fila.</div>` : ""}`;
     $('orderPlanPreview').hidden = false;
     $('infeasibleChoice').hidden = !requiresConfirmation;
     $('allowInfeasiblePlan').checked = false;
@@ -733,6 +745,7 @@
 
   async function openCalendarSettings() {
     $('calendarSettingsModal').hidden = false;
+    $('castingStartTimeField').hidden = true;
     showStatus("calendarSettingsStatus", "Carregando regra semanal…");
     try {
       const result = await window.PRELUX_REPOSITORIES.planning.getCalendarSettings();
@@ -740,6 +753,8 @@
       const settings = result.settings || {};
       const rules = new Map((result.rules || []).map((rule) => [Number(rule.weekday), rule]));
       $('defaultCapacityMinutes').value = 480;
+      $('castingStartTimeField').hidden = !result.productionTiming;
+      $('castingStartTime').value = `${String(result.productionTiming?.castingStartHour ?? 8).padStart(2, "0")}:00`;
       document.querySelectorAll("[data-weekday]").forEach((input) => {
         const weekday = Number(input.dataset.weekday);
         const rule = rules.get(weekday);
@@ -764,15 +779,19 @@
       isWorking: input.checked,
       capacityMinutes: input.checked ? 480 : 0,
     }));
+    const payload = { defaultCapacityMinutes, rules };
+    if (!$('castingStartTimeField').hidden) {
+      payload.castingStartHour = Number($('castingStartTime').value.split(":")[0]);
+    }
     const button = $('saveCalendarSettings');
     const oldText = button.textContent;
     button.disabled = true;
     button.textContent = "Salvando…";
     try {
-      await window.PRELUX_REPOSITORIES.planning.saveCalendarSettings({ defaultCapacityMinutes, rules });
+      await window.PRELUX_REPOSITORIES.planning.saveCalendarSettings(payload);
       closeCalendarSettings();
       await refreshPlanning();
-      showToast("Semana padrão atualizada.");
+      showToast("Semana padrão e horário atualizados.");
     } catch (error) {
       showStatus("calendarSettingsStatus", error.message || "Não foi possível salvar a regra semanal.", true);
     } finally {

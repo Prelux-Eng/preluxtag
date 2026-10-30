@@ -7,6 +7,8 @@
  * testes Node.js.
  */
 
+import { buildProductionPhases } from "./production-phases.js";
+
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 export const DEFAULT_POSITION_CODES = Object.freeze(["P01", "P02", "P03", "P04"]);
 
@@ -78,12 +80,13 @@ function normalizedPosition(position) {
   const code = String(readField(position, "code", "code", "")).trim();
   const status = String(position?.status ?? "disponivel");
   if (!/^P0[1-4]$/.test(code)) throw new PlannerError(`Posição de molde inválida: ${code || "sem código"}.`);
+  const configurationKind = readField(position, "configurationKind", "configuration_kind");
   const catalogCodes = [
     readField(position, "bracoCatalogCode", "braco_catalog_code"),
     readField(position, "leitoCatalogCode", "leito_catalog_code"),
     readField(position, "lateralCatalogCode", "lateral_catalog_code"),
   ].filter(Boolean).map((value) => String(value).trim());
-  return { code, status, catalogCodes };
+  return { code, status, configurationKind, catalogCodes };
 }
 
 function normalizedItem(item, index) {
@@ -115,6 +118,7 @@ function normalizedItem(item, index) {
     pieceTypeId,
     code: item.code ?? null,
     name: item.name ?? null,
+    pieceKind: readField(item, "pieceKind", "piece_kind"),
     quantity,
     curingDays,
     productionMinutesPerUnit,
@@ -124,6 +128,9 @@ function normalizedItem(item, index) {
 }
 
 function positionCanProduce(position, item) {
+  if (item.pieceKind === "placa") return position.configurationKind === "placa";
+  if (item.pieceKind === "braco" && position.configurationKind !== "braco") return false;
+  if (["pilar", "viga"].includes(item.pieceKind) && position.configurationKind !== "pilar_viga") return false;
   if (!item.requiredMoldCodes.length) return !item.requiresMoldConfig;
   const configured = [...position.catalogCodes].sort();
   return configured.length === item.requiredMoldCodes.length &&
@@ -164,11 +171,30 @@ function reservePosition(occupiedByDate, date, code, reservation, conflicts) {
   return true;
 }
 
+function addOccupiedInterval(intervalsByPosition, code, startAt, endAt) {
+  const start = Date.parse(startAt);
+  const end = Date.parse(endAt);
+  if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start) return false;
+  const intervals = intervalsByPosition.get(code) || [];
+  intervals.push({ start, end });
+  intervalsByPosition.set(code, intervals);
+  return true;
+}
+
+function intervalOverlaps(intervalsByPosition, code, startAt, endAt) {
+  const start = Date.parse(startAt);
+  const end = Date.parse(endAt);
+  return (intervalsByPosition.get(code) || []).some((interval) =>
+    start < interval.end && end > interval.start
+  );
+}
+
 function reserveExistingCapacity({
   existingSchedules,
   existingAllocations,
   positions,
   occupiedByDate,
+  intervalsByPosition,
   startDate,
   castHorizonEnd,
   conflicts,
@@ -180,17 +206,26 @@ function reserveExistingCapacity({
       readField(allocation, "scheduledDate", "scheduled_date"),
       "data da alocação existente",
     );
-    if (date < startDate || date > castHorizonEnd) continue;
     const code = String(readField(allocation, "positionCode", "position_code", "")).trim();
     if (!positions.some((position) => position.code === code)) {
       conflicts.push({ type: "position", date, positionCode: code || null, message: `Alocação existente aponta para posição inválida em ${date}.` });
       continue;
     }
-    reservePosition(occupiedByDate, date, code, {
-      orderId: allocation.orderId ?? allocation.order_id ?? null,
-      status,
-      source: "allocation",
-    }, conflicts);
+    const occupiedFromAt = readField(allocation, "occupiedFromAt", "occupied_from_at", null);
+    const occupiedUntilAt = readField(allocation, "occupiedUntilAt", "occupied_until_at", null);
+    if (occupiedFromAt || occupiedUntilAt) {
+      if (!occupiedFromAt || !occupiedUntilAt || !addOccupiedInterval(intervalsByPosition, code, occupiedFromAt, occupiedUntilAt)) {
+        conflicts.push({ type: "position", date, positionCode: code, message: `A alocação da posição ${code} contém um intervalo de ocupação inválido.` });
+        continue;
+      }
+    }
+    if (date >= startDate && date <= castHorizonEnd) {
+      reservePosition(occupiedByDate, date, code, {
+        orderId: allocation.orderId ?? allocation.order_id ?? null,
+        status,
+        source: "allocation",
+      }, conflicts);
+    }
   }
 
   for (const schedule of existingSchedules) {
@@ -261,6 +296,7 @@ export function planOrder({
   startDate,
   dueDate = null,
   planningHorizonDays = 730,
+  productionTiming = null,
 }) {
   const requestedStartDate = normalizeDate(startDate, "data de início");
   const due = dueDate ? normalizeDate(dueDate, "prazo de entrega") : null;
@@ -316,11 +352,13 @@ export function planOrder({
     });
   }
   const occupiedByDate = new Map();
+  const intervalsByPosition = new Map();
   reserveExistingCapacity({
     existingSchedules,
     existingAllocations,
     positions: positionList,
     occupiedByDate,
+    intervalsByPosition,
     startDate: effectiveStartDate,
     castHorizonEnd,
     conflicts,
@@ -338,15 +376,19 @@ export function planOrder({
 
     for (const castDate of workingDates) {
       if (itemUnits.length >= item.quantity) break;
+      const phases = productionTiming
+        ? buildProductionPhases({ castDate, ...productionTiming })
+        : null;
       const occupied = occupiedByDate.get(castDate) || new Map();
       const freePositions = positionList.filter((position) =>
-        !occupied.has(position.code) && positionCanProduce(position, item)
+        !occupied.has(position.code) && positionCanProduce(position, item) &&
+        (!phases || !intervalOverlaps(intervalsByPosition, position.code, phases.occupiedFromAt, phases.occupiedUntilAt))
       );
 
       for (const position of freePositions) {
         if (itemUnits.length >= item.quantity) break;
-        const cureStartDate = addDays(castDate, 1);
-        const cureEndDate = addDays(castDate, item.curingDays);
+        const cureStartDate = phases?.cureStartDate ?? addDays(castDate, 1);
+        const cureEndDate = phases?.cureEndDate ?? addDays(castDate, item.curingDays);
         const finishDate = nextWorkingDateAfter(cureEndDate, calendarByDate, latestCalendarDate);
         if (!finishDate) continue;
 
@@ -364,6 +406,11 @@ export function planOrder({
           finishDate,
           plannedEndDate: finishDate,
           productionMinutesSnapshot: item.productionMinutesPerUnit,
+          ...(phases ? {
+            steps: phases.steps,
+            occupiedFromAt: phases.occupiedFromAt,
+            occupiedUntilAt: phases.occupiedUntilAt,
+          } : {}),
         };
         itemUnits.push(unit);
         units.push(unit);
@@ -372,6 +419,7 @@ export function planOrder({
           status: "planned",
           source: "current_order",
         }, conflicts);
+        if (phases) addOccupiedInterval(intervalsByPosition, position.code, phases.occupiedFromAt, phases.occupiedUntilAt);
       }
     }
 

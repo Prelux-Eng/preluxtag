@@ -93,13 +93,41 @@ async function loadCalendarDays({ db, organizationId, startDate, endDate, settin
   return days;
 }
 
+/** Encontra a conclusão após N dias úteis, respeitando exceções cadastradas. */
+export async function findWorkingDayCompletionDate({ db, organizationId, startDate, workingDays }) {
+  const count = Number(workingDays);
+  if (!Number.isInteger(count) || count < 1 || count > 60) {
+    throw new OrderPlanningError("A duração precisa ser de 1 a 60 dias úteis.", 422);
+  }
+  const normalizedStart = normalizeDate(startDate, "início da preparação");
+  const endDate = addDays(normalizedStart, Math.max(30, count * 3));
+  const settingsResult = await db.from("calendar_settings")
+    .select("default_capacity_minutes, planning_horizon_days")
+    .eq("organization_id", organizationId)
+    .maybeSingle();
+  throwIfError(settingsResult.error, "Não foi possível carregar as configurações do calendário");
+  const days = await loadCalendarDays({
+    db,
+    organizationId,
+    startDate: normalizedStart,
+    endDate,
+    settings: settingsResult.data || { default_capacity_minutes: 480 },
+  });
+  const completionDay = days.filter((day) => day.is_working && day.date >= normalizedStart)[count - 1];
+  if (!completionDay) throw new OrderPlanningError("O calendário não contém dias úteis suficientes para concluir a preparação.", 409);
+  return completionDay.date;
+}
+
 async function loadExistingReservations({ db, organizationId, startDate, endDate, currentOrderId = null, onlyOrderIds = null }) {
+  // A reserva pode atravessar a meia-noite e começar no dia anterior ao
+  // primeiro dia visível da simulação; inclui essa margem para comparar horas.
+  const reservationStartDate = addDays(startDate, -1);
   const [{ data: units, error: unitsError }, { data: legacy, error: legacyError }] = await Promise.all([
     db.from("production_orders")
       .select("id, order_id, order_item_id, planned_cast_date, status")
       .eq("organization_id", organizationId)
       .in("status", ["planned", "in_progress", "done", "scrapped"])
-      .gte("planned_cast_date", startDate)
+      .gte("planned_cast_date", reservationStartDate)
       .lte("planned_cast_date", endDate)
       .limit(10000),
     db.from("production_schedules")
@@ -116,11 +144,11 @@ async function loadExistingReservations({ db, organizationId, startDate, endDate
   const unitIds = (units || []).map((unit) => unit.id);
   const allocationsResult = unitIds.length
     ? await db.from("allocations")
-      .select("production_order_id, mold_position_id, scheduled_date, status")
+      .select("production_order_id, mold_position_id, scheduled_date, occupied_from_at, occupied_until_at, status")
       .eq("organization_id", organizationId)
       .in("production_order_id", unitIds)
       .in("status", ["planned", "in_progress", "done"])
-      .gte("scheduled_date", startDate)
+      .gte("scheduled_date", reservationStartDate)
       .lte("scheduled_date", endDate)
       .limit(10000)
     : { data: [], error: null };
@@ -209,6 +237,33 @@ export async function buildPlanningQueue({ db, organizationId, input = {} }) {
     throw new OrderPlanningError("As quatro posições de molde ainda não foram cadastradas no banco.", 409);
   }
   ensureFourPositions(positionsResult.data);
+
+  // A migration 009 habilita etapas com horários e ocupação por intervalo.
+  // Se a versão ainda não estiver instalada, a fila conserva o comportamento
+  // de datas legado. Quando instalada, os valores vêm das constantes do banco.
+  const [constantsResult, organizationResult] = await Promise.all([
+    db.from("calculation_constants")
+      .select("constant_key, numeric_value, unit")
+      .eq("organization_id", organizationId)
+      .in("constant_key", ["casting_start_hour", "casting_duration_minutes", "curing_duration_hours"]),
+    db.from("organizations").select("timezone").eq("id", organizationId).maybeSingle(),
+  ]);
+  let productionTiming = null;
+  if (!constantsResult.error && (constantsResult.data || []).length) {
+    const constants = new Map((constantsResult.data || []).map((row) => [row.constant_key, row]));
+    const startHour = Number(constants.get("casting_start_hour")?.numeric_value);
+    const castingMinutes = Number(constants.get("casting_duration_minutes")?.numeric_value);
+    const curingHours = Number(constants.get("curing_duration_hours")?.numeric_value);
+    if (![startHour, castingMinutes, curingHours].every(Number.isFinite)) {
+      throw new OrderPlanningError("As constantes de horários da produção estão incompletas.", 409);
+    }
+    productionTiming = {
+      castStartTime: `${String(Math.trunc(startHour)).padStart(2, "0")}:00`,
+      castingDurationMinutes: castingMinutes,
+      curingDurationHours: curingHours,
+      timeZone: organizationResult.data?.timezone || "America/Sao_Paulo",
+    };
+  }
 
   const orderIds = orders.map((order) => order.id);
   const [itemsResult, startedUnitsResult, startedLegacyResult, startedAllocationsResult] = await Promise.all([
@@ -367,10 +422,11 @@ export async function buildPlanningQueue({ db, organizationId, input = {} }) {
       return {
         itemId: item.id,
         pieceTypeId: item.piece_type_id,
+        pieceKind: piece.piece_kind,
         code: piece.code,
         name: piece.name,
         requiredMoldCodes: requiredMoldsByPiece.get(item.piece_type_id) || [],
-        requiresMoldConfig: ["braco", "pilar", "viga"].includes(piece.piece_kind),
+        requiresMoldConfig: ["braco", "pilar", "viga", "placa"].includes(piece.piece_kind),
         quantity: item.quantity,
         curingDays: DEFAULT_CURING_DAYS,
         productionMinutesSnapshot: numberOrZero(item.production_minutes_snapshot) ||
@@ -388,6 +444,7 @@ export async function buildPlanningQueue({ db, organizationId, input = {} }) {
         startDate: order.startDate,
         dueDate: order.dueDate,
         planningHorizonDays: order.horizonDays,
+        productionTiming,
       });
     } catch (error) {
       if (error instanceof PlannerError) throw new OrderPlanningError(error.message, error.status, error.details);

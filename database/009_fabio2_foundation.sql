@@ -6,15 +6,13 @@ begin;
 
 -- ---------------------------------------------------------------------------
 -- Status: o enum legado continua existindo, mas `concluido` deixa de ser aceito
--- em pedidos. Isso evita recriar o enum e preserva os dados e referências atuais.
+-- em novos registros/alterações. NOT VALID preserva linhas históricas existentes.
 -- ---------------------------------------------------------------------------
 alter table public.orders
   drop constraint if exists orders_status_not_concluido_check;
 alter table public.orders
   add constraint orders_status_not_concluido_check
   check (status <> 'concluido'::public.order_status) not valid;
-alter table public.orders
-  validate constraint orders_status_not_concluido_check;
 
 -- Placa passa a ser um tipo de peça. Os cálculos antigos de peça não são tocados.
 alter table public.piece_types
@@ -335,7 +333,7 @@ begin
     join public.order_items oi on oi.piece_type_id = ptm.piece_type_id and oi.organization_id = ptm.organization_id
     join public.orders o on o.id = oi.order_id and o.organization_id = oi.organization_id
     where ptm.catalog_code = old.code
-      and o.status not in ('entregue'::public.order_status, 'cancelado'::public.order_status)
+      and o.status not in ('entregue'::public.order_status, 'cancelado'::public.order_status, 'concluido'::public.order_status)
   ) then
     raise exception 'A medida de uma forma não pode mudar enquanto estiver vinculada a um pedido não encerrado.';
   end if;
@@ -399,12 +397,18 @@ create table if not exists public.calculation_constants (
   check (length(trim(unit)) > 0),
   check (numeric_value >= 0)
 );
+alter table public.calculation_constants
+  drop constraint if exists calculation_constants_casting_start_hour_check;
+alter table public.calculation_constants
+  add constraint calculation_constants_casting_start_hour_check
+  check (constant_key <> 'casting_start_hour'
+    or (numeric_value = trunc(numeric_value) and numeric_value between 0 and 23));
 insert into public.calculation_constants (organization_id, constant_key, numeric_value, unit)
 select o.id, seed.constant_key, seed.numeric_value, seed.unit
 from public.organizations o
 cross join (values
   ('concrete_density_t_m3', 2.5::numeric, 't/m³'::text),
-  ('plate_area_weight_t_m2', 0.25::numeric, 't/m²'::text),
+  ('casting_start_hour', 8::numeric, 'h'::text),
   ('casting_duration_minutes', 120::numeric, 'min'::text),
   ('curing_duration_hours', 12::numeric, 'h'::text)
 ) as seed(constant_key, numeric_value, unit)
@@ -597,6 +601,114 @@ create trigger trg_validate_project_section_item
 before insert or update on public.project_section_items
 for each row execute function public.validate_project_section_item();
 
+-- Salva o projeto de engenharia e sua divisão em seções numa única transação.
+-- Cada pedido mantém no máximo um projeto; as seções recebem somente itens
+-- desse pedido e não podem reservar mais unidades do que o pedido solicitou.
+create or replace function public.save_engineering_project_structure(
+  p_org_id uuid,
+  p_order_id uuid,
+  p_sections jsonb
+)
+returns jsonb
+language plpgsql
+security invoker
+set search_path = public, pg_temp
+as $$
+declare
+  v_project public.engineering_projects;
+  v_section public.project_sections;
+  section_row jsonb;
+  item_row jsonb;
+  section_count integer := 0;
+  item_count integer := 0;
+  section_name_value text;
+  sort_order_value smallint;
+  item_id uuid;
+  item_quantity integer;
+begin
+  if p_sections is null or jsonb_typeof(p_sections) <> 'array'
+    or jsonb_array_length(p_sections) = 0 or jsonb_array_length(p_sections) > 100 then
+    raise exception 'Informe entre uma e cem seções para o projeto.';
+  end if;
+  if not exists (
+    select 1 from public.orders o
+    where o.organization_id = p_org_id and o.id = p_order_id and o.is_active = true
+  ) then
+    raise exception 'Pedido não encontrado ou inativo.';
+  end if;
+  if exists (
+    select 1
+    from jsonb_array_elements(p_sections) section
+    group by lower(trim(section->>'sectionName'))
+    having count(*) > 1
+  ) then
+    raise exception 'O nome de cada seção precisa ser único dentro do projeto.';
+  end if;
+
+  insert into public.engineering_projects (organization_id, order_id)
+  values (p_org_id, p_order_id)
+  on conflict (organization_id, order_id) do update set updated_at = now()
+  returning * into v_project;
+
+  for section_row in select value from jsonb_array_elements(p_sections) loop
+    section_name_value := nullif(trim(section_row->>'sectionName'), '');
+    sort_order_value := coalesce(nullif(section_row->>'sortOrder', '')::smallint, section_count + 1);
+    if section_name_value is null or length(section_name_value) > 120 or sort_order_value < 1 then
+      raise exception 'Cada seção precisa de um nome de até 120 caracteres e ordem positiva.';
+    end if;
+    if jsonb_typeof(section_row->'items') is distinct from 'array'
+      or jsonb_array_length(section_row->'items') > 500 then
+      raise exception 'Cada seção deve enviar uma lista de até 500 itens.';
+    end if;
+
+    insert into public.project_sections (organization_id, project_id, section_name, sort_order)
+    values (p_org_id, v_project.id, section_name_value, sort_order_value)
+    on conflict (organization_id, project_id, section_name)
+    do update set sort_order = excluded.sort_order
+    returning * into v_section;
+    section_count := section_count + 1;
+  end loop;
+
+  -- O payload representa toda a divisão atual; limpar e recriar em uma
+  -- transação permite mover itens entre seções sem ultrapassar limites no meio.
+  delete from public.project_section_items psi
+  using public.project_sections ps
+  where ps.organization_id = psi.organization_id
+    and ps.id = psi.section_id
+    and ps.project_id = v_project.id;
+
+  for section_row in select value from jsonb_array_elements(p_sections) loop
+    select * into v_section from public.project_sections ps
+    where ps.organization_id = p_org_id and ps.project_id = v_project.id
+      and ps.section_name = trim(section_row->>'sectionName');
+    for item_row in select value from jsonb_array_elements(section_row->'items') loop
+      item_id := nullif(item_row->>'orderItemId', '')::uuid;
+      item_quantity := nullif(item_row->>'quantity', '')::integer;
+      if item_id is null or item_quantity is null or item_quantity < 1 then
+        raise exception 'Cada item da seção precisa de pedido e quantidade positiva.';
+      end if;
+      insert into public.project_section_items (organization_id, section_id, order_item_id, quantity)
+      values (p_org_id, v_section.id, item_id, item_quantity);
+      item_count := item_count + 1;
+    end loop;
+  end loop;
+
+  delete from public.project_sections ps
+  where ps.organization_id = p_org_id and ps.project_id = v_project.id
+    and not exists (
+      select 1 from jsonb_array_elements(p_sections) desired
+      where trim(desired->>'sectionName') = ps.section_name
+    );
+
+  return jsonb_build_object(
+    'projectId', v_project.id,
+    'orderId', v_project.order_id,
+    'sectionCount', section_count,
+    'itemCount', item_count
+  );
+end;
+$$;
+
 create or replace function public.guard_order_item_project_quantity()
 returns trigger
 language plpgsql
@@ -679,7 +791,7 @@ begin
       select 1 from public.order_items oi
       join public.orders o on o.id = oi.order_id and o.organization_id = oi.organization_id
       where oi.organization_id = old.organization_id and oi.piece_type_id in (old.piece_type_id, new.piece_type_id)
-        and o.status not in ('entregue'::public.order_status, 'cancelado'::public.order_status)
+        and o.status not in ('entregue'::public.order_status, 'cancelado'::public.order_status, 'concluido'::public.order_status)
     ) then
       raise exception 'A compatibilidade não pode ser movida enquanto a peça estiver vinculada a pedido não encerrado.';
     end if;
@@ -692,7 +804,7 @@ begin
       select 1 from public.order_items oi
       join public.orders o on o.id = oi.order_id and o.organization_id = oi.organization_id
       where oi.organization_id = old.organization_id and oi.piece_type_id = old.piece_type_id
-        and o.status not in ('entregue'::public.order_status, 'cancelado'::public.order_status)
+        and o.status not in ('entregue'::public.order_status, 'cancelado'::public.order_status, 'concluido'::public.order_status)
     ) then
     raise exception 'A compatibilidade da peça não pode mudar enquanto estiver vinculada a pedido não encerrado.';
   end if;
@@ -733,7 +845,7 @@ begin
     from public.order_items oi
     join public.orders o on o.id = oi.order_id and o.organization_id = oi.organization_id
     where oi.organization_id = v_organization_id and oi.piece_type_id = v_piece_type_id
-      and o.status not in ('entregue'::public.order_status, 'cancelado'::public.order_status)
+      and o.status not in ('entregue'::public.order_status, 'cancelado'::public.order_status, 'concluido'::public.order_status)
   ) then
     select ptm.catalog_code into v_current_code
     from public.piece_type_molds ptm
@@ -766,7 +878,6 @@ declare
   v_y numeric := nullif(p_record->>'dimensionYcm', '')::numeric;
   v_z numeric := nullif(p_record->>'dimensionZcm', '')::numeric;
   v_production_minutes integer := nullif(p_record->>'productionMinutesPerUnit', '')::integer;
-  v_plate_weight_t_m2 numeric;
   v_row public.piece_types;
 begin
   if v_code is null or v_name is null then raise exception 'Informe código e nome da placa.'; end if;
@@ -776,13 +887,6 @@ begin
   if v_production_minutes is null or v_production_minutes <= 0 then
     raise exception 'O tempo de produção registrado precisa ser maior que zero.';
   end if;
-  select cc.numeric_value into v_plate_weight_t_m2
-  from public.calculation_constants cc
-  where cc.organization_id = p_org_id and cc.constant_key = 'plate_area_weight_t_m2' and cc.unit = 't/m²';
-  if v_plate_weight_t_m2 is null then
-    raise exception 'A constante de peso da placa não está cadastrada para esta unidade.';
-  end if;
-
   if v_id is not null then
     if not exists (
       select 1 from public.piece_types pt
@@ -807,7 +911,7 @@ begin
       dimensions = format('%s × %s × %s cm', v_x, v_y, v_z),
       volume_cm3 = v_x * v_y * v_z,
       volume_m3 = (v_x * v_y * v_z) / 1000000,
-      weight_kg = (v_x * v_y / 10000) * v_plate_weight_t_m2 * 1000,
+      weight_kg = (v_x * v_y * v_z * 2.5) / 1000,
       production_minutes_per_unit = v_production_minutes,
       observations = nullif(trim(p_record->>'observations'), '')
     where id = v_id and organization_id = p_org_id
@@ -820,7 +924,7 @@ begin
       p_org_id, v_code, v_name, 'placa', v_x, v_y, v_z,
       format('%s × %s × %s cm', v_x, v_y, v_z), v_x * v_y * v_z,
       (v_x * v_y * v_z) / 1000000,
-      (v_x * v_y / 10000) * v_plate_weight_t_m2 * 1000,
+      (v_x * v_y * v_z * 2.5) / 1000,
       v_production_minutes, nullif(trim(p_record->>'observations'), '')
     ) returning * into v_row;
   end if;
@@ -1094,10 +1198,12 @@ create trigger trg_validate_allocation_compatibility_and_overlap
 before insert or update on public.allocations
 for each row execute function public.validate_allocation_compatibility_and_overlap();
 
--- A placa usa a área X×Y para o peso, preservando Z como espessura e os
--- cálculos dimensionais de volume. `save_piece_type` permanece inalterada.
+-- A placa preserva X×Y como área e Z como espessura; seu peso usa a mesma
+-- densidade e o mesmo cálculo dimensional das peças existentes.
 revoke all on function public.save_plate_type(uuid, jsonb) from public, anon, authenticated;
 grant execute on function public.save_plate_type(uuid, jsonb) to service_role;
+revoke all on function public.save_engineering_project_structure(uuid, uuid, jsonb) from public, anon, authenticated;
+grant execute on function public.save_engineering_project_structure(uuid, uuid, jsonb) to service_role;
 revoke all on function public.save_mold_position(uuid, text, text, text, text, text, text, text) from public, anon, authenticated;
 grant execute on function public.save_mold_position(uuid, text, text, text, text, text, text, text) to service_role;
 

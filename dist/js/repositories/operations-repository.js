@@ -15,10 +15,13 @@
     getOperationsData: () => operation("bootstrap"),
     saveWork: (input) => operation("save_work", input),
     saveOrder: (input) => operation("save_order", input),
+    saveEngineeringProject: (input) => operation("save_engineering_project", input),
     savePieceType: (input) => operation("save_piece_type", input),
+    savePlateType: (input) => operation("save_plate_type", input),
     saveMold: (input) => operation("save_mold", input),
     saveMoldPosition: (input) => operation("save_position", input),
     saveMoldPreparation: (input) => operation("save_preparation", input),
+    calculateMoldPreparationEnd: (input) => operation("calculate_preparation_end", input),
     saveResourceAllocation: (input) => operation("save_allocation", input),
     archiveOperationRecord: (kind, id) => operation("archive", { kind, id }),
   });
