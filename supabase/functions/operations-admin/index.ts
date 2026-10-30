@@ -5,12 +5,13 @@
  */
 import { getServerConfig } from "../_shared/env.js";
 import { ensurePost, handleError, json, readJson } from "../_shared/http.js";
-import { buildPlanningQueue, OrderPlanningError } from "../_shared/order-planning.js";
+import { buildPlanningQueue, findWorkingDayCompletionDate, OrderPlanningError } from "../_shared/order-planning.js";
 import { calculatePieceMetrics } from "../_shared/piece-metrics.js";
+import { calculatePlateMetrics } from "../_shared/plate-metrics.js";
 import { createAdminClient } from "../_shared/supabaseClient.js";
 
 const WORK_STATUSES = new Set(["planejamento", "ativa", "concluida", "cancelada"]);
-const ORDER_STATUSES = new Set(["orcamento", "aprovado", "em_producao", "concluido", "entregue", "atrasado", "cancelado"]);
+const ORDER_STATUSES = new Set(["orcamento", "aprovado", "em_producao", "entregue", "atrasado", "cancelado"]);
 const MOLD_STATUSES = new Set(["ativo", "manutencao", "bloqueado", "retirado"]);
 const POSITION_STATUSES = new Set(["disponivel", "em_preparacao", "em_producao", "em_manutencao"]);
 const PREPARATION_STATUSES = new Set(["planejada", "em_andamento", "aguardando_aprovacao", "aprovada", "reprovada", "cancelada"]);
@@ -165,6 +166,23 @@ async function readOperationsData(db: any, organizationId: string) {
     : { data: [], error: null };
   if (itemsResult.error) throwDbError(itemsResult.error, "Não foi possível carregar os itens dos pedidos.");
 
+  // Consultas opcionais da Etapa 5. Um banco sem a migration 009 continua
+  // servindo as telas legadas, mas a resposta informa que o novo fluxo não está ativo.
+  const [projectsResult, sectionsResult, sectionItemsResult, stepsResult, constantsResult] = await Promise.all([
+    db.from("engineering_projects").select("id, order_id, created_at, updated_at")
+      .eq("organization_id", organizationId).limit(1000),
+    db.from("project_sections").select("id, project_id, section_name, sort_order, created_at, updated_at")
+      .eq("organization_id", organizationId).order("sort_order").limit(5000),
+    db.from("project_section_items").select("id, section_id, order_item_id, quantity")
+      .eq("organization_id", organizationId).limit(10000),
+    db.from("production_order_steps").select("id, production_order_id, step_kind, sequence, duration_minutes, planned_start_at, planned_end_at, actual_start_at, actual_end_at, status, notes")
+      .eq("organization_id", organizationId).order("planned_start_at").limit(10000),
+    db.from("calculation_constants").select("constant_key, numeric_value, unit")
+      .eq("organization_id", organizationId).order("constant_key"),
+  ]);
+  const fabio2Results = [projectsResult, sectionsResult, sectionItemsResult, stepsResult, constantsResult];
+  const fabio2Available = fabio2Results.every((result) => !result.error);
+
   const clients = clientsResult.data || [];
   const works = worksResult.data || [];
   const pieces = piecesResult.data || [];
@@ -181,6 +199,19 @@ async function readOperationsData(db: any, organizationId: string) {
     list.push({ ...item, piece_code: piece?.code || "", piece_name: piece?.name || "" });
     itemsByOrder.set(item.order_id, list);
   }
+  const orderItemById = new Map((itemsResult.data || []).map((item: any) => [item.id, item]));
+  const sectionsByProject = new Map<string, any[]>();
+  for (const section of sectionsResult.data || []) {
+    const rows = sectionsByProject.get(section.project_id) || [];
+    rows.push(section);
+    sectionsByProject.set(section.project_id, rows);
+  }
+  const projectItemsBySection = new Map<string, any[]>();
+  for (const item of sectionItemsResult.data || []) {
+    const rows = projectItemsBySection.get(item.section_id) || [];
+    rows.push({ ...item, order_item: orderItemById.get(item.order_item_id) || null });
+    projectItemsBySection.set(item.section_id, rows);
+  }
   const moldIdsByPiece = new Map<string, string[]>();
   const pieceIdsByMold = new Map<string, string[]>();
   for (const pair of compatResult.data || []) {
@@ -194,8 +225,19 @@ async function readOperationsData(db: any, organizationId: string) {
     moldsForPiece[requirement.role] = requirement.catalog_code;
     moldCatalogsByPiece.set(requirement.piece_type_id, moldsForPiece);
   }
+  const projects = fabio2Available
+    ? (projectsResult.data || []).map((project: any) => ({
+      ...project,
+      sections: (sectionsByProject.get(project.id) || []).map((section: any) => ({
+        ...section,
+        items: projectItemsBySection.get(section.id) || [],
+      })),
+    }))
+    : [];
   return {
-    schemaVersion: 4,
+    schemaVersion: fabio2Available ? 5 : 4,
+    fabio2Available,
+    fabio2UnavailableReason: fabio2Available ? null : "A migration 009 não está instalada ou suas tabelas não estão disponíveis.",
     clients,
     works: works.map((work: any) => ({ ...work, client_name: clientById.get(work.client_id) || "" })),
     orders: (ordersResult.data || []).map((order: any) => ({
@@ -222,6 +264,9 @@ async function readOperationsData(db: any, organizationId: string) {
     positions: positionsResult.data || [],
     preparations: preparationsResult.data || [],
     allocations: allocationsResult.data || [],
+    engineeringProjects: projects,
+    productionOrderSteps: fabio2Available ? stepsResult.data || [] : [],
+    calculationConstants: fabio2Available ? constantsResult.data || [] : [],
   };
 }
 
@@ -242,6 +287,16 @@ async function replanOpenQueue(db: any, organizationId: string) {
   if (commitError) throwDbError(commitError, "Não foi possível recalcular o calendário após a alteração do cadastro.");
   const warnings = queuePlan.plans.flatMap(({ orderId, plan: queuedPlan }) => queuedPlan.feasible ? [] : queuedPlan.conflicts.map((conflict: any) => `Pedido ${queuedPlan.order?.orderNumber || orderId}: ${conflict.message}`));
   return { committed: true, warning: warnings.length ? warnings.slice(0, 5).join(" ") : null };
+}
+
+async function moldPreparationEndDate(db: any, organizationId: string, moldId: string, startDate: string) {
+  const { data: mold, error } = await db.from("molds").select("preparation_days, status")
+    .eq("organization_id", organizationId).eq("id", moldId).maybeSingle();
+  if (error) throwDbError(error, "Não foi possível consultar a duração da preparação.");
+  if (!mold || mold.status === "retirado") throw badRequest("Forma não encontrada ou retirada nesta unidade.", 404);
+  const preparationDays = integerValue(mold.preparation_days, "A duração da preparação", 1);
+  if (preparationDays === 7) return addDays(startDate, 6); // Compatibilidade com o fluxo anterior à migration 009.
+  return await findWorkingDayCompletionDate({ db, organizationId, startDate, workingDays: preparationDays });
 }
 
 async function handler(request: Request) {
@@ -390,12 +445,45 @@ async function handler(request: Request) {
       return json({ ok: true, order: data, planning });
     }
 
+    if (action === "save_engineering_project") {
+      const orderId = textValue(input.orderId, "o pedido", 80, true);
+      if (!Array.isArray(input.sections) || input.sections.length < 1 || input.sections.length > 100) {
+        throw badRequest("Informe de uma a cem seções para o projeto.");
+      }
+      const sections = input.sections.map((section: any, sectionIndex: number) => {
+        const items = Array.isArray(section?.items) ? section.items : [];
+        if (items.length > 500) throw badRequest("Cada seção pode conter até 500 itens.");
+        return {
+          sectionName: textValue(section?.sectionName, "o nome da seção", 120, true),
+          sortOrder: integerValue(section?.sortOrder ?? sectionIndex + 1, "A ordem da seção", 1),
+          items: items.map((item: any) => ({
+            orderItemId: textValue(item?.orderItemId, "o item do pedido", 80, true),
+            quantity: integerValue(item?.quantity, "A quantidade na seção", 1),
+          })),
+        };
+      });
+      const sectionNames = sections.map((section: any) => section.sectionName.toLocaleLowerCase());
+      if (new Set(sectionNames).size !== sectionNames.length) {
+        throw badRequest("O nome de cada seção precisa ser único dentro do projeto.");
+      }
+      const { data, error } = await db.rpc("save_engineering_project_structure", {
+        p_org_id: organizationId,
+        p_order_id: orderId,
+        p_sections: sections,
+      });
+      if (error) throwDbError(error, "Não foi possível salvar o projeto de engenharia. Confirme se a migration 009 está aplicada.");
+      return json({ ok: true, project: data });
+    }
+
     if (action === "calculate_piece_metrics") {
-      const metrics = calculatePieceMetrics({
+      const dimensions = {
         x: input.x ?? input.dimensionX ?? input.dimension_x_cm,
         y: input.y ?? input.dimensionY ?? input.dimension_y_cm,
         z: input.z ?? input.dimensionZ ?? input.dimension_z_cm,
-      });
+      };
+      const metrics = input.pieceKind === "placa"
+        ? calculatePlateMetrics(dimensions)
+        : calculatePieceMetrics(dimensions);
       return json({ ok: true, metrics });
     }
 
@@ -461,6 +549,40 @@ async function handler(request: Request) {
       return json({ ok: true, pieceType: data, planning });
     }
 
+    if (action === "save_plate_type") {
+      const dimensionXcm = decimalValue(input.dimensionXcm, "A área X da placa");
+      const dimensionYcm = decimalValue(input.dimensionYcm, "A área Y da placa");
+      const dimensionZcm = decimalValue(input.dimensionZcm, "A espessura Z da placa");
+      if (dimensionXcm === null || dimensionYcm === null || dimensionZcm === null || dimensionXcm <= 0 || dimensionYcm <= 0 || dimensionZcm <= 0) {
+        throw badRequest("Informe X, Y e espessura Z maiores que zero, em centímetros.");
+      }
+      calculatePlateMetrics({ x: dimensionXcm, y: dimensionYcm, z: dimensionZcm });
+      const record = {
+        id: textValue(input.id, "o identificador", 80) || null,
+        code: textValue(input.code, "o código da placa", 60, true),
+        name: textValue(input.name, "o nome da placa", 180, true),
+        dimensionXcm,
+        dimensionYcm,
+        dimensionZcm,
+        productionMinutesPerUnit: integerValue(input.productionMinutesPerUnit, "O tempo de produção", 1),
+        observations: textValue(input.observations, "as observações", 1000),
+      };
+      const { data, error } = await db.rpc("save_plate_type", { p_org_id: organizationId, p_record: record });
+      if (error) throwDbError(error, "Não foi possível salvar a placa. Confirme se a migration 009 está aplicada.");
+      let planning: Record<string, unknown>;
+      try {
+        planning = await replanOpenQueue(db, organizationId);
+      } catch (planningError) {
+        planning = {
+          committed: false,
+          warning: planningError instanceof OrderPlanningError
+            ? planningError.message
+            : "A placa foi salva, mas o calendário não pôde ser recalculado. Atualize o planejamento.",
+        };
+      }
+      return json({ ok: true, pieceType: data, planning });
+    }
+
     if (action === "save_mold") {
       const record = {
         id: textValue(input.id, "o identificador", 80) || null,
@@ -477,7 +599,7 @@ async function handler(request: Request) {
     if (action === "save_position") {
       const code = textValue(input.code, "a posição", 3, true);
       const status = enumValue(input.status, POSITION_STATUSES, "disponivel", "Status da posição");
-      const configurationKind = enumValue(input.configurationKind, new Set(["braco", "pilar_viga"]), "", "Configuração da posição");
+      const configurationKind = enumValue(input.configurationKind, new Set(["braco", "pilar_viga", "placa"]), "", "Configuração da posição");
       const bracoCatalogCode = textValue(input.bracoCatalogCode, "o molde BRAÇO", 40);
       const leitoCatalogCode = textValue(input.leitoCatalogCode, "o molde LEITO", 40);
       const lateralCatalogCode = textValue(input.lateralCatalogCode, "o molde LATERAL", 40);
@@ -487,6 +609,9 @@ async function handler(request: Request) {
       }
       if (configurationKind === "pilar_viga" && (bracoCatalogCode || !leitoCatalogCode || !lateralCatalogCode)) {
         throw badRequest("Configure a posição com uma medida LEITO e uma LATERAL.");
+      }
+      if (configurationKind === "placa" && (bracoCatalogCode || leitoCatalogCode || lateralCatalogCode)) {
+        throw badRequest("A bancada de placa não pode ter formas vinculadas.");
       }
       const { data, error } = await db.rpc("save_mold_position", {
         p_org_id: organizationId,
@@ -514,10 +639,17 @@ async function handler(request: Request) {
       return json({ ok: true, position: data, planning });
     }
 
+    if (action === "calculate_preparation_end") {
+      const moldId = textValue(input.moldId, "a forma", 80, true);
+      const startDate = dateValue(input.startDate, "início da preparação")!;
+      const endDate = await moldPreparationEndDate(db, organizationId, moldId, startDate);
+      return json({ ok: true, endDate });
+    }
+
     if (action === "save_preparation") {
       const moldId = textValue(input.moldId, "o molde", 80, true);
       const startDate = dateValue(input.startDate, "início da preparação")!;
-      const endDate = addDays(startDate, 6);
+      const endDate = await moldPreparationEndDate(db, organizationId, moldId, startDate);
       const status = enumValue(input.status, PREPARATION_STATUSES, "planejada", "Status da preparação");
       const checklistInput = input.checklist && typeof input.checklist === "object" ? input.checklist as Record<string, unknown> : {};
       const checklist = {

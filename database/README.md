@@ -79,11 +79,8 @@ em `piece_type_molds`, adiciona `placa` como tipo de peça e posição de bancad
 cria os registros de projeto/seções ligados a pedidos/itens, registra etapas de
 produção com horários e guarda constantes por organização. Não cria catálogo
 paralelo de formas nem altera as funções atuais de volume e peso. O peso da
-placa usa a área X×Y e a constante aprovada de 0,25 t/m²; Z continua sendo a
-espessura e participa do volume.
-O valor 2,5 t/m³ também fica documentado no catálogo de constantes, mas o fluxo
-legado de braço, pilar e viga continua usando o cálculo atual fixo; editar essa
-constante não altera esses pesos até uma integração aprovada.
+placa usa X×Y como área, Z como espessura e a mesma densidade fixa de 2,5 t/m³
+do cálculo atual de volume e peso das peças existentes.
 
 Os prazos de preparação permanecem no campo existente `molds.preparation_days`;
 a proposta fixa esse valor em cinco dias úteis e usa `calendar_days` para achar a
@@ -94,14 +91,32 @@ Como premissa de engenharia, uma seção maciça retangular de braço resulta em
 usando 2,5 t/m³. O peso efetivo da peça continua dependendo do comprimento Z
 cadastrado e da fórmula existente.
 
+O planejador grava concretagem e cura em `production_order_steps` com horários
+exatos, usa 120 minutos para concretagem e 12 horas para cura, e mantém a posição
+reservada até o fim da cura. O horário padrão é 08:00 no fuso da organização
+(`calculation_constants.casting_start_hour`); ajuste-o para o início real do
+turno antes de aplicar a migration se a fábrica começar em outro horário.
+Acabamento, inspeção e liberação aparecem como etapas pendentes enquanto suas
+durações não forem definidas.
+
+O cadastro de projeto chama `save_engineering_project_structure` para gravar o
+projeto, as seções e a distribuição dos itens em uma transação. A RPC confere
+que cada item pertence ao pedido escolhido e que a soma não ultrapassa a
+quantidade pedida. Somente `service_role` pode executá-la.
+
 As tabelas novas continuam com RLS ligado, sem policies para acesso anônimo;
 somente as Edge Functions com `service_role` acessam os dados. Sem login, a
 aplicação ainda depende da organização fixa configurada no servidor e não tem
 isolamento multi-organização por usuário. As Edge Functions públicas continuam
 sendo a fronteira de acesso e precisam validar organização e payload.
 
-**A migration 009 está apenas no repositório/branch de revisão. Não a execute no
-projeto Supabase ativo até a etapa de código e integração estar pronta.** A
+**A migration 009 e a integração da Etapa 5 estão no repositório/branch de
+revisão. Não execute a migration nem publique as Edge Functions no projeto
+Supabase ativo nesta etapa.** A
 ferramenta Supabase CLI não está instalada neste ambiente, por isso o arquivo
 segue a convenção `database/001–008` existente; ele não fica em
 `supabase/migrations/` e não é executado automaticamente por `db push`.
+
+A regra para rejeitar o status legado `concluido` não é validada contra linhas
+históricas: pedidos já concluídos continuam preservados na base e precisam
+receber um status vigente antes de serem editados.

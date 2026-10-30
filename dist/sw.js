@@ -1,18 +1,18 @@
 // A versão muda junto dos arquivos do app para que celulares baixem a estrutura nova.
-const CACHE_NAME = 'prelux-emissor-etiquetas-v13';
+const CACHE_NAME = 'prelux-emissor-etiquetas-v16';
 const APP_SHELL = [
   './',
   './index.html',
-  './css/app.css?v=1',
-  './css/operations.css?v=3',
+  './css/app.css?v=3',
+  './css/operations.css?v=4',
   './js/core/api.js?v=17',
   './js/core/navigation.js?v=1',
   './js/domain/mold-compatibility.js?v=1',
   './js/repositories/planning-repository.js?v=1',
-  './js/repositories/operations-repository.js?v=1',
+  './js/repositories/operations-repository.js?v=2',
   './js/modules/label-emitter.js?v=1',
-  './js/modules/production-calendar.js?v=8',
-  './js/modules/operations-admin.js?v=6',
+  './js/modules/production-calendar.js?v=10',
+  './js/modules/operations-admin.js?v=8',
   './manifest.webmanifest',
   './assets/PRE_RASTRE.png',
   './icons/icon-192.png',

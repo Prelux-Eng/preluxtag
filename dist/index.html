@@ -9,8 +9,8 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <link rel="manifest" href="manifest.webmanifest" />
-  <link rel="stylesheet" href="css/operations.css?v=3" />
-  <link rel="stylesheet" href="css/app.css?v=1" />
+  <link rel="stylesheet" href="css/operations.css?v=4" />
+  <link rel="stylesheet" href="css/app.css?v=3" />
   <link rel="apple-touch-icon" href="icons/icon-192.png" />
   <title>PRELUX · Etiquetas</title>
 </head>
@@ -57,7 +57,7 @@
         </section>
         <div class="planning-grid">
           <section class="card calendar-card"><div class="calendar-toolbar"><h3 id="planningCalendarHeading">Calendário mensal</h3><div class="calendar-controls"><div class="segmented" role="group" aria-label="Visão do calendário"><button type="button" data-calendar-mode="month" aria-pressed="true">Mês</button><button type="button" data-calendar-mode="week" aria-pressed="false">Semana</button><button type="button" data-calendar-mode="gantt" aria-pressed="false">Gantt</button></div><div class="actions"><button class="btn" id="planningSettingsBtn" type="button">Semana padrão</button><button class="btn" id="planningOrderBtn" type="button">Planejar pedido</button><button class="btn" id="planningActivityBtn" type="button">Nova atividade</button><div class="month-control"><label for="planningAnchor" class="sr-only">Data de referência</label><input id="planningAnchor" type="date" /><button class="icon-btn" id="planningPrevious" type="button" aria-label="Período anterior">‹</button><button class="icon-btn" id="planningNextPeriod" type="button" aria-label="Próximo período">›</button></div></div></div></div><div class="planning-summary" id="planningCalendarSummary">Carregando datas, posições, pedidos e etapas.</div><div class="calendar-placeholder" id="planningCalendarState"><div><strong>Calendário pronto para receber a programação</strong><p>Atualize o calendário para carregar dias úteis, pedidos e etapas da produção.</p></div></div><div class="calendar-legend"><span><i class="work"></i> dia útil</span><span><i class="off"></i> sem concretagem</span><span><i class="activity"></i> atividade do calendário</span><span><i class="casting"></i> concretagem / posição ocupada</span><span><i class="curing"></i> cura / não ocupa posição</span><span><i class="finish"></i> acabamento</span><span><i class="order-window"></i> período do pedido</span><span><i class="work-window"></i> período da obra</span><span>Arraste uma concretagem para simular nova data.</span></div></section>
-          <section class="card"><div class="module-note"><h3>Produção por data</h3><p>O calendário considera os dias úteis e as posições físicas de molde.</p><div class="connection-state" id="planningConnectionState"><span class="dot"></span><span>Conectando ao backend de produção.</span></div></div><div class="planning-list"><div><span>Semana padrão</span><strong id="planningWorkdaysSummary">Segunda a sexta</strong></div><div><span>Capacidade de concretagem</span><strong id="planningDefaultCapacitySummary">4 posições por dia útil</strong></div><div><span>Ocupação da posição</span><strong>Somente no dia da concretagem</strong></div><div><span>Cura e acabamento</span><strong>Datas exibidas no calendário</strong></div></div><p class="scope-note">Cada concretagem ocupa uma das posições P01–P04 por um dia útil. A cura dura dois dias corridos e não ocupa molde; o acabamento começa no próximo dia útil. Estoque mínimo não altera o prazo padrão.</p></section>
+          <section class="card"><div class="module-note"><h3>Produção por data</h3><p>O calendário considera os dias úteis e as posições físicas de forma.</p><div class="connection-state" id="planningConnectionState"><span class="dot"></span><span>Conectando ao backend de produção.</span></div></div><div class="planning-list"><div><span>Semana padrão</span><strong id="planningWorkdaysSummary">Segunda a sexta</strong></div><div><span>Capacidade de concretagem</span><strong id="planningDefaultCapacitySummary">4 posições por dia útil</strong></div><div><span>Ocupação da posição</span><strong>Concretagem até o fim da cura</strong></div><div><span>Cura e acabamento</span><strong>Etapas com horários exatos</strong></div></div><p class="scope-note">Cada concretagem ocupa uma das posições P01–P04; a reserva permanece até o fim da cura. As etapas sem duração definida pela engenharia aparecem como pendentes. Estoque mínimo não altera o prazo padrão.</p></section>
         </div>
       </section>
       <section class="content operations-view" id="operationsView" role="tabpanel" aria-labelledby="tabCadastros" hidden></section>
@@ -117,9 +117,10 @@
       <div class="modal-head"><div><h3 id="calendarSettingsTitle">Semana padrão</h3><p>Defina os dias úteis usados pela programação.</p></div><button class="close-btn" id="closeCalendarSettings" type="button" aria-label="Fechar">×</button></div>
       <form class="day-form" id="calendarSettingsForm">
         <input id="defaultCapacityMinutes" type="hidden" value="480" />
+        <div class="field full" id="castingStartTimeField" hidden><label for="castingStartTime">Início diário da concretagem</label><input class="input" id="castingStartTime" type="time" step="3600" value="08:00" required /><span class="form-help">Usado para gravar os horários exatos das etapas, no fuso da fábrica.</span></div>
         <fieldset class="weekly-rules"><legend>Dias de trabalho</legend><label class="weekday-option"><input type="checkbox" data-weekday="1" checked /> Segunda</label><label class="weekday-option"><input type="checkbox" data-weekday="2" checked /> Terça</label><label class="weekday-option"><input type="checkbox" data-weekday="3" checked /> Quarta</label><label class="weekday-option"><input type="checkbox" data-weekday="4" checked /> Quinta</label><label class="weekday-option"><input type="checkbox" data-weekday="5" checked /> Sexta</label><label class="weekday-option"><input type="checkbox" data-weekday="6" /> Sábado</label><label class="weekday-option"><input type="checkbox" data-weekday="0" /> Domingo</label></fieldset>
         <div class="modal-status" id="calendarSettingsStatus"></div>
-        <div class="modal-actions"><button class="btn" id="cancelCalendarSettings" type="button">Cancelar</button><button class="btn primary" id="saveCalendarSettings" type="submit">Salvar semana padrão</button></div>
+        <div class="modal-actions"><button class="btn" id="cancelCalendarSettings" type="button">Cancelar</button><button class="btn primary" id="saveCalendarSettings" type="submit">Salvar configurações</button></div>
       </form>
     </div>
   </div>
@@ -154,10 +155,10 @@
   <script src="js/core/api.js?v=17"></script>
   <script src="js/modules/label-emitter.js?v=1"></script>
   <script src="js/repositories/planning-repository.js?v=1"></script>
-  <script src="js/repositories/operations-repository.js?v=1"></script>
+  <script src="js/repositories/operations-repository.js?v=2"></script>
   <script src="js/domain/mold-compatibility.js?v=1"></script>
   <script src="js/core/navigation.js?v=1"></script>
-  <script src="js/modules/production-calendar.js?v=8"></script>
-  <script src="js/modules/operations-admin.js?v=6"></script>
+  <script src="js/modules/production-calendar.js?v=10"></script>
+  <script src="js/modules/operations-admin.js?v=8"></script>
 </body>
 </html>
