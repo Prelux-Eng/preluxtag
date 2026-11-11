@@ -1,109 +1,134 @@
-# Como o PRELUX está organizado
+# Arquitetura do PRELUX
 
-Este documento explica o caminho dos dados e a responsabilidade de cada arquivo principal. A aplicação é um **monólito modular**: existe uma única experiência publicada, separada em módulos por área.
+O PRELUX é um monólito modular leve: uma PWA estática, sem framework e sem
+login na primeira etapa. A interface tem três áreas de acesso. Os dados e as
+regras existentes no Supabase são reaproveitados.
 
-## Visão geral
+## Dois fluxos relacionados
+
+O trabalho do pedido percorre estas etapas:
+
+```text
+PEDIDO → ENGENHARIA → PROJETO → PRODUZIR
+```
+
+As áreas do site acompanham a passagem dos dados:
+
+```text
+PEDIDOS → PLANEJAMENTO → ETIQUETAS
+```
+
+**PEDIDOS** é a entrada do trabalho. Dentro dela ficam pedido, engenharia,
+projeto e o subtópico **Cadastro**: obras, peças, catálogo de formas e posições.
+**PLANEJAMENTO** apresenta o sequenciamento e os períodos calculados a partir dos
+pedidos, respeitando calendário e capacidade. **ETIQUETAS** identifica as peças
+para produção e expedição.
+
+## Caminho dos dados
 
 ```mermaid
 flowchart LR
-  UI[Interface em dist/index.html]
-  NAV[core/navigation.js]
-  LABEL[modules/label-emitter.js]
-  PLAN[modules/production-calendar.js]
-  OPS[modules/operations-admin.js]
-  DOMAIN[domain/mold-compatibility.js]
-  OPSDOM[operations-admin domain rules]
-  PREPO[repositories/planning-repository.js]
-  OREPO[repositories/operations-repository.js]
-  API[core/api.js]
+  MAIN[main.js · composição da aplicação]
+  ORDERS[PEDIDOS · pedido, engenharia e projeto]
+  CADASTRO[Cadastro · obras, peças, formas e posições]
+  PLAN[PLANEJAMENTO · período e sequenciamento]
+  LABEL[ETIQUETAS · identificação da peça]
+  DOMAIN[Regras de domínio]
+  REPOS[Repositórios]
+  API[Cliente HTTP]
   EDGE[Supabase Edge Functions]
-  SHARED[functions/_shared]
-  PHASES[production-phases.js]
-  PLATE[plate-metrics.js]
   DB[(Supabase PostgreSQL)]
-  LOCAL[(localStorage do navegador)]
+  LOCAL[(localStorage atual das etiquetas)]
 
-  UI --> NAV
-  UI --> LABEL
-  UI --> PLAN
-  UI --> OPS
-  OPS --> DOMAIN
-  PLAN --> PREPO
-  OPS --> OREPO
-  PREPO --> API
-  OREPO --> API
+  MAIN --> ORDERS
+  MAIN --> PLAN
+  MAIN --> LABEL
+  ORDERS --> CADASTRO
+  ORDERS --> DOMAIN
+  PLAN --> REPOS
+  ORDERS --> REPOS
+  REPOS --> API
   API --> EDGE
-  EDGE --> SHARED
-  SHARED --> DB
-  SHARED --> PHASES
-  SHARED --> PLATE
+  EDGE --> DB
   LABEL --> LOCAL
+  ORDERS --> PLAN
+  PLAN --> LABEL
 ```
 
-## Arquivos do navegador
+## Organização do navegador
 
-| Arquivo | Responsabilidade |
+| Caminho | Responsabilidade |
 | --- | --- |
-| `dist/index.html` | Define as três abas e os elementos da página. Também fornece a configuração pública do Supabase antes de carregar os módulos. |
-| `dist/css/app.css` | Estilos gerais, da etiqueta e do calendário. |
-| `dist/css/operations.css` | Estilos adicionais dos cadastros e operações. |
-| `dist/js/core/navigation.js` | Único lugar que alterna Etiquetas, Planejamento e Cadastros. Atualiza título, acessibilidade e envia eventos para a aba aberta. |
-| `dist/js/core/api.js` | Transporte HTTP comum para as Edge Functions e conversão de respostas inválidas em `PreluxApiError`. |
-| `dist/js/domain/mold-compatibility.js` | Estratégias puras de escolha de formas: braço usa o catálogo fixo BRACO; pilar e viga usam LEITO × LATERAL. Placa usa uma bancada plana sem forma. |
-| `dist/js/repositories/planning-repository.js` | Endpoints de calendário, planejamento e simulação/confirmação dos pedidos. |
-| `dist/js/repositories/operations-repository.js` | Endpoints de leitura e gravação de obras, pedidos, projetos de engenharia, peças, formas, posições e alocações. |
-| `dist/js/modules/label-emitter.js` | Desenha etiquetas, salva o histórico no navegador, exporta PNG/ZIP e prepara a impressão. |
-| `dist/js/modules/production-calendar.js` | Apresenta backlog, calendário mensal/semanal, Gantt e edição da programação. |
-| `dist/js/modules/operations-admin.js` | Apresenta obras, pedidos, projetos, peças, formas e posições; mantém o estado da aba interna e envia mudanças ao repositório. |
-| `supabase/functions/_shared/production-phases.js` | Regra pura para horários de concretagem, cura e intervalo de ocupação, respeitando o fuso da unidade. |
-| `supabase/functions/_shared/plate-metrics.js` | Métricas de placa: X×Y define área, Z define espessura e o peso usa a densidade fixa já aplicada às peças atuais. |
+| `dist/index.html` | Estrutura das três áreas e pontos de montagem das telas. |
+| `dist/js/main.js` | Composição e inicialização das áreas; abre PEDIDOS ao iniciar. |
+| `dist/js/core/api.js` | Envia chamadas HTTP para Edge Functions e normaliza erros. |
+| `dist/js/core/navigation.js` | Alterna PEDIDOS, PLANEJAMENTO e ETIQUETAS. |
+| `dist/js/domain/mold-compatibility.js` | Lista braço fixo e combinações LEITO × LATERAL para pilar/viga. |
+| `dist/js/repositories/` | Contratos de leitura e gravação para pedidos/operações e planejamento. |
+| `dist/js/features/operations/index.js` | PEDIDOS, passos de engenharia/projeto e subtópico Cadastro. |
+| `dist/js/features/planning/index.js` | Calendário, capacidade, atividades e planejamento de pedidos. |
+| `dist/js/features/labels/index.js` | Formulário atual, prévia, histórico local, PNG, ZIP e impressão. |
+| `supabase/functions/` | Edge Functions e módulos compartilhados do backend. |
+| `database/` | Scripts SQL incrementais e diagrama do schema. |
 
-### Ordem de carregamento
+### Inicialização e navegação
 
-O final do `index.html` carrega, nesta ordem: cliente HTTP, emissor, repositórios, regras de compatibilidade, navegação, planejamento e cadastros. Os arquivos são scripts clássicos para manter a aplicação sem compilador; por isso cada módulo publica uma API pequena em `window.PRELUX_*`.
+1. O navegador carrega `main.js` como módulo ES.
+2. `main.js` inicia navegação, etiquetas, planejamento e pedidos.
+3. A tela abre em PEDIDOS e carrega os dados pela Edge Function.
+4. O fluxo Pedido → Engenharia → Projeto → Produzir é apresentado dentro de
+   PEDIDOS. Produzir leva à área PLANEJAMENTO.
+5. As telas usam repositórios para chamar o cliente HTTP; não consultam tabelas
+   diretamente pelo navegador.
 
-## Fluxos principais
+## Responsabilidade das áreas
 
-### Etiquetas
+### PEDIDOS
 
-O formulário atualiza o canvas. Ao salvar, o registro vai para `localStorage` do navegador, não para a base Supabase. PNG, ZIP e impressão também são processados no navegador. Esse comportamento foi mantido como estava.
+Recebe e mantém os pedidos. O fluxo visual separa pedido, conferência de
+engenharia, distribuição do projeto em seções e entrada na produção. O subtópico
+Cadastro mantém as telas de obras, peças, formas e posições dentro desta área.
+Os cadastros de catálogo permanecem vinculados às tabelas existentes.
 
-### Planejamento e cadastros
+O código atual representa a etapa de engenharia como uma consulta aos itens e
+às opções de forma do catálogo. Ela não grava uma decisão de engenharia
+separada no banco. O projeto por pedido e a distribuição dos itens usam as
+estruturas propostas para a Etapa 5 quando essa migration estiver instalada.
 
-1. A tela chama o repositório da sua área.
-2. O repositório escolhe a Edge Function e a ação correspondente.
-3. `core/api.js` adiciona os cabeçalhos públicos, envia JSON e trata o resultado HTTP.
-4. A Edge Function valida a entrada e usa funções de `supabase/functions/_shared`.
-5. O backend usa o cliente administrativo do Supabase para persistir no PostgreSQL.
+### PLANEJAMENTO
 
-A chave `service_role` permanece no servidor. A chave anônima que existe no HTML é pública e não substitui as políticas de acesso do banco.
+Usa `planningRepository` para consultar calendário, pedidos, posições e etapas,
+simular a sequência e gravar o plano pelas operações existentes. O planejador
+calcula concretagem e cura; as durações de acabamento, inspeção e liberação
+continuam pendentes de definição pela engenharia.
 
-### Compatibilidade entre peça e molde
+### ETIQUETAS
 
-O serviço `mold-compatibility.js` implementa o padrão Strategy. A estratégia depende do tipo selecionado:
+Desenha a etiqueta em canvas de 1536 × 1024 pixels e permite baixar PNG, ZIP ou
+imprimir. Hoje o formulário ainda é manual e o histórico fica no `localStorage`
+do navegador. A integração automática com pedido, item e planejamento ainda
+precisa ser construída.
 
-- **Braço:** lista apenas registros do catálogo `BRACO`.
-- **Pilar e Viga:** lista combinações da view `piece_mold_combinations`; se ela não puder ser carregada, gera LEITO × LATERAL a partir do catálogo já carregado.
-- **Placa:** não vincula forma; só é planejada em uma posição `placa`, que representa a bancada plana.
+## Acesso sem login na primeira etapa
 
-O backend continua validando os vínculos no salvamento. A lista do navegador é para orientar a escolha, não para substituir a validação do servidor.
+Não existe tela de autenticação. O navegador usa a configuração pública do
+cliente; a chave `service_role` permanece somente nas Edge Functions. A
+organização é definida pela configuração do servidor, não por um campo enviado
+livremente pelo navegador. Este modelo mantém o escopo atual sem login; não
+implementa identidade individual de usuários.
 
-### Navegação entre módulos
+## Banco e publicação
 
-`navigation.js` controla o estado visível das três abas e dispara `prelux:planning:open` ou `prelux:operations:open`. Os módulos escutam esses eventos e atualizam seus próprios dados. Assim, um módulo não precisa importar nem chamar diretamente as funções internas do outro.
-
-## Supabase e regras de negócio
-
-- `supabase/functions/operations-admin/index.ts` atende as operações de cadastro e reutiliza `piece-metrics.js` e `order-planning.js`.
-- O mesmo endpoint salva placas via `save_plate_type` e a divisão por seções via `save_engineering_project_structure`; esta gravação é transacional.
-- `calendar-admin`, `plan-order`, `commit-order-plan` e `rebuild-calendar` compõem o fluxo de planejamento.
-- `planner.js`, `calendar.js`, `order-planning.js`, `piece-metrics.js`, `plate-metrics.js` e `production-phases.js` guardam regras reutilizadas no servidor. Os cálculos existentes de braço, pilar e viga permanecem inalterados.
-- As migrações `001` a `008` são históricas; `009_fabio2_foundation.sql` registra a fundação e a integração da Etapa 5 para revisão, sem aplicação no Supabase ativo.
-- O status `concluido` não é aceito no fluxo de pedidos; a lista permitida é orçamento, aprovado, em produção, entregue, atrasado e cancelado. Registros antigos permanecem apenas para consulta e são tratados como encerrados.
-- A preparação de formas usa cinco dias úteis depois da migration 009; a data final é calculada pelas exceções do calendário.
-- O início padrão da concretagem é 08:00 no fuso da unidade e pode ser ajustado em `calculation_constants.casting_start_hour`. Acabamento, inspeção e liberação ficam pendentes até que a engenharia informe as durações.
-- A aplicação e a Edge Function foram integradas ao contrato da migration 009, mas a migration não foi aplicada e as funções não foram implantadas no projeto Supabase ativo.
-
-## Cache do aplicativo
-
-`dist/sw.js` lista os arquivos necessários para abrir o app e usa o nome do cache para identificar uma versão. Ao alterar arquivos publicados, atualize os parâmetros de versão no HTML e o nome do cache no service worker; isso faz os navegadores baixarem os arquivos novos.
+- O schema e os dados do Supabase devem ser reaproveitados; publicar a interface
+  não aplica SQL nem publica Edge Functions.
+- `database/009_fabio2_foundation.sql` é um rascunho local da Etapa 5 e precisa
+  de revisão/aprovação antes de ser aplicado ao banco ativo.
+- A placa usa os campos existentes `dimension_x_cm`, `dimension_y_cm` e
+  `dimension_z_cm`, exibidos como largura, altura e espessura. O cálculo
+  automático atual de volume e peso permanece inalterado.
+- O catálogo `mold_catalog` continua compartilhado; as formas de braço são
+  fixas e as de pilar/viga usam LEITO × LATERAL.
+- A PWA é estática e não requer dependências npm para servir. Abra por HTTP com
+  `npm start`; abrir o HTML como arquivo não atende módulos ES ou service worker.
+- Ao mudar arquivos publicados, avance as versões de cache em `dist/sw.js`,
+  `dist/index.html` e `dist/js/main.js` quando aplicável.

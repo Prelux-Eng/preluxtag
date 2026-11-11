@@ -8,6 +8,7 @@ import { ensurePost, handleError, json, readJson } from "../_shared/http.js";
 import { buildPlanningQueue, findWorkingDayCompletionDate, OrderPlanningError } from "../_shared/order-planning.js";
 import { calculatePieceMetrics } from "../_shared/piece-metrics.js";
 import { calculatePlateMetrics } from "../_shared/plate-metrics.js";
+import { createOrderPieceRegistration } from "../_shared/registration-service.js";
 import { createAdminClient } from "../_shared/supabaseClient.js";
 
 const WORK_STATUSES = new Set(["planejamento", "ativa", "concluida", "cancelada"]);
@@ -133,7 +134,7 @@ async function readOperationsData(db: any, organizationId: string) {
       .eq("organization_id", organizationId).eq("is_active", true).order("name").limit(1000),
     db.from("orders").select("id, order_number, work_id, client_id, start_date, requested_due_date, planned_end_date, status, observations, is_active, created_at, updated_at")
       .eq("organization_id", organizationId).eq("is_active", true).order("start_date", { ascending: false }).limit(1000),
-    db.from("piece_types").select("id, category_id, code, name, piece_kind, dimension_x_cm, dimension_y_cm, dimension_z_cm, dimensions, volume_cm3, weight_kg, volume_m3, production_minutes_per_unit, initial_stock_quantity, stock_minimum_quantity, observations, is_active")
+    db.from("piece_types").select("id, category_id, code, name, piece_kind, dimension_x_cm, dimension_y_cm, dimension_z_cm, dimensions, volume_cm3, weight_kg, volume_m3, production_minutes_per_unit, initial_stock_quantity, stock_minimum_quantity, observations, custom_fields, is_active")
       .eq("organization_id", organizationId).order("code").limit(1000),
     db.from("molds").select("id, code, name, mold_type, dimensions, catalog_code, cycle_minutes_per_unit, preparation_days, status, observations, created_at, updated_at")
       .eq("organization_id", organizationId).order("code").limit(1000),
@@ -168,7 +169,7 @@ async function readOperationsData(db: any, organizationId: string) {
 
   // Consultas opcionais da Etapa 5. Um banco sem a migration 009 continua
   // servindo as telas legadas, mas a resposta informa que o novo fluxo não está ativo.
-  const [projectsResult, sectionsResult, sectionItemsResult, stepsResult, constantsResult] = await Promise.all([
+  const [projectsResult, sectionsResult, sectionItemsResult, stepsResult, constantsResult, productionOrdersResult] = await Promise.all([
     db.from("engineering_projects").select("id, order_id, created_at, updated_at")
       .eq("organization_id", organizationId).limit(1000),
     db.from("project_sections").select("id, project_id, section_name, sort_order, created_at, updated_at")
@@ -179,8 +180,10 @@ async function readOperationsData(db: any, organizationId: string) {
       .eq("organization_id", organizationId).order("planned_start_at").limit(10000),
     db.from("calculation_constants").select("constant_key, numeric_value, unit")
       .eq("organization_id", organizationId).order("constant_key"),
+    db.from("production_orders").select("id, order_id, order_item_id, status")
+      .eq("organization_id", organizationId).limit(20000),
   ]);
-  const fabio2Results = [projectsResult, sectionsResult, sectionItemsResult, stepsResult, constantsResult];
+  const fabio2Results = [projectsResult, sectionsResult, sectionItemsResult, stepsResult, constantsResult, productionOrdersResult];
   const fabio2Available = fabio2Results.every((result) => !result.error);
 
   const clients = clientsResult.data || [];
@@ -192,6 +195,11 @@ async function readOperationsData(db: any, organizationId: string) {
   const workById = new Map(works.map((work: any) => [work.id, work.name]));
   const pieceById = new Map(pieces.map((piece: any) => [piece.id, piece]));
   const allocatedItemIds = new Set((allocationsResult.data || []).map((allocation: any) => allocation.order_item_id));
+  const unitsByItem = new Map<string, number>();
+  for (const unit of productionOrdersResult.data || []) {
+    if (unit.status === "cancelled") continue;
+    unitsByItem.set(unit.order_item_id, (unitsByItem.get(unit.order_item_id) || 0) + 1);
+  }
   const itemsByOrder = new Map<string, any[]>();
   for (const item of itemsResult.data || []) {
     const list = itemsByOrder.get(item.order_id) || [];
@@ -246,6 +254,9 @@ async function readOperationsData(db: any, organizationId: string) {
       work_name: workById.get(order.work_id) || "",
       items: itemsByOrder.get(order.id) || [],
       hasResourceAllocation: (itemsByOrder.get(order.id) || []).some((item) => allocatedItemIds.has(item.id)),
+      waitingForPosition: !["cancelado", "entregue", "concluido"].includes(order.status) && (itemsByOrder.get(order.id) || []).some((item) =>
+        (unitsByItem.get(item.id) || 0) < Number(item.quantity)
+      ),
     })),
     pieceTypes: activePieces.map((piece: any) => ({
       ...piece,
@@ -267,6 +278,9 @@ async function readOperationsData(db: any, organizationId: string) {
     engineeringProjects: projects,
     productionOrderSteps: fabio2Available ? stepsResult.data || [] : [],
     calculationConstants: fabio2Available ? constantsResult.data || [] : [],
+    productionMinutesByKind: Object.fromEntries((fabio2Available ? constantsResult.data || [] : [])
+      .filter((row: any) => ["production_minutes_braco", "production_minutes_pilar", "production_minutes_viga"].includes(row.constant_key))
+      .map((row: any) => [row.constant_key.replace("production_minutes_", ""), Number(row.numeric_value)])),
   };
 }
 
@@ -310,6 +324,10 @@ async function handler(request: Request) {
     const organizationId = config.organizationId;
 
     if (action === "bootstrap") return json({ ok: true, ...(await readOperationsData(db, organizationId)) });
+
+    if (action === "create_order_piece_registration") {
+      return json({ ok: true, ...(await createOrderPieceRegistration(db, organizationId, input)) });
+    }
 
     if (action === "save_work") {
       const clientId = await resolveClientId(db, organizationId, input);
@@ -363,7 +381,8 @@ async function handler(request: Request) {
       } else {
         clientId = await resolveClientId(db, organizationId, input);
       }
-      const items = Array.isArray(input.items) ? input.items.map((item: any) => ({
+      const items = Array.isArray(input.items) ? input.items.map((item: any, index: number) => ({
+        itemKey: textValue(item?.itemKey, "a chave temporária do item", 80) || `item-${index + 1}`,
         pieceTypeId: textValue(item?.pieceTypeId, "o tipo de peça", 80, true),
         quantity: integerValue(item?.quantity, "A quantidade", 1),
         observations: textValue(item?.observations, "as observações do item", 500),
@@ -384,11 +403,63 @@ async function handler(request: Request) {
       if (order.requestedDueDate && order.requestedDueDate < order.startDate) {
         throw badRequest("O prazo do pedido não pode ser anterior ao início.");
       }
-      const { data, error } = await db.rpc("save_order_with_items", {
-        p_org_id: organizationId,
-        p_order: order,
-        p_items: items,
-      });
+      let data: any;
+      let error: any;
+      let existingProject: any = null;
+      if (order.id) {
+        const projectLookup = await db.from("engineering_projects").select("id")
+          .eq("organization_id", organizationId).eq("order_id", order.id).maybeSingle();
+        if (projectLookup.error && !["42P01", "PGRST205"].includes(projectLookup.error.code)) {
+          throwDbError(projectLookup.error, "Não foi possível verificar o projeto de engenharia do pedido.");
+        }
+        existingProject = projectLookup.data;
+      }
+
+      if (existingProject) {
+        if (!Array.isArray(input.projectSections) || input.projectSections.length < 1 || input.projectSections.length > 100) {
+          throw badRequest("Este pedido já tem projeto. Edite os itens e distribua as quantidades nas seções no mesmo salvamento.");
+        }
+        const projectSections = input.projectSections.map((section: any, sectionIndex: number) => {
+          const sectionItems = Array.isArray(section?.items) ? section.items : [];
+          if (sectionItems.length < 1 || sectionItems.length > 500) {
+            throw badRequest("Cada seção precisa ter pelo menos um item e pode conter até 500 itens.");
+          }
+          return {
+            sectionName: textValue(section?.sectionName, "o nome da seção", 120, true),
+            sortOrder: integerValue(section?.sortOrder ?? sectionIndex + 1, "A ordem da seção", 1),
+            items: sectionItems.map((item: any) => ({
+              itemKey: textValue(item?.itemKey, "a chave do item da seção", 80, true),
+              quantity: integerValue(item?.quantity, "A quantidade na seção", 1),
+            })),
+          };
+        });
+        const sectionNames = projectSections.map((section: any) => section.sectionName.toLocaleLowerCase());
+        if (new Set(sectionNames).size !== sectionNames.length) {
+          throw badRequest("O nome de cada seção precisa ser único dentro do projeto.");
+        }
+        for (const section of projectSections) {
+          const itemKeys = section.items.map((item: any) => item.itemKey);
+          if (new Set(itemKeys).size !== itemKeys.length) {
+            throw badRequest("Cada item deve aparecer uma única vez em cada seção.");
+          }
+        }
+        const result = await db.rpc("save_order_with_project", {
+          p_org_id: organizationId,
+          p_order: order,
+          p_items: items,
+          p_sections: projectSections,
+        });
+        data = result.data;
+        error = result.error;
+      } else {
+        const result = await db.rpc("save_order_with_items", {
+          p_org_id: organizationId,
+          p_order: order,
+          p_items: items,
+        });
+        data = result.data;
+        error = result.error;
+      }
       if (error) throwDbError(error, "Não foi possível salvar o pedido.");
 
       // O cadastro e a programação usam transações separadas porque o motor
@@ -452,7 +523,7 @@ async function handler(request: Request) {
       }
       const sections = input.sections.map((section: any, sectionIndex: number) => {
         const items = Array.isArray(section?.items) ? section.items : [];
-        if (items.length > 500) throw badRequest("Cada seção pode conter até 500 itens.");
+        if (items.length < 1 || items.length > 500) throw badRequest("Cada seção precisa ter de um a quinhentos itens.");
         return {
           sectionName: textValue(section?.sectionName, "o nome da seção", 120, true),
           sortOrder: integerValue(section?.sortOrder ?? sectionIndex + 1, "A ordem da seção", 1),
@@ -480,6 +551,7 @@ async function handler(request: Request) {
         x: input.x ?? input.dimensionX ?? input.dimension_x_cm,
         y: input.y ?? input.dimensionY ?? input.dimension_y_cm,
         z: input.z ?? input.dimensionZ ?? input.dimension_z_cm,
+        geometryParts: input.geometryParts,
       };
       const metrics = input.pieceKind === "placa"
         ? calculatePlateMetrics(dimensions)

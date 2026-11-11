@@ -279,18 +279,29 @@ async function readPlanningData(db: ReturnType<typeof createAdminClient>, organi
 }
 
 async function readCalendarSettings(db: ReturnType<typeof createAdminClient>, organizationId: string) {
-  const [{ data: settings, error: settingsError }, { data: rules, error: rulesError }, { data: startHour, error: startHourError }] = await Promise.all([
+  const [{ data: settings, error: settingsError }, { data: rules, error: rulesError }, { data: startHour, error: startHourError }, { data: productionTimes, error: productionTimesError }] = await Promise.all([
     db.from("calendar_settings").select("default_capacity_minutes, planning_horizon_days").eq("organization_id", organizationId).maybeSingle(),
     db.from("calendar_working_rules").select("weekday, is_working, capacity_minutes").eq("organization_id", organizationId).order("weekday"),
     db.from("calculation_constants").select("numeric_value").eq("organization_id", organizationId)
       .eq("constant_key", "casting_start_hour").maybeSingle(),
+    db.from("calculation_constants").select("constant_key, numeric_value").eq("organization_id", organizationId)
+      .in("constant_key", ["production_minutes_braco", "production_minutes_pilar", "production_minutes_viga"]),
   ]);
   if (settingsError) throw settingsError;
   if (rulesError) throw rulesError;
   const productionTiming = startHourError || !startHour
     ? null
     : { castingStartHour: Number(startHour.numeric_value) };
-  return { settings: settings || { default_capacity_minutes: 480, planning_horizon_days: 365 }, rules: rules || [], productionTiming };
+  const productionMinutesByKind = productionTimesError ? {} : Object.fromEntries((productionTimes || []).map((row: any) => [
+    row.constant_key.replace("production_minutes_", ""), Number(row.numeric_value),
+  ]));
+  return {
+    settings: settings || { default_capacity_minutes: 480, planning_horizon_days: 365 },
+    rules: rules || [],
+    productionTiming,
+    productionMinutesByKind,
+    productionMinutesAvailable: !productionTimesError,
+  };
 }
 
 async function saveCalendarSettings(db: ReturnType<typeof createAdminClient>, organizationId: string, payload: Record<string, unknown>) {
@@ -322,6 +333,23 @@ async function saveCalendarSettings(db: ReturnType<typeof createAdminClient>, or
       throw badRequest("O horário de início da concretagem deve estar entre 00:00 e 23:00.");
     }
   }
+  const configuredTimes = payload.productionMinutesByKind;
+  const productionRows = configuredTimes && typeof configuredTimes === "object"
+    ? ["braco", "pilar", "viga"].map((kind) => {
+      const raw = (configuredTimes as Record<string, unknown>)[kind];
+      const minutes = Number(raw);
+      if (!Number.isInteger(minutes) || minutes <= 0) {
+        throw badRequest(`Informe o tempo de producao de ${kind} em minutos por unidade.`);
+      }
+      return {
+        organization_id: organizationId,
+        constant_key: `production_minutes_${kind}`,
+        numeric_value: minutes,
+        unit: "min/un",
+      };
+    })
+    : [];
+
   const [{ error: settingsError }, { error: rulesError }] = await Promise.all([
     db.from("calendar_settings").upsert({ organization_id: organizationId, default_capacity_minutes: defaultCapacityMinutes }, { onConflict: "organization_id" }),
     db.from("calendar_working_rules").upsert(rules, { onConflict: "organization_id,weekday" }),
@@ -336,6 +364,11 @@ async function saveCalendarSettings(db: ReturnType<typeof createAdminClient>, or
       unit: "h",
     }, { onConflict: "organization_id,constant_key" });
     if (error) throw error;
+  }
+  if (productionRows.length) {
+    const { error: productionTimesError } = await db.from("calculation_constants")
+      .upsert(productionRows, { onConflict: "organization_id,constant_key" });
+    if (productionTimesError) throw productionTimesError;
   }
   return readCalendarSettings(db, organizationId);
 }

@@ -64,6 +64,8 @@ no prazo calculado. A preparação de cinco dias úteis usa o calendário existe
 
 ## Etapa 5 · fundação Fábio II (migration 009 em revisão)
 
+As decisões já esclarecidas e as pendências que precisam ser resolvidas antes de fechar a migration estão em [`docs/FABIO_II_ETAPA5_REVISAO.md`](../docs/FABIO_II_ETAPA5_REVISAO.md).
+
 A etapa reaproveita `works`, `orders`, `order_items`, `piece_types`, `mold_catalog`,
 `piece_type_molds`, `mold_positions`, `production_orders` e `allocations`. Não
 recria nem renomeia essas tabelas; a migration 009 só altera os pontos descritos
@@ -101,8 +103,15 @@ durações não forem definidas.
 
 O cadastro de projeto chama `save_engineering_project_structure` para gravar o
 projeto, as seções e a distribuição dos itens em uma transação. A RPC confere
-que cada item pertence ao pedido escolhido e que a soma não ultrapassa a
-quantidade pedida. Somente `service_role` pode executá-la.
+que cada item pertence ao pedido escolhido e exige que a soma distribuída nas
+seções seja exatamente igual à quantidade pedida. Somente `service_role` pode
+executá-la; acesso direto de escrita às tabelas do projeto fica restrito às
+RPCs para que essa regra também seja verificada no banco.
+
+Quando o pedido já possui projeto, a edição dos dados do pedido, dos itens e da
+distribuição por seções usa `save_order_with_project`, que salva os três no mesmo
+commit. O formulário de edição do pedido inclui a distribuição atual para que
+tipos e quantidades possam ser ajustados sem deixar o projeto incompleto.
 
 As tabelas novas continuam com RLS ligado, sem policies para acesso anônimo;
 somente as Edge Functions com `service_role` acessam os dados. Sem login, a

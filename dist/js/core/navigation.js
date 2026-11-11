@@ -1,18 +1,21 @@
 /*
- * Navegação principal da aplicação.
+ * Navegação principal.
  *
- * Este módulo possui o único código que alterna as três áreas da interface.
- * Ao abrir uma área, publica um evento para que o módulo correspondente possa
- * carregar ou atualizar seus dados sem criar dependência direta entre telas.
+ * Este módulo é o único que muda a área visível. Ao abrir Pedidos ou
+ * Planejamento, avisa o módulo correspondente para carregar os dados.
  */
-(function attachNavigation(global) {
+export function initializeNavigation() {
   const tabs = [...document.querySelectorAll('.nav [role="tab"][data-view]')];
   const panels = {
+    pedidos: document.getElementById("operationsView"),
     etiquetas: document.getElementById("etiquetasView"),
     planejamento: document.getElementById("planningView"),
-    cadastros: document.getElementById("operationsView"),
   };
   const pageDetails = {
+    pedidos: {
+      title: "Pedidos",
+      description: "Pedido → Engenharia → Projeto → Produzir",
+    },
     etiquetas: {
       title: "Etiquetas",
       description: "Identificação e rastreabilidade de peças pré-moldadas",
@@ -21,20 +24,15 @@
       title: "Planejamento",
       description: "Acompanhe pedidos, obras, capacidade e etapas de produção",
     },
-    cadastros: {
-      title: "Cadastros de produção",
-      description: "Gerencie obras, pedidos, peças, moldes e posições",
-    },
   };
   const openEvents = {
     planejamento: "prelux:planning:open",
-    cadastros: "prelux:operations:open",
+    pedidos: "prelux:operations:open",
   };
 
   function activate(view, { focusTab = false } = {}) {
     if (!panels[view] || !tabs.some((tab) => tab.dataset.view === view)) return;
 
-    // Atualiza estado visual e semântico da aba e do painel correspondente.
     tabs.forEach((tab) => {
       const selected = tab.dataset.view === view;
       tab.classList.toggle("active", selected);
@@ -48,10 +46,9 @@
     document.getElementById("pageTitle").textContent = details.title;
     document.getElementById("pageDescription").textContent = details.description;
     document.title = `PRELUX · ${details.title}`;
-    global.scrollTo({ top: 0, behavior: "smooth" });
+    window.scrollTo({ top: 0, behavior: "smooth" });
 
-    // O módulo da área reage ao evento e decide se precisa buscar dados.
-    if (openEvents[view]) global.dispatchEvent(new CustomEvent(openEvents[view]));
+    if (openEvents[view]) window.dispatchEvent(new CustomEvent(openEvents[view]));
   }
 
   tabs.forEach((tab) => {
@@ -70,6 +67,6 @@
     });
   });
 
-  // API pequena para botões de outras telas navegarem sem conhecer o DOM.
-  global.PRELUX_NAV = Object.freeze({ open: (view) => activate(view) });
-})(window);
+  // Os fluxos internos usam esta ação para abrir outra área sem conhecer o DOM.
+  return Object.freeze({ open: (view) => activate(view) });
+}
