@@ -58,7 +58,7 @@ function daysBetween(startDate, endDate) {
   return Math.round((Date.parse(`${endDate}T00:00:00Z`) - Date.parse(`${startDate}T00:00:00Z`)) / 86_400_000);
 }
 
-async function loadCalendarDays({ db, organizationId, startDate, endDate, settings }) {
+async function loadCalendarDays({ db, organizationId, startDate, endDate, settings, persist = true }) {
   const [{ data: rules, error: rulesError }, { data: exceptions, error: exceptionsError }] = await Promise.all([
     db.from("calendar_working_rules")
       .select("weekday, is_working, capacity_minutes")
@@ -80,15 +80,15 @@ async function loadCalendarDays({ db, organizationId, startDate, endDate, settin
     rules: rules || [],
     exceptions: exceptions || [],
   });
-  const records = days.map((day) => ({ organization_id: organizationId, ...day }));
-
-  // Mantém calendar_days atualizado para as demais telas, sem usar minutos
-  // como capacidade de concretagem.
-  for (let index = 0; index < records.length; index += 500) {
-    const { error } = await db.from("calendar_days").upsert(records.slice(index, index + 500), {
-      onConflict: "organization_id,date",
-    });
-    throwIfError(error, "Não foi possível preparar o calendário do planejamento");
+  if (persist) {
+    const records = days.map((day) => ({ organization_id: organizationId, ...day }));
+    // Mantém calendar_days atualizado nos fluxos de planejamento existentes.
+    for (let index = 0; index < records.length; index += 500) {
+      const { error } = await db.from("calendar_days").upsert(records.slice(index, index + 500), {
+        onConflict: "organization_id,date",
+      });
+      throwIfError(error, "Não foi possível preparar o calendário do planejamento");
+    }
   }
   return days;
 }
@@ -202,7 +202,8 @@ export async function buildOrderPlan(options) {
 
 /** Reprograma a fila toda que ainda não começou, em data e ordem de cadastro. */
 export async function buildPlanningQueue({ db, organizationId, input = {} }) {
-  const targetOrderId = String(input.orderId || "").trim();
+  const draft = input.draft && typeof input.draft === "object" ? input.draft : null;
+  const targetOrderId = String(input.orderId || draft?.order?.id || "").trim();
   if (!targetOrderId) throw new OrderPlanningError("orderId é obrigatório.", 400);
 
   const [ordersResult, settingsResult, positionsResult] = await Promise.all([
@@ -226,7 +227,12 @@ export async function buildPlanningQueue({ db, organizationId, input = {} }) {
   throwIfError(settingsResult.error, "Não foi possível carregar as configurações do calendário");
   throwIfError(positionsResult.error, "Não foi possível carregar as quatro posições de molde");
 
-  const allOrders = ordersResult.data || [];
+  const allOrders = [...(ordersResult.data || [])];
+  // A draft is planned in memory; the SQL RPC later inserts the same IDs and
+  // commits its plan together with the registration.
+  if (draft?.order?.id && !allOrders.some((order) => order.id === draft.order.id)) {
+    allOrders.push(draft.order);
+  }
   const orders = allOrders.filter((order) =>
     !["cancelado", "entregue", "concluido"].includes(order.status)
   );
@@ -315,6 +321,9 @@ export async function buildPlanningQueue({ db, organizationId, input = {} }) {
     throw new OrderPlanningError("Pedido com produção iniciada ou concluída não pode ser replanejado.", 409);
   }
 
+  if (draft?.item?.id && !((itemsResult.data || []).some((item) => item.id === draft.item.id))) {
+    itemsResult.data = [...(itemsResult.data || []), draft.item];
+  }
   const itemGroups = new Map();
   for (const item of itemsResult.data || []) {
     const group = itemGroups.get(item.order_id) || [];
@@ -333,6 +342,9 @@ export async function buildPlanningQueue({ db, organizationId, input = {} }) {
       .in("id", pieceTypeIds)
     : { data: [], error: null };
   throwIfError(piecesResult.error, "Não foi possível carregar as peças da fila");
+  if (draft?.piece?.id && !((piecesResult.data || []).some((piece) => piece.id === draft.piece.id))) {
+    piecesResult.data = [...(piecesResult.data || []), draft.piece];
+  }
   const pieceById = new Map((piecesResult.data || []).map((piece) => [piece.id, piece]));
   const requirementsResult = pieceTypeIds.length
     ? await db.from("piece_type_molds")
@@ -347,6 +359,9 @@ export async function buildPlanningQueue({ db, organizationId, input = {} }) {
     const required = requiredMoldsByPiece.get(requirement.piece_type_id) || [];
     required.push(requirement.catalog_code);
     requiredMoldsByPiece.set(requirement.piece_type_id, required);
+  }
+  if (draft?.item?.piece_type_id && Array.isArray(draft.requiredMoldCodes)) {
+    requiredMoldsByPiece.set(draft.item.piece_type_id, [...draft.requiredMoldCodes]);
   }
 
   const configuredHorizon = positiveSetting(settingsResult.data?.planning_horizon_days, 365);
@@ -389,6 +404,7 @@ export async function buildPlanningQueue({ db, organizationId, input = {} }) {
       plans: [],
       queue: { replanOrderCount: 0, lockedOrderCount: startedOrderIds.size, infeasibleOrderIds: [] },
       removedTargetFromPlan: true,
+      calendarDays: [],
       generatedAt: new Date().toISOString(),
     };
   }
@@ -401,6 +417,7 @@ export async function buildPlanningQueue({ db, organizationId, input = {} }) {
     startDate: firstDate,
     endDate: lastDate,
     settings: settingsResult.data || { default_capacity_minutes: 480 },
+    persist: input.persistCalendarDays !== false,
   });
 
   const { existingSchedules, existingAllocations } = await loadExistingReservations({
@@ -482,6 +499,7 @@ export async function buildPlanningQueue({ db, organizationId, input = {} }) {
       infeasibleOrderIds: infeasiblePlans.map((entry) => entry.orderId),
     },
     removedTargetFromPlan: closedTargetExists,
+    calendarDays,
     generatedAt: new Date().toISOString(),
   };
 }

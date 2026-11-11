@@ -1,28 +1,27 @@
 /*
- * Repositório de cadastros e operações.
+ * Portas de acesso aos cadastros de produção.
  *
- * Mantém juntas as chamadas de leitura e gravação de obras, pedidos, peças,
- * moldes, posições, preparações e alocações de recursos.
+ * As telas chamam métodos por assunto; somente este arquivo conhece o endpoint
+ * operations-admin e as ações usadas para persistir os registros.
  */
-(function attachOperationsRepository(global) {
-  const api = global.PRELUX_API;
-  const operation = (action, input = {}) => api.invoke("operations-admin", { action, ...input });
+import { invoke } from "../core/api.js";
 
-  global.PRELUX_REPOSITORIES ||= {};
-  global.PRELUX_REPOSITORIES.operations = Object.freeze({
-    calculatePieceMetrics: (input) => operation("calculate_piece_metrics", input),
-    saveDelayAdjustment: (input) => operation("save_delay_adjustment", input),
-    getOperationsData: () => operation("bootstrap"),
-    saveWork: (input) => operation("save_work", input),
-    saveOrder: (input) => operation("save_order", input),
-    saveEngineeringProject: (input) => operation("save_engineering_project", input),
-    savePieceType: (input) => operation("save_piece_type", input),
-    savePlateType: (input) => operation("save_plate_type", input),
-    saveMold: (input) => operation("save_mold", input),
-    saveMoldPosition: (input) => operation("save_position", input),
-    saveMoldPreparation: (input) => operation("save_preparation", input),
-    calculateMoldPreparationEnd: (input) => operation("calculate_preparation_end", input),
-    saveResourceAllocation: (input) => operation("save_allocation", input),
-    archiveOperationRecord: (kind, id) => operation("archive", { kind, id }),
-  });
-})(window);
+const operation = (action, input = {}) => invoke("operations-admin", { action, ...input });
+
+export const operationsRepository = Object.freeze({
+  calculatePieceMetrics: (input) => operation("calculate_piece_metrics", input),
+  saveDelayAdjustment: (input) => operation("save_delay_adjustment", input),
+  getOperationsData: () => operation("bootstrap"),
+  saveWork: (input) => operation("save_work", input),
+  saveOrder: (input) => operation("save_order", input),
+  createOrderPieceRegistration: (input) => operation("create_order_piece_registration", input),
+  saveEngineeringProject: (input) => operation("save_engineering_project", input),
+  savePieceType: (input) => operation("save_piece_type", input),
+  savePlateType: (input) => operation("save_plate_type", input),
+  saveMold: (input) => operation("save_mold", input),
+  saveMoldPosition: (input) => operation("save_position", input),
+  saveMoldPreparation: (input) => operation("save_preparation", input),
+  calculateMoldPreparationEnd: (input) => operation("calculate_preparation_end", input),
+  saveResourceAllocation: (input) => operation("save_allocation", input),
+  archiveOperationRecord: (kind, id) => operation("archive", { kind, id }),
+});

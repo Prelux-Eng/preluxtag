@@ -5,6 +5,7 @@
  * exportar PNG/ZIP e preparar a impressão em folhas. O fluxo de cadastros e planejamento
  * usa módulos e repositórios próprios.
  */
+export function initializeLabels() {
 const $ = (id) => document.getElementById(id);
     const template = new Image();
     const canvas = $('labelCanvas'); const ctx = canvas.getContext('2d');
@@ -73,4 +74,4 @@ const $ = (id) => document.getElementById(id);
     $('clearBtn').addEventListener('click',resetForm); $('sampleBtn').addEventListener('click',()=>{fields.id.value='PILAR';fields.quantity.value=3;fields.client.value='Obra Exemplo - PRELUX';fields.notes.value='Conferir armadura e acabamento antes do carregamento.';previewIndex=1;updateNotesCounter();updatePreview();});$('search').addEventListener('input',renderRecords);
     $('recordsBody').addEventListener('click',e=>{const b=e.target.closest('button[data-action]');if(!b)return;const k=decodeURIComponent(b.dataset.key);const r=findRecord(k);if(b.dataset.action==='load')loadRecord(k);if(b.dataset.action==='png'&&r){loadRecord(k);setTimeout(()=>exportPng(labelId(1),1),80)}if(b.dataset.action==='delete'){if(confirm(`Excluir o lote ${recordRange(r)}?`)){setRecords(getRecords().filter(x=>recordKey(x)!==k));renderRecords();showToast('Registro excluído.')}}});
     updateNotesCounter();renderRecords();
-    if('serviceWorker' in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js?v=13').catch(()=>{}));
+}

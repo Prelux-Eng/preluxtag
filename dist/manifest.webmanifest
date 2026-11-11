@@ -1,7 +1,7 @@
 {
-  "name": "PRELUX — Produção e Etiquetas",
+  "name": "PRELUX — Pedidos, Planejamento e Etiquetas",
   "short_name": "PRELUX Produção",
-  "description": "Etiquetas, planejamento e cadastros de produção de peças pré-moldadas.",
+  "description": "Pedidos, planejamento e etiquetas para produção de peças pré-moldadas.",
   "lang": "pt-BR",
   "start_url": "./",
   "scope": "./",

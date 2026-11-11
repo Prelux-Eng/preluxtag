@@ -1478,6 +1478,14 @@ main {
   font-size:12px;
   font-weight:800
 }
+#calendarSettingsForm .weekly-rules label:not(.weekday-option) {
+  display:grid;
+  gap:6px;
+  color:#45586a;
+  font-size:12px;
+  font-weight:700
+}
+#calendarSettingsForm .weekly-rules .form-help { grid-column:1/-1 }
 .weekday-option {
   display:flex;
   align-items:center;
