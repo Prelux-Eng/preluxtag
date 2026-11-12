@@ -302,7 +302,7 @@ async function replanOpenQueue(db: any, organizationId: string) {
     .eq("organization_id", organizationId).eq("is_active", true)
     .order("start_date", { ascending: true }).order("created_at", { ascending: true }).limit(1000);
   if (orderError) throwDbError(orderError, "Não foi possível localizar pedidos para replanejar.");
-  const targetOrder = (openOrders || []).find((order: any) => !["cancelado", "entregue", "concluido"].includes(order.status));
+  const targetOrder = (openOrders || []).find((order: any) => ["aprovado", "em_producao", "atrasado"].includes(order.status));
   if (!targetOrder) return { committed: true, warning: null };
 
   const queuePlan = await buildPlanningQueue({ db, organizationId, input: { orderId: targetOrder.id } });
@@ -507,46 +507,62 @@ async function handler(request: Request) {
       // e a resposta informa claramente que a programação precisa ser revista.
       let planning: Record<string, unknown> = { committed: false };
       try {
-        const { error: clearPlanError } = await db.from("orders")
-          .update({ planned_start_date: null, planned_end_date: null, forecast_end_date: null })
-          .eq("organization_id", organizationId)
-          .eq("id", data.id);
-        if (clearPlanError) throw clearPlanError;
-
-        const queuePlan = await buildPlanningQueue({
-          db,
-          organizationId,
-          input: {
-            orderId: data.id,
-            allowClosedTarget: ["cancelado", "entregue", "concluido"].includes(data.status),
-          },
-        });
-        const { data: committed, error: commitError } = await db.rpc("commit_planning_queue", {
-          p_org_id: organizationId,
-          p_plans: queuePlan.plans.map((entry) => ({ orderId: entry.orderId, plan: entry.plan })),
-        });
-        if (commitError) throwDbError(commitError, "Não foi possível atualizar o calendário do pedido.");
-        const warningMessages = queuePlan.plans.flatMap(({ orderId, plan: queuedPlan }) =>
-          queuedPlan.feasible
-            ? []
-            : queuedPlan.conflicts.map((conflict: any) =>
-              `Pedido ${queuedPlan.order?.orderNumber || orderId}: ${conflict.message}`
-            )
-        );
-        planning = {
-          committed: true,
-          feasible: queuePlan.targetPlan?.feasible ?? true,
-          queueFeasible: queuePlan.queue.infeasibleOrderIds.length === 0,
-          replanOrderCount: queuePlan.queue.replanOrderCount,
-          removedFromPlan: queuePlan.removedTargetFromPlan,
-          plannedStartDate: queuePlan.targetPlan?.effectiveStartDate ?? null,
-          plannedEndDate: queuePlan.targetPlan?.plannedEndDate ?? null,
-          suggestedDueDate: queuePlan.targetPlan?.suggestedDueDate ?? null,
-          totalPlannedQuantity: queuePlan.targetPlan?.totalPlannedQuantity ?? 0,
-          totalRemainingQuantity: queuePlan.targetPlan?.totalRemainingQuantity ?? 0,
-          commit: committed,
-          warning: warningMessages.length ? warningMessages.slice(0, 5).join(" ") : null,
-        };
+        if (data.status === "orcamento") {
+          // Retira qualquer alocação pendente ao voltar para orçamento. A
+          // simulação continua disponível na área Planejamento, sem reserva.
+          const { error: releaseError } = await db.rpc("commit_order_plan", {
+            p_org_id: organizationId,
+            p_order_id: data.id,
+            p_plan: { units: [] },
+          });
+          if (releaseError) throwDbError(releaseError, "Não foi possível liberar a posição reservada pelo pedido.");
+          const { error: clearPlanError } = await db.from("orders")
+            .update({ planned_start_date: null, planned_end_date: null, forecast_end_date: null })
+            .eq("organization_id", organizationId)
+            .eq("id", data.id);
+          if (clearPlanError) throw clearPlanError;
+          planning = { committed: false, simulatedOnly: true, warning: null };
+        } else {
+          const { error: clearPlanError } = await db.from("orders")
+            .update({ planned_start_date: null, planned_end_date: null, forecast_end_date: null })
+            .eq("organization_id", organizationId)
+            .eq("id", data.id);
+          if (clearPlanError) throw clearPlanError;
+          const queuePlan = await buildPlanningQueue({
+            db,
+            organizationId,
+            input: {
+              orderId: data.id,
+              allowClosedTarget: ["cancelado", "entregue", "concluido"].includes(data.status),
+            },
+          });
+          const { data: committed, error: commitError } = await db.rpc("commit_planning_queue", {
+            p_org_id: organizationId,
+            p_plans: queuePlan.plans.map((entry) => ({ orderId: entry.orderId, plan: entry.plan })),
+          });
+          if (commitError) throwDbError(commitError, "Não foi possível atualizar o calendário do pedido.");
+          const warningMessages = queuePlan.plans.flatMap(({ orderId, plan: queuedPlan }) =>
+            queuedPlan.feasible
+              ? []
+              : queuedPlan.conflicts.map((conflict: any) =>
+                `Pedido ${queuedPlan.order?.orderNumber || orderId}: ${conflict.message}`
+              )
+          );
+          planning = {
+            committed: true,
+            feasible: queuePlan.targetPlan?.feasible ?? true,
+            queueFeasible: queuePlan.queue.infeasibleOrderIds.length === 0,
+            replanOrderCount: queuePlan.queue.replanOrderCount,
+            removedFromPlan: queuePlan.removedTargetFromPlan,
+            plannedStartDate: queuePlan.targetPlan?.effectiveStartDate ?? null,
+            plannedEndDate: queuePlan.targetPlan?.plannedEndDate ?? null,
+            suggestedDueDate: queuePlan.targetPlan?.suggestedDueDate ?? null,
+            totalPlannedQuantity: queuePlan.targetPlan?.totalPlannedQuantity ?? 0,
+            totalRemainingQuantity: queuePlan.targetPlan?.totalRemainingQuantity ?? 0,
+            commit: committed,
+            warning: warningMessages.length ? warningMessages.slice(0, 5).join(" ") : null,
+          };
+        }
       } catch (planningError) {
         const message = planningError instanceof OrderPlanningError
           ? planningError.message

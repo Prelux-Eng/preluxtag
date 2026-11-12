@@ -234,7 +234,7 @@ export async function buildPlanningQueue({ db, organizationId, input = {} }) {
     allOrders.push(draft.order);
   }
   const orders = allOrders.filter((order) =>
-    !["cancelado", "entregue", "concluido"].includes(order.status)
+    ["aprovado", "em_producao", "atrasado"].includes(order.status)
   );
   const targetOrder = orders.find((order) => order.id === targetOrderId);
   const closedTargetExists = input.allowClosedTarget === true && allOrders.some((order) => order.id === targetOrderId);
