@@ -454,6 +454,9 @@ export function initializeOperations({ operationsRepository, listPieceMoldOption
     $("operationsModalStatus").textContent = "";
     $("operationsModalStatus").classList.remove("show");
     $("operationsForm").dataset.kind = kind;
+    // O cadastro em etapas valida somente os campos da etapa visível.
+    // A validação nativa do formulário bloquearia o submit pelos campos da etapa 2 oculta.
+    $("operationsForm").noValidate = kind === "registration";
     $("operationsForm").dataset.recordId = record?.id || "";
     $("operationsModal").hidden = false;
     $("operationsModalSave").disabled = false;
@@ -464,6 +467,7 @@ export function initializeOperations({ operationsRepository, listPieceMoldOption
   function closeModal() {
     $("operationsModal").hidden = true;
     $("operationsForm").reset();
+    $("operationsForm").noValidate = false;
     $("operationsForm").dataset.kind = "";
     $("operationsForm").dataset.recordId = "";
   }
