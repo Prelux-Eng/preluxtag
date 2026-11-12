@@ -39,11 +39,11 @@ Se o comando `npm` não estiver disponível, execute `node scripts/serve.mjs`. D
 Consulte [`database/README.md`](database/README.md) para a ordem das migrações e [`backend/README.md`](backend/README.md) para publicação das Edge Functions.
 Para decisões e pendências da Etapa 5, consulte [`docs/FABIO_II_ETAPA5_REVISAO.md`](docs/FABIO_II_ETAPA5_REVISAO.md).
 
-- Em uma instalação nova, aplique os scripts `database/001` a `database/008` na ordem descrita.
-- O projeto Supabase em uso já contém o schema da etapa 8. Não reaplique migrações anteriores sobre ele.
-- A etapa 8 herda cliente e data da obra para pedidos vinculados, e disponibiliza as combinações de molde: BRAÇO fixo; LEITO × LATERAL para Pilar e Viga.
+- Em uma instalação nova, aplique os scripts `database/001` a `database/012` na ordem descrita.
+- O projeto Supabase em uso já contém as migrations 001–012. As posições são espaços físicos que recebem os moldes exigidos por cada pedido.
+- Pedidos com obra herdam cliente e início; sem obra, os dados são informados no pedido. BRAÇO usa X × Z; Pilar e Viga usam LEITO para X e LATERAL para Z, com Y como comprimento.
 - Volume e peso seguem calculados pela lógica existente no site.
-- A migration `database/009_fabio2_foundation.sql` permanece como rascunho local da Etapa 5; ela não deve ser considerada aplicada ao Supabase ativo.
+- As migrations `database/009_fabio2_foundation.sql` a `database/012_order_driven_position_allocation.sql` fazem parte do schema ativo do Supabase.
 
 A `SUPABASE_SERVICE_ROLE_KEY` pertence somente ao ambiente das Edge Functions. Nunca a coloque no front-end, em um arquivo `.env` versionado, no GitHub ou em aplicativos distribuídos.
 

@@ -54,6 +54,7 @@
 .operations-modal .modal-card{width:min(820px,100%)}
 .operations-modal-body{padding:20px 22px 8px}
 .ops-form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.ops-form-grid.full{grid-column:1/-1}
 .ops-form-grid .field{margin:0}
 .ops-form-grid .field.full{grid-column:1/-1}
 .ops-form-grid .field[hidden]{display:none!important}
@@ -84,18 +85,23 @@
 .ops-conflict-fields[hidden]{display:none!important}
 .ops-modal-status{display:none;margin:12px 22px 16px;padding:10px 12px;border:1px solid #efc4c8;border-radius:9px;background:#fff3f4;color:#9a2e36;font-size:12px;line-height:1.45}
 .ops-modal-status.show{display:block}
+.ops-modal-status.success{border-color:#b9dfc7;background:#f1fbf4;color:#23623b}
 .ops-modal-actions{display:flex;justify-content:flex-end;gap:9px;padding:12px 22px 22px}
 .ops-modal-actions .btn[disabled]{opacity:.55;cursor:wait}
 .ops-registration-progress{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px;padding:11px 13px;border-radius:9px;background:#f2f8fc;color:#145f95;font-size:12px}
 .ops-registration-progress span{color:var(--muted);font-size:11px}
 .ops-registration-step[hidden]{display:none!important}
 .ops-restore-due{margin-top:7px;padding:6px 9px;font-size:11px}
-.ops-geometry-parts{display:grid;gap:8px;margin:8px 0}
-.ops-geometry-row{display:grid;grid-template-columns:100px minmax(135px,1fr) repeat(3,minmax(80px,.7fr)) 75px auto;gap:7px;align-items:center}
-.ops-geometry-row .input,.ops-geometry-row .select{min-width:0;padding:8px;font-size:11px}
 .ops-registration-step .field[hidden]{display:none!important}
-@media(max-width:760px){.ops-geometry-row{grid-template-columns:1fr 1fr 1fr}.ops-geometry-row button{grid-column:3;justify-self:end}}
-@media(max-width:620px){.ops-registration-progress{align-items:flex-start;flex-direction:column}.ops-geometry-row{grid-template-columns:1fr 1fr}.ops-geometry-row button{grid-column:2}}
+.ops-registration-items{display:grid;gap:8px;margin:0 0 14px;padding:11px;border:1px solid #dfe8ef;border-radius:10px;background:#fbfdff}
+.ops-registration-items>p{margin:0;color:var(--muted);font-size:12px}
+.ops-registration-item{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:9px 10px;border:1px solid #e7edf2;border-radius:8px;background:#fff;font-size:11px}
+.ops-registration-item>div{display:grid;gap:4px;min-width:0}
+.ops-registration-item strong{overflow-wrap:anywhere;color:#26445d}
+.ops-registration-item span{color:var(--muted)}
+.ops-registration-item>span{text-align:right;white-space:nowrap}
+.ops-form-actions{display:flex;justify-content:flex-end}
+.ops-modal-status.error{border-color:#efc4c8;background:#fff3f4;color:#9a2e36}
 @media(max-width:760px){
   .operations-view .metric-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
   .operations-flow{grid-template-columns:repeat(2,minmax(0,1fr))}
@@ -109,6 +115,7 @@
   .planning-backlog-item{align-items:flex-start;flex-direction:column}
   .planning-backlog-item .btn{width:100%}
   .ops-form-grid{grid-template-columns:1fr}
+  .ops-form-grid.full{grid-column:auto}
   .ops-form-grid .field.full{grid-column:auto}
   .ops-computed-metrics{grid-template-columns:1fr}
   .ops-item-row{grid-template-columns:minmax(0,1fr) minmax(85px,.4fr) auto}
@@ -124,4 +131,7 @@
   .operations-flow-heading,.operations-section-heading{align-items:stretch;flex-direction:column}
   .ops-project-section-head{align-items:stretch;flex-direction:column}
   .ops-project-item-row{grid-template-columns:1fr 90px auto}
+  .ops-registration-item{align-items:flex-start;flex-direction:column}
+  .ops-registration-item>span{text-align:left;white-space:normal}
+  .ops-form-actions .btn{width:100%}
 }

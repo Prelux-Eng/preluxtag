@@ -59,12 +59,12 @@ erDiagram
 
 - Uma obra pode ter vários pedidos; um pedido pode não ter obra ou se vincular a uma. Quando há obra, trigger existente herda cliente e data de início. Sem obra, esses campos continuam manuais.
 - Um pedido contém itens de catálogo (`order_items → piece_types`). O projeto de engenharia é opcional até a análise e, quando criado, há no máximo um por pedido. Ao salvar o projeto, as seções devem distribuir exatamente a quantidade pedida de cada item.
-- `piece_types.piece_kind` preserva `braco`, `pilar` e `viga`; a migration 009 adiciona `placa`. Braço usa forma fixa; pilar/viga usam pares LEITO × LATERAL; placa usa posição plana sem forma.
+- `piece_types.piece_kind` preserva `braco`, `pilar` e `viga`; a migration 009 adiciona `placa`. Braço usa a forma fixa identificada pelas dimensões X × Z; pilar/viga usam LEITO para X, LATERAL para Z e Y como comprimento; placa não usa forma.
 - `mold_catalog` continua sendo o catálogo global de medidas LEITO, LATERAL e BRAÇO. Seu `code` e `mold_type` são chaves estáveis; rótulo de medida e ordem de exibição podem ser editados, com bloqueio durante uso ativo e registro em `audit_logs`.
 - `piece_type_molds` persiste a seleção compatível para um tipo de peça. `piece_mold_combinations` é uma view sem persistência: lista os braços fixos e o produto cartesiano de LEITO × LATERAL para pilar e viga.
-- Uma posição tem uma configuração por vez. A configuração `placa` não tem código de catálogo de forma. Alterações de configuração ficam em `mold_position_configuration_history`, incluindo rótulos de medida guardados para o histórico.
-- A posição referencia a configuração dimensional por códigos do `mold_catalog`; ela não reserva um exemplar físico individual por `molds.id`, conforme decisão confirmada para esta etapa.
-- `production_orders` representa uma unidade de um item. Seus horários exatos ficam em `production_order_steps`; `allocations` liga a unidade à posição e protege a compatibilidade e a sobreposição de ocupação. A nova alocação reserva a posição desde a concretagem até o fim da cura de 12 horas. Linhas antigas sem horários representam o dia todo no fuso da unidade.
+- `mold_positions` representa os quatro espaços físicos P01–P04. Para braço, pilar e viga, a posição não fica presa a uma forma: o pedido determina os moldes e o planejador associa o item à posição livre. A exceção é a bancada plana, reservada para placa.
+- `piece_type_molds` guarda os códigos de catálogo exigidos pelo item. A ligação `production_orders → order_items → piece_types → piece_type_molds → mold_catalog` permite consultar quais formas foram atribuídas a cada unidade e posição. A etapa atual não escolhe um exemplar físico individual por `molds.id`.
+- `production_orders` representa uma unidade de um item. Seus horários exatos ficam em `production_order_steps`; `allocations` liga a unidade à posição, valida os moldes do item e protege a sobreposição de ocupação. A nova alocação reserva a posição desde a concretagem até o fim da cura de 12 horas. Linhas antigas sem horários representam o dia todo no fuso da unidade.
 - `production_schedules` segue como resumo legado. A view `v_order_progress` deriva datas de planejamento de `production_orders`, sem gravar projeções em `orders`.
 
 ## Campos adicionados na proposta 009
@@ -79,7 +79,7 @@ erDiagram
 
 Cada unidade enviada a `commit_order_plan` contém `steps[]` com `stepKind`, `sequence`, `durationMinutes`, `plannedStartAt` e `plannedEndAt`. `concretagem` e `cura` são obrigatórias e devem respeitar as constantes (120 e 720 minutos no valor inicial). Acabamento, inspeção e liberação aceitam tempo nulo até a engenharia definir as durações. O horário inicial vem de `casting_start_hour` (padrão editável 08:00) e do fuso da organização. A unidade também envia `occupiedFromAt` e `occupiedUntilAt`; o intervalo cobre concretagem e cura.
 
-O cadastro de placa usa a nova RPC `save_plate_type(p_org_id, p_record)` com `code`, `name`, `dimensionXcm` (largura), `dimensionYcm` (altura), `dimensionZcm` (espessura), `productionMinutesPerUnit` e `observations`. O peso confirmado da placa é `largura × altura × espessura × 2,5 t/m³`; as três medidas participam do volume e do peso. A configuração de posição usa a RPC existente `save_mold_position`; para placa, `configuration_kind='placa'` e os três códigos de catálogo ficam nulos. Para braço, pilar e viga, posições continuam vinculadas a configurações dimensionais do catálogo, sem selecionar uma instância física específica de `molds.id`.
+O cadastro de placa usa a nova RPC `save_plate_type(p_org_id, p_record)` com `code`, `name`, `dimensionXcm` (largura), `dimensionYcm` (altura), `dimensionZcm` (espessura), `productionMinutesPerUnit` e `observations`. O peso confirmado da placa é `largura × altura × espessura × 2,5 t/m³`; as três medidas participam do volume e do peso. A RPC `save_mold_position` mantém o status, as observações e a marca de bancada plana para placas. Para braço, pilar e viga, as formas BRAÇO, LEITO e LATERAL vêm do item do pedido e não ficam vinculadas permanentemente à posição.
 
 ## Exclusões, status e cálculos
 

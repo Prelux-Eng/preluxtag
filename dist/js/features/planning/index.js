@@ -601,10 +601,16 @@ export function initializePlanning({ planningRepository, operationsRepository, n
     const phaseRows = timedUnits.slice(0, 8).map((unit) => {
       const casting = unit.steps.find((step) => step.stepKind === "concretagem");
       const curing = unit.steps.find((step) => step.stepKind === "cura");
-      return `<li><strong>${escapeHtml(unit.positionCode)}</strong> · concretagem ${formatLocalTime(casting?.plannedStartAt)}–${formatLocalTime(casting?.plannedEndAt)} · cura até ${formatLocalTime(curing?.plannedEndAt)}</li>`;
+      const finishing = unit.steps.find((step) => step.stepKind === "acabamento");
+      const finishingLabel = finishing?.plannedEndAt
+        ? `acabamento até ${formatLocalTime(finishing.plannedEndAt)}`
+        : finishing?.plannedStartAt
+          ? `acabamento previsto em ${formatLocalTime(finishing.plannedStartAt)}`
+          : "acabamento a definir";
+      return `<li><strong>${escapeHtml(unit.positionCode)}</strong> · concretagem ${formatLocalTime(casting?.plannedStartAt)}–${formatLocalTime(casting?.plannedEndAt)} · cura até ${formatLocalTime(curing?.plannedEndAt)} · ${finishingLabel}</li>`;
     }).join("");
     const phasePreview = phaseRows
-      ? `<div class="plan-phases"><strong>Horários estimados</strong><ul>${phaseRows}</ul>${timedUnits.length > 8 ? `<span>Mostrando 8 de ${timedUnits.length} unidades.</span>` : ""}</div>`
+      ? `<div class="plan-phases"><strong>Etapas do prazo</strong><p>Concretagem, cura e acabamento; a preparação da forma antecede a concretagem quando necessária.</p><ul>${phaseRows}</ul>${timedUnits.length > 8 ? `<span>Mostrando 8 de ${timedUnits.length} unidades.</span>` : ""}</div>`
       : "";
     const shift = state.dragContext
       ? `<p>Data da atividade: ${formatDateBR(state.dragContext.sourceDate)} → ${formatDateBR(state.dragContext.targetDate)}. Início do pedido: ${formatDateBR(order?.start_date)} → ${formatDateBR(plan.startDate)}; prazo: ${order?.requested_due_date ? formatDateBR(order.requested_due_date) : "sem prazo"} → ${plan.dueDate ? formatDateBR(plan.dueDate) : "sem prazo"}; fim planejado: ${previousEnd} → ${nextEnd}.</p>`
@@ -760,14 +766,6 @@ export function initializePlanning({ planningRepository, operationsRepository, n
       $('defaultCapacityMinutes').value = 480;
       $('castingStartTimeField').hidden = !result.productionTiming;
       $('castingStartTime').value = `${String(result.productionTiming?.castingStartHour ?? 8).padStart(2, "0")}:00`;
-      const productionMinutes = result.productionMinutesByKind || {};
-      $('productionMinutesSettings').hidden = result.productionMinutesAvailable !== true;
-      $('productionMinutesBraco').value = productionMinutes.braco || "";
-      $('productionMinutesPilar').value = productionMinutes.pilar || "";
-      $('productionMinutesViga').value = productionMinutes.viga || "";
-      ['productionMinutesBraco', 'productionMinutesPilar', 'productionMinutesViga'].forEach((id) => {
-        $(id).disabled = result.productionMinutesAvailable !== true;
-      });
       document.querySelectorAll("[data-weekday]").forEach((input) => {
         const weekday = Number(input.dataset.weekday);
         const rule = rules.get(weekday);
@@ -793,13 +791,6 @@ export function initializePlanning({ planningRepository, operationsRepository, n
       capacityMinutes: input.checked ? 480 : 0,
     }));
     const payload = { defaultCapacityMinutes, rules };
-    if (!$('productionMinutesSettings').hidden) {
-      payload.productionMinutesByKind = {
-        braco: Number($('productionMinutesBraco').value),
-        pilar: Number($('productionMinutesPilar').value),
-        viga: Number($('productionMinutesViga').value),
-      };
-    }
     if (!$('castingStartTimeField').hidden) {
       payload.castingStartHour = Number($('castingStartTime').value.split(":")[0]);
     }

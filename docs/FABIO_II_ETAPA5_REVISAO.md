@@ -7,7 +7,7 @@ Este documento registra as decisões já esclarecidas e as pendências que afeta
 - Compatibilidade de moldes: BRAÇO fixo produz somente braço; LEITO combinado com LATERAL pode produzir pilar ou viga.
 - Placa: não usa forma; X é largura, Y é altura e Z é espessura. As três dimensões participam do volume e do peso automático `X × Y × Z × 2,5 t/m³`.
 - Catálogo: `mold_catalog` é global e compartilhado. A exigência de `organization_id` aplica-se às tabelas pertencentes a cada organização, não a esse catálogo global.
-- Posição: guarda uma configuração dimensional do catálogo (BRAÇO ou LEITO + LATERAL); não reserva um exemplar físico individual por `molds.id`.
+- Posição: é um espaço físico. O item do pedido define BRAÇO ou LEITO + LATERAL e o planejador associa essa configuração à posição livre; não reserva um exemplar físico individual por `molds.id`.
 - Distribuição de engenharia: cada seção recebe parte dos itens, e a soma por item deve ser exatamente a quantidade pedida.
 - A aplicação segue sem login. O identificador da organização deve ser definido no servidor; o navegador não deve escolher o `organization_id` nem receber a chave `service_role`.
 - Os status vigentes de pedido não incluem `concluido`. A proposta preserva pedidos históricos com esse status e impede que novas gravações usem o valor legado.
@@ -24,11 +24,11 @@ Este documento registra as decisões já esclarecidas e as pendências que afeta
 ## Modelo atual da proposta
 
 - `piece_mold_combinations` é uma view: apresenta os braços fixos e gera LEITO × LATERAL para pilar/viga sem persistir cada par como um molde físico.
-- Uma posição recebe uma configuração de BRAÇO, um par LEITO/LATERAL ou a configuração plana `placa`; não é feita reserva de um exemplar físico individual.
+- Uma posição é um espaço físico. Os moldes de braço, pilar e viga vêm do item do pedido e são associados dinamicamente à posição escolhida pelo planejador; uma bancada plana continua reservada para placas. Não é feita reserva de um exemplar físico individual.
 - A divisão completa dos itens do pedido entre seções é gravada pela RPC `save_engineering_project_structure` em uma transação; a soma por item deve fechar exatamente a quantidade pedida. Quando o pedido já possui projeto, `save_order_with_project` atualiza pedido, itens e seções juntos na mesma transação.
 - `production_orders` representa unidades planejadas; `production_order_steps` registra etapas e horários; `allocations` reserva a posição durante concretagem e cura. O tratamento de planejamentos antigos sem horários exatos deve ser preservado conforme a regra descrita em `database/ER.md`.
 - `production_schedules` permanece como resumo legado.
 
-## Limite de publicação
+## Estado da implantação
 
-Esta revisão não aplica a migration 009, não publica Edge Functions e não altera o projeto Supabase ativo. Primeiro devem ser fechadas as decisões pendentes e revisado o schema ativo; depois disso, a migration e a integração podem ser atualizadas e apresentadas para revisão.
+Este documento registra decisões da revisão inicial. No Supabase ativo, as migrations 009–012 já estão aplicadas. O fluxo atual salva o cabeçalho como orçamento, recebe os itens em seguida e associa as formas do item às posições durante o planejamento. As pendências de tempos por tipo de peça permanecem abertas até o envio dos valores PRELUX.
