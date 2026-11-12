@@ -151,7 +151,8 @@ export async function createOrderPieceRegistration(db, organizationId, input) {
     sequence: 1,
   };
 
-  const queuePlan = await buildPlanningQueue({
+  // Este fluxo legado também cria orçamento; deixa a reserva para a aprovação.
+  const queuePlan = draftOrder.status === "orcamento" ? null : await buildPlanningQueue({
     db,
     organizationId,
     input: {
@@ -160,13 +161,13 @@ export async function createOrderPieceRegistration(db, organizationId, input) {
     },
   });
 
-  const targetPlan = queuePlan.targetPlan || null;
+  const targetPlan = queuePlan?.targetPlan || null;
   const targetHasPosition = Boolean(targetPlan?.feasible);
   const plans = (queuePlan?.plans || [])
     .filter((entry) => entry.orderId !== orderId || targetHasPosition)
     .map((entry) => ({ orderId: entry.orderId, plan: entry.plan }));
   const plannedDates = new Set(plans.flatMap((entry) => entry.plan.units.map((unit) => unit.castDate)));
-  const planningCalendarDays = queuePlan.calendarDays.filter((day) => plannedDates.has(day.date));
+  const planningCalendarDays = (queuePlan?.calendarDays || []).filter((day) => plannedDates.has(day.date));
   const registration = {
     orderId,
     itemId,
@@ -197,11 +198,14 @@ export async function createOrderPieceRegistration(db, organizationId, input) {
   return {
     registration: data,
     planning: {
-      committed: true,
-      waitingForPosition: !targetHasPosition,
-      feasible: targetHasPosition,
+      committed: Boolean(queuePlan) && targetHasPosition,
+      simulatedOnly: !queuePlan,
+      waitingForPosition: Boolean(queuePlan) && !targetHasPosition,
+      feasible: queuePlan ? targetHasPosition : null,
       plannedUnitCount: targetPlan?.units?.length || 0,
-      warning: targetHasPosition ? null : "Pedido salvo e aguardando uma posicao livre.",
+      warning: !queuePlan
+        ? "Orçamento salvo sem reserva; simule no Planejamento."
+        : targetHasPosition ? null : "Pedido salvo e aguardando uma posição livre.",
     },
   };
 }
@@ -247,6 +251,7 @@ function catalogMeasure(value) {
 }
 
 export function resolveCatalogMolds(pieceKind, x, z, catalog) {
+  if (pieceKind === "placa") return [];
   if (pieceKind === "braco") {
     const row = catalog.find((entry) => {
       if (entry.mold_type !== "BRACO") return false;
@@ -269,14 +274,14 @@ export async function addOrderPieceItem(db, organizationId, input) {
     invalid("O identificador do pedido é inválido.", 400);
   }
   const pieceKind = String(input.pieceKind || "");
-  if (!["braco", "pilar", "viga"].includes(pieceKind)) invalid("Selecione braço, pilar ou viga.", 400);
+  if (!["braco", "pilar", "viga", "placa"].includes(pieceKind)) invalid("Selecione braço, pilar, viga ou placa.", 400);
   const pieceId = crypto.randomUUID();
   const itemId = crypto.randomUUID();
   const quantity = positiveInteger(input.quantity, "A quantidade");
   const dimensions = {
-    x: positiveDecimal(input.dimensionXcm, "Largura X"),
-    y: positiveDecimal(input.dimensionYcm, "Comprimento Y"),
-    z: positiveDecimal(input.dimensionZcm, "Dimensão Z"),
+    x: positiveDecimal(input.dimensionXcm, pieceKind === "placa" ? "Largura X" : "Dimensão X"),
+    y: positiveDecimal(input.dimensionYcm, pieceKind === "placa" ? "Altura Y" : "Comprimento Y"),
+    z: positiveDecimal(input.dimensionZcm, pieceKind === "placa" ? "Espessura Z" : "Dimensão Z"),
   };
   const metrics = calculatePieceMetrics(dimensions);
   const piece = {
@@ -305,10 +310,12 @@ export async function addOrderPieceItem(db, organizationId, input) {
   const castingMinutes = await castingMinutesForLegacyFields(db, organizationId);
   piece.production_minutes_per_unit = castingMinutes;
 
-  const catalogTypes = pieceKind === "braco" ? ["BRACO"] : ["LEITO", "LATERAL"];
-  const { data: catalog, error: catalogError } = await registrationRepository.getMoldCatalogByTypes(db, catalogTypes);
-  if (catalogError) throwDatabaseError(catalogError, "Não foi possível consultar o catálogo de formas.");
-  const molds = resolveCatalogMolds(pieceKind, dimensions.x, dimensions.z, catalog || []);
+  const catalogTypes = pieceKind === "placa" ? [] : pieceKind === "braco" ? ["BRACO"] : ["LEITO", "LATERAL"];
+  const catalogResult = catalogTypes.length
+    ? await registrationRepository.getMoldCatalogByTypes(db, catalogTypes)
+    : { data: [], error: null };
+  if (catalogResult.error) throwDatabaseError(catalogResult.error, "Não foi possível consultar o catálogo de formas.");
+  const molds = resolveCatalogMolds(pieceKind, dimensions.x, dimensions.z, catalogResult.data || []);
   if (!molds) {
     invalid(pieceKind === "braco"
       ? "Não existe forma fixa de braço com as medidas X × Z informadas no catálogo."
@@ -323,7 +330,10 @@ export async function addOrderPieceItem(db, organizationId, input) {
     production_minutes_snapshot: castingMinutes,
     sequence,
   };
-  const queuePlan = await buildPlanningQueue({
+  // Orçamentos podem ser simulados no Planejamento, mas não gravam alocações.
+  // Somente pedidos aprovados entram na fila que confirma posições.
+  const isBudget = order.status === "orcamento";
+  const queuePlan = isBudget ? null : await buildPlanningQueue({
     db,
     organizationId,
     input: {
@@ -332,13 +342,13 @@ export async function addOrderPieceItem(db, organizationId, input) {
       draft: { item: draftItem, piece, requiredMoldCodes: molds.map((mold) => mold.catalogCode) },
     },
   });
-  const targetPlan = queuePlan.targetPlan || null;
+  const targetPlan = queuePlan?.targetPlan || null;
   const targetHasPosition = Boolean(targetPlan?.feasible);
-  const plans = (queuePlan.plans || [])
+  const plans = (queuePlan?.plans || [])
     .filter((entry) => entry.orderId !== orderId || targetHasPosition)
     .map((entry) => ({ orderId: entry.orderId, plan: entry.plan }));
   const plannedDates = new Set(plans.flatMap((entry) => entry.plan.units.map((unit) => unit.castDate)));
-  const planningCalendarDays = queuePlan.calendarDays.filter((day) => plannedDates.has(day.date));
+  const planningCalendarDays = (queuePlan?.calendarDays || []).filter((day) => plannedDates.has(day.date));
 
   const registration = {
     orderId,
@@ -369,12 +379,15 @@ export async function addOrderPieceItem(db, organizationId, input) {
   return {
     registration: data,
     planning: {
-      committed: true,
-      waitingForPosition: !targetHasPosition,
+      committed: !isBudget && targetHasPosition,
+      simulatedOnly: isBudget,
+      waitingForPosition: !isBudget && !targetHasPosition,
       feasible: targetHasPosition,
       plannedUnitCount: targetPlan?.units?.length || 0,
       positionCodes: data?.positionCodes || [],
-      warning: targetHasPosition ? null : "O item foi salvo e aguarda uma posição livre.",
+      warning: isBudget
+        ? "Orçamento salvo sem reserva; simule no Planejamento."
+        : targetHasPosition ? null : "O item foi salvo e aguarda uma posição livre.",
     },
   };
 }

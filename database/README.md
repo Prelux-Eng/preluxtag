@@ -21,11 +21,17 @@ Em uma instalação nova, aplique os arquivos em ordem:
 12. `012_order_driven_position_allocation.sql`
 13. `013_process_stage_timing.sql`
 14. `014_order_approval_timestamp.sql`
+15. `supabase/migrations/20261112173505_stage4_order_item_plate_support.sql`
 
-O Supabase ativo já contém as migrations 001–014. A 012 atualiza a regra de
+O Supabase ativo já contém as migrations 001–015. A 012 atualiza a regra de
 alocação das posições; a 013 ajusta a carga legada de concretagem. A 014
 registra a ordem de aprovação para a simulação. Os arquivos ficam em `database/` e não são executados
 automaticamente pelo `supabase db push`.
+
+A Etapa 4 foi gerada pelo Supabase CLI no diretório padrão
+`supabase/migrations/`. Ela atualiza apenas a RPC existente de inclusão de
+itens: placa não exige molde e orçamento não conserva reservas. Aplique-a após
+as migrations 001–014 ao recriar o schema.
 
 ## Moldes e posições
 
@@ -64,6 +70,10 @@ legadas de minutos pela concretagem configurada. O novo simulador diário da
 Etapa 2 usa 1 dia útil de concretagem, 2 dias corridos de cura e 1 dia útil de
 acabamento sem converter o turno em minutos. Capacidade diária continua em
 `calendar_settings`.
+
+Pedidos em orçamento são entradas da simulação sem gravação de reserva. Os
+itens e tipos de peça continuam salvos; apenas pedidos aprovados e ativos entram
+na fila de reservas.
 
 `orders.work_id` é opcional. Quando há obra, triggers existentes sincronizam o
 cliente e a data de início; sem obra, esses dados são informados no pedido.

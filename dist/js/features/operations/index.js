@@ -547,12 +547,12 @@ export function initializeOperations({ operationsRepository, listPieceMoldOption
       <div class="ops-form-grid">
         ${inputField("registrationPieceCode", "Código da peça", "", "text", { required: true })}
         ${inputField("registrationPieceName", "Nome da peça", "", "text", { required: true })}
-        ${selectField("registrationPieceKind", "Tipo de peça", "", [["braco", "Braço"], ["pilar", "Pilar"], ["viga", "Viga"]], { required: true, placeholder: "Selecione o tipo" })}
+        ${selectField("registrationPieceKind", "Tipo de peça", "", [["braco", "Braço"], ["pilar", "Pilar"], ["viga", "Viga"], ...(state.supportsFabio2 ? [["placa", "Placa"]] : [])], { required: true, placeholder: "Selecione o tipo" })}
         ${inputField("registrationQuantity", "Quantidade do pedido", "1", "number", { min: 1, step: 1, required: true })}
         ${inputField("registrationDimensionX", "Dimensão X (cm)", "", "number", { min: 0.001, step: "0.001", required: true })}
         ${inputField("registrationDimensionY", "Comprimento Y (cm)", "", "number", { min: 0.001, step: "0.001", required: true })}
         ${inputField("registrationDimensionZ", "Dimensão Z (cm)", "", "number", { min: 0.001, step: "0.001", required: true })}
-        <div class="ops-form-hint full" id="registrationPositionHint" aria-live="polite">Informe X e Z para localizar a forma; Y representa o comprimento da peça.</div>
+        <div class="ops-form-hint full" id="registrationPositionHint" aria-live="polite">Pilar e viga: X localiza o leito, Z a lateral e Y é o comprimento. Braço: X × Z localiza a forma fixa. Placa: X largura, Y altura, Z espessura; usa bancada plana.</div>
         <div class="ops-form-hint full">O prazo considera concretagem, cura e acabamento. Se a forma ainda não estiver pronta, inclui também a preparação antes da concretagem.</div>
         <div class="ops-computed-metrics full" aria-live="polite"><div><small>Volume</small><strong id="registrationVolumeM3">—</strong><span>m³</span></div><div><small>Peso estimado</small><strong id="registrationWeightKg">—</strong><span>kg</span></div><div><small>Volume bruto X × Y × Z</small><strong id="registrationVolumeCm3">—</strong><span>cm³</span></div></div>
         ${textareaField("registrationPieceObservations", "Observações da peça")}
@@ -617,6 +617,7 @@ export function initializeOperations({ operationsRepository, listPieceMoldOption
     const x = normalizeMeasure(xValue);
     const z = normalizeMeasure(zValue);
     if (!kind || x == null || z == null || x <= 0 || z <= 0) return null;
+    if (kind === "placa") return { codes: [], label: "PLACA · BANCADA PLANA" };
     const catalog = state.data?.moldCatalog || [];
     if (kind === "pilar" || kind === "viga") {
       const bed = catalog.find((row) => row.mold_type === "LEITO" && normalizeMeasure(row.measure_label) === x);
@@ -636,10 +637,11 @@ export function initializeOperations({ operationsRepository, listPieceMoldOption
 
   function updateRegistrationMoldFields() {
     const kind = $("registrationPieceKind")?.value;
+    const isPlate = kind === "placa";
     const labels = {
-      registrationDimensionX: kind === "braco" ? "Dimensão X (cm) · BRAÇO" : "Dimensão X (cm) · LEITO",
-      registrationDimensionY: "Comprimento Y (cm)",
-      registrationDimensionZ: kind === "braco" ? "Dimensão Z (cm) · BRAÇO" : "Dimensão Z (cm) · LATERAL",
+      registrationDimensionX: isPlate ? "Largura X (cm) · PLACA" : kind === "braco" ? "Dimensão X (cm) · BRAÇO" : "Dimensão X (cm) · LEITO",
+      registrationDimensionY: isPlate ? "Altura Y (cm) · PLACA" : "Comprimento Y (cm)",
+      registrationDimensionZ: isPlate ? "Espessura Z (cm) · PLACA" : kind === "braco" ? "Dimensão Z (cm) · BRAÇO" : "Dimensão Z (cm) · LATERAL",
     };
     for (const [id, labelText] of Object.entries(labels)) {
       const label = document.querySelector(`label[for="${id}"]`);
@@ -653,11 +655,19 @@ export function initializeOperations({ operationsRepository, listPieceMoldOption
     const x = $("registrationDimensionX")?.value;
     const z = $("registrationDimensionZ")?.value;
     const mold = resolveRegistrationMolds(kind, x, z);
-    const availablePositions = (state.data?.positions || []).filter((position) => position.status !== "em_manutencao");
+    const availablePositions = (state.data?.positions || []).filter((position) =>
+      position.status !== "em_manutencao" && (kind === "placa"
+        ? position.configuration_kind === "placa"
+        : position.configuration_kind !== "placa")
+    );
     const message = $("registrationPositionHint");
     if (!message) return;
     message.textContent = !kind
       ? "Escolha o tipo e informe X e Z para localizar a forma compatível automaticamente."
+      : kind === "placa"
+        ? availablePositions.length
+          ? "Placa sem forma: X é largura, Y é altura e Z é espessura. O Planejamento usará a bancada plana cadastrada."
+          : "Placa sem forma: X é largura, Y é altura e Z é espessura. Cadastre uma posição como bancada plana; o pedido poderá ser salvo e ficará aguardando posição."
       : !x || !z
         ? "Informe X e Z para localizar a forma; Y é o comprimento e também participa do volume e do peso."
         : !mold
@@ -1272,14 +1282,16 @@ export function initializeOperations({ operationsRepository, listPieceMoldOption
         sequence: savedItems.length + 1,
       });
       const positions = response?.planning?.positionCodes || response?.registration?.positionCodes || [];
-      const typeLabels = { braco: "Braço", pilar: "Pilar", viga: "Viga" };
+      const typeLabels = { braco: "Braço", pilar: "Pilar", viga: "Viga", placa: "Placa" };
       savedItems.push({
         code: formValue(form, "registrationPieceCode").toLocaleUpperCase(),
         name: formValue(form, "registrationPieceName"),
         kindLabel: typeLabels[kind],
         quantity: Number(formValue(form, "registrationQuantity")),
         dimensions: `${formatNumber(x, 3)} × ${formatNumber(y, 3)} × ${formatNumber(z, 3)} cm`,
-        planningLabel: response?.planning?.waitingForPosition
+        planningLabel: response?.planning?.simulatedOnly
+          ? "Orçamento · sem reserva; simule no Planejamento"
+          : response?.planning?.waitingForPosition
           ? "Aguardando posição livre"
           : positions.length ? `Posição: ${positions.join(", ")}` : "Planejamento atualizado",
       });
@@ -1442,7 +1454,9 @@ export function initializeOperations({ operationsRepository, listPieceMoldOption
           projectSections,
         });
         const savedOrderLabel = engineeringProject ? "Pedido e projeto" : "Pedido";
-        if (response?.planning?.warning) {
+        if (response?.planning?.simulatedOnly) {
+          savedNotice = `${savedOrderLabel} salvo. Orçamento sem reserva; simule no Planejamento.`;
+        } else if (response?.planning?.warning) {
           savedNotice = `${savedOrderLabel} ${engineeringProject ? "salvos" : "salvo"}. ${response.planning.warning}`;
         } else if (response?.planning?.removedFromPlan) {
           savedNotice = `${savedOrderLabel} ${engineeringProject ? "atualizados" : "atualizado"} e fila de produção recalculada.`;
@@ -1584,7 +1598,7 @@ export function initializeOperations({ operationsRepository, listPieceMoldOption
       showStatus(state.supportsStage4
         ? state.supportsFabio2
           ? "Pedidos, cadastro e projetos de engenharia conectados ao banco PRELUX."
-          : "Pedidos e cadastro da Etapa 4 conectados. Projetos e placas aguardam a migration 009."
+          : "Pedidos e cadastro conectados. Projetos e peças do catálogo estão disponíveis no banco PRELUX."
         : "Obras e pedidos conectados. O cadastro de peças, formas e posições aguarda a migração 007 e a Edge Function da Etapa 4.");
     } catch (error) {
       const rawMessage = error.message || "Não foi possível carregar os cadastros.";
