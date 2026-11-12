@@ -39,6 +39,7 @@ Se o comando `npm` não estiver disponível, execute `node scripts/serve.mjs`. D
 Consulte [`database/README.md`](database/README.md) para a ordem das migrações e [`backend/README.md`](backend/README.md) para publicação das Edge Functions.
 Para decisões e pendências da Etapa 5, consulte [`docs/FABIO_II_ETAPA5_REVISAO.md`](docs/FABIO_II_ETAPA5_REVISAO.md).
 O motor de simulação da Etapa 2 e sua API somente de leitura estão documentados em [`docs/ETAPA2_MOTOR_SIMULACAO.md`](docs/ETAPA2_MOTOR_SIMULACAO.md).
+O calendário de previsão da Etapa 3 está documentado em [`docs/ETAPA3_CALENDARIO.md`](docs/ETAPA3_CALENDARIO.md).
 
 - Em uma instalação nova, aplique os scripts `database/001` a `database/014` na ordem descrita.
 - O projeto Supabase em uso já contém as migrations 001–014. As posições são espaços físicos que recebem os moldes exigidos por cada pedido.

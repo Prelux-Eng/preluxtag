@@ -18,6 +18,7 @@ export const planningRepository = Object.freeze({
   saveCalendarDay: (input) => calendar("save_day", input),
   deleteCalendarActivity: (id, startDate, endDate) =>
     calendar("delete_activity", { id, startDate, endDate }),
+  simulateProduction: (orderIds = []) => invoke("simulate-production", { orderIds }),
   planOrder: (input) => invoke("plan-order", input),
   commitOrderPlan: (input) => invoke("commit-order-plan", input),
 });

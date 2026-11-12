@@ -3,6 +3,8 @@
  * Renderiza as visões do calendário e coordena o planejador de pedidos.
  * Acesso remoto passa pelo repositório; navegação, pelo módulo central.
  */
+import { calendarUnitsFromScenario, occupiedPositionCodes, positionConflictCount, visibleCalendarUnits } from "./scenario-calendar.js";
+
 export function initializePlanning({ planningRepository, operationsRepository, navigate }) {
   const $ = (id) => document.getElementById(id);
   // Estado da área: dados carregados, visão selecionada e modais atualmente abertos.
@@ -14,6 +16,12 @@ export function initializePlanning({ planningRepository, operationsRepository, n
     works: [],
     schedules: [],
     productionOrders: [],
+    scenario: null,
+    scenarioUnits: null,
+    selectedQuoteIds: new Set(),
+    simulationError: "",
+    scenarioDirty: false,
+    simulationVersion: 0,
     positions: [],
     capacityByPositions: [],
     unitPlanningAvailable: false,
@@ -171,38 +179,35 @@ export function initializePlanning({ planningRepository, operationsRepository, n
   const DEFAULT_POSITION_CODES = ["P01", "P02", "P03", "P04"];
 
   function activePositionCount() {
-    const unavailable = new Set(state.positions
-      .filter((position) => position.status === "em_manutencao")
-      .map((position) => position.code));
-    return DEFAULT_POSITION_CODES.filter((code) => !unavailable.has(code)).length;
+    return state.positions.filter((position) => position.status === "disponivel").length;
   }
 
   function productionUnitsForDate(date) {
-    return state.productionOrders.filter((unit) => unit.planned_cast_date === date);
+    return displayUnits().filter((unit) => unit.planned_cast_date === date);
+  }
+
+  function displayUnits() {
+    return visibleCalendarUnits(state.scenarioUnits, state.productionOrders, state.startedOrderIds);
   }
 
   function useLegacyScheduleView() {
-    return !state.unitPlanningAvailable || (!state.productionOrders.length && state.schedules.length > 0);
+    // Planos pendentes gerados pelo motor antigo não representam a regra atual.
+    // Só fatos já iniciados e a previsão nova entram nas visões.
+    return false;
   }
 
   function positionStats(date) {
     const day = getDay(date) || { is_working: false };
     const positionCount = activePositionCount();
-    const capacity = state.capacityByPositions.find((item) => item.date === date);
-    const plannedUnits = !useLegacyScheduleView()
-      ? productionUnitsForDate(date).length
-      : schedulesForDate(date).reduce((sum, schedule) => sum + Math.max(0, Number(schedule.planned_quantity) || 0), 0);
-    const assignedPositions = !useLegacyScheduleView()
-      ? new Set(productionUnitsForDate(date).map((unit) => unit.position_code).filter(Boolean)).size
-      : schedulesForDate(date).reduce((sum, schedule) => sum + Math.max(0, Number(schedule.planned_quantity) || 0), 0);
-    const occupied = Math.max(Number(capacity?.occupied_positions) || 0, assignedPositions, plannedUnits);
+    const plannedUnits = productionUnitsForDate(date).length;
+    const occupied = occupiedPositionCodes(displayUnits(), date).size;
     const available = day.is_working ? positionCount : 0;
     return {
       positionCount,
       plannedUnits,
       occupied,
       available,
-      overCapacity: occupied > available,
+      overCapacity: occupied > available || positionConflictCount(displayUnits(), date) > 0,
     };
   }
 
@@ -218,7 +223,7 @@ export function initializePlanning({ planningRepository, operationsRepository, n
     if (useLegacyScheduleView()) {
       return schedulesForDate(date).map((schedule) => ({ kind: "casting", value: schedule, quantity: Number(schedule.planned_quantity) || 0 }));
     }
-    const units = state.productionOrders;
+    const units = displayUnits();
     const result = [];
     const groups = new Map();
     const addGroup = (kind, unit, keyPart = "") => {
@@ -229,6 +234,9 @@ export function initializePlanning({ planningRepository, operationsRepository, n
       groups.set(key, group);
     };
     for (const unit of units) {
+      if (unit.preparation_start_date && date >= unit.preparation_start_date && date <= unit.preparation_end_date) {
+        addGroup("preparation", unit, unit.position_code || "unallocated");
+      }
       if (unit.planned_cast_date === date) addGroup("casting", unit, unit.position_code || "unallocated");
       if (unit.planned_cure_start_date && unit.planned_cure_end_date && date >= unit.planned_cure_start_date && date <= unit.planned_cure_end_date) {
         addGroup("curing", unit);
@@ -244,6 +252,9 @@ export function initializePlanning({ planningRepository, operationsRepository, n
     const order = orderById(unitOrder(value));
     const reference = order?.order_number || "Pedido";
     const piece = value.piece_code || value.piece_name || "Peça";
+    if (event.kind === "preparation") {
+      return `Preparação · ${value.position_code || "sem posição"} · ${reference} · ${piece}`;
+    }
     if (event.kind === "casting") {
       const position = value.position_code || "sem posição";
       return `${position} · ${reference} · ${piece}${event.quantity > 1 ? ` ×${event.quantity}` : ""}`;
@@ -297,11 +308,10 @@ export function initializePlanning({ planningRepository, operationsRepository, n
       const order = orderById(orderId);
       const isCasting = event.kind === "casting";
       const statusClass = value.status === "in_progress" ? "in-progress" : value.status === "done" ? "done" : "";
-      const canDrag = isCasting && value.status === "planned" && orderId && !state.startedOrderIds.includes(orderId);
-      const className = event.kind === "casting" ? "casting-event" : event.kind === "curing" ? "curing-event" : "finish-event";
-      const title = `${phaseEventLabel(event)} · ${formatDateBR(date)}${event.kind === "curing" ? " · cura não ocupa posição" : ""}`;
+      const className = event.kind === "preparation" ? "preparation-event" : event.kind === "casting" ? "casting-event" : event.kind === "curing" ? "curing-event" : "finish-event";
+      const title = `${phaseEventLabel(event)} · ${formatDateBR(date)}${value.forecast_kind ? " · previsão sem reserva gravada" : ""}${event.kind === "curing" ? " · cura não ocupa posição" : ""}`;
       const label = !useLegacyScheduleView() ? phaseEventLabel(event) : `${formatOrder(order)} · ${value.piece_code || "produção"} · ${Number(value.planned_quantity)} un.`;
-      return `<button class="calendar-event ${className} ${statusClass}" type="button" data-order-event="${escapeHtml(orderId)}" data-work-date="${date}" title="${escapeHtml(title)}"${canDrag ? ' draggable="true"' : ""}>${escapeHtml(label)}</button>`;
+      return `<span class="calendar-event ${className} ${statusClass} ${value.forecast_kind === "quote" ? "quote-forecast" : ""}" title="${escapeHtml(title)}">${escapeHtml(label)}</span>`;
     }).join("");
     const remainingEvents = events.length - eventLimit;
     const positionLabel = day.is_working
@@ -338,7 +348,9 @@ export function initializePlanning({ planningRepository, operationsRepository, n
   function renderGantt() {
     const { start, end } = monthBounds();
     const count = dateDistance(start, end) + 1;
-    const unitsInRange = state.productionOrders.filter((unit) =>
+    const unitsInRange = displayUnits().filter((unit) =>
+      (unit.preparation_start_date && unit.preparation_start_date <= end && unit.preparation_end_date >= start)
+      ||
       (unit.planned_cast_date >= start && unit.planned_cast_date <= end)
       || (unit.planned_cure_start_date && unit.planned_cure_start_date <= end && unit.planned_cure_end_date >= start)
       || (unit.planned_finish_date >= start && unit.planned_finish_date <= end)
@@ -367,25 +379,30 @@ export function initializePlanning({ planningRepository, operationsRepository, n
       }
     };
     const ganttUnitsFor = (date, kind, positionCode = null) => unitsInRange.filter((unit) => {
+      if (kind === "preparation") return unit.preparation_start_date && date >= unit.preparation_start_date && date <= unit.preparation_end_date && (!positionCode || unit.position_code === positionCode);
       if (kind === "casting") return unit.planned_cast_date === date && (!positionCode || unit.position_code === positionCode);
       if (kind === "curing") return unit.planned_cure_start_date && unit.planned_cure_end_date && date >= unit.planned_cure_start_date && date <= unit.planned_cure_end_date;
       return unit.planned_finish_date === date;
     });
     const positionMeta = new Map(state.positions.map((position) => [position.code, position]));
     const positionCodes = [...new Set([...DEFAULT_POSITION_CODES, ...state.positions.map((position) => position.code)])].sort();
-    rows += `<div class="gantt-stage-heading">Concretagem · ocupa uma posição somente no dia marcado</div>`;
+    rows += `<div class="gantt-stage-heading">Preparação e concretagem · ocupam a posição nos dias marcados</div>`;
     for (const code of positionCodes) {
       const position = positionMeta.get(code);
-      const unavailable = position?.status === "em_manutencao";
+      const unavailable = position?.status !== "disponivel";
       appendRow(`${code}${unavailable ? " · manutenção" : ""}`, (date) => {
         if (!useLegacyScheduleView()) {
-          return ganttUnitsFor(date, "casting", code).map((unit) => {
+          const preparation = ganttUnitsFor(date, "preparation", code).map((unit) => {
+            const order = orderById(unit.order_id);
+            return `<span class="gantt-work preparation-work ${unit.forecast_kind === "quote" ? "quote-forecast" : ""}" title="${escapeHtml(phaseEventLabel({ kind: "preparation", value: unit }))}">${escapeHtml(order?.order_number || "Pedido")} · preparar forma</span>`;
+          }).join("");
+          const casting = ganttUnitsFor(date, "casting", code).map((unit) => {
             const orderId = unit.order_id;
             const order = orderById(orderId);
-            const draggable = unit.status === "planned" && orderId && !state.startedOrderIds.includes(orderId);
             const label = `${escapeHtml(order?.order_number || "Pedido")} · ${escapeHtml(unitPieceLabel(unit))}`;
-            return `<button class="gantt-work casting-work" type="button" data-order-event="${escapeHtml(orderId)}" data-work-date="${date}" title="${escapeHtml(phaseEventLabel({ kind: "casting", value: unit, quantity: 1 }))}"${draggable ? ' draggable="true"' : ""}>${label}</button>`;
+            return `<span class="gantt-work casting-work ${unit.forecast_kind === "quote" ? "quote-forecast" : ""}" title="${escapeHtml(phaseEventLabel({ kind: "casting", value: unit, quantity: 1 }))}">${label}</span>`;
           }).join("");
+          return preparation + casting;
         }
         return "";
       }, unavailable ? "position-unavailable" : "position-label");
@@ -407,12 +424,12 @@ export function initializePlanning({ planningRepository, operationsRepository, n
     rows += `<div class="gantt-stage-heading">Cura · intervalo corrido, sem ocupar posição</div>`;
     appendRow("Cura", (date) => ganttUnitsFor(date, "curing").map((unit) => {
       const order = orderById(unit.order_id);
-      return `<span class="gantt-work curing-work" title="${escapeHtml(order?.order_number || "Pedido")} · ${escapeHtml(unitPieceLabel(unit))} · cura de ${formatDateBR(unit.planned_cure_start_date)} a ${formatDateBR(unit.planned_cure_end_date)}">${escapeHtml(order?.order_number || "Pedido")} · ${escapeHtml(unitPieceLabel(unit))}</span>`;
+      return `<span class="gantt-work curing-work ${unit.forecast_kind === "quote" ? "quote-forecast" : ""}" title="${escapeHtml(order?.order_number || "Pedido")} · ${escapeHtml(unitPieceLabel(unit))} · cura de ${formatDateBR(unit.planned_cure_start_date)} a ${formatDateBR(unit.planned_cure_end_date)}">${escapeHtml(order?.order_number || "Pedido")} · ${escapeHtml(unitPieceLabel(unit))}</span>`;
     }).join(""), "phase-label curing-label");
     rows += `<div class="gantt-stage-heading">Acabamento · primeiro dia útil após a cura</div>`;
     appendRow("Acabamento", (date) => ganttUnitsFor(date, "finish").map((unit) => {
       const order = orderById(unit.order_id);
-      return `<button class="gantt-work finish-work" type="button" data-order-event="${escapeHtml(unit.order_id)}" data-work-date="${date}" title="${escapeHtml(order?.order_number || "Pedido")} · ${escapeHtml(unitPieceLabel(unit))} · acabamento">${escapeHtml(order?.order_number || "Pedido")} · ${escapeHtml(unitPieceLabel(unit))}</button>`;
+      return `<span class="gantt-work finish-work ${unit.forecast_kind === "quote" ? "quote-forecast" : ""}" title="${escapeHtml(order?.order_number || "Pedido")} · ${escapeHtml(unitPieceLabel(unit))} · acabamento">${escapeHtml(order?.order_number || "Pedido")} · ${escapeHtml(unitPieceLabel(unit))}</span>`;
     }).join(""), "phase-label finish-label");
     rows += `<div class="gantt-stage-heading">Datas dos pedidos e das obras cadastradas</div>`;
     for (const order of ordersWithDates) {
@@ -433,7 +450,7 @@ export function initializePlanning({ planningRepository, operationsRepository, n
   function renderSummary() {
     const workingDays = state.days.filter((day) => day.is_working);
     const capacityPositions = workingDays.reduce((sum) => sum + activePositionCount(), 0);
-    const plannedPositions = workingDays.reduce((sum, day) => sum + positionStats(day.date).plannedUnits, 0);
+    const plannedPositions = workingDays.reduce((sum, day) => sum + positionStats(day.date).occupied, 0);
     const occupancy = capacityPositions ? Math.round(plannedPositions / capacityPositions * 100) : 0;
     const alertDays = state.days.filter((day) => positionStats(day.date).overCapacity).length;
     const activeOrders = state.orders.filter((order) => activeStatuses.has(order.status)).length;
@@ -442,7 +459,7 @@ export function initializePlanning({ planningRepository, operationsRepository, n
     const bounds = visibleBounds();
     const exceptionCount = state.exceptions.length;
     const eventCount = !useLegacyScheduleView()
-      ? state.productionOrders.filter((unit) => unit.planned_cast_date >= bounds.start && unit.planned_cast_date <= bounds.end).length
+      ? displayUnits().filter((unit) => unit.planned_cast_date >= bounds.start && unit.planned_cast_date <= bounds.end).length
       : state.schedules.reduce((sum, schedule) => sum + (Number(schedule.planned_quantity) || 0), 0);
     const datedOrders = activeCalendarOrders().filter((order) => spanOverlaps(order, bounds.start, bounds.end)).length;
     const datedWorks = activeCalendarWorks().filter((work) => spanOverlaps(work, bounds.start, bounds.end)).length;
@@ -462,6 +479,7 @@ export function initializePlanning({ planningRepository, operationsRepository, n
   }
 
   function renderCalendar() {
+    renderScenario();
     renderPlanningBacklog();
     if (!state.days.length) {
       $('planningCalendarState').className = "calendar-placeholder";
@@ -472,6 +490,71 @@ export function initializePlanning({ planningRepository, operationsRepository, n
     else if (state.mode === "gantt") renderGantt();
     else renderMonth();
     renderSummary();
+  }
+
+  // Orçamentos são incluídos somente por escolha explícita. Pedidos aprovados
+  // entram automaticamente na fila calculada pelo servidor.
+  function renderScenario() {
+    const selector = $('planningScenarioQuotes');
+    const quotes = state.orders.filter((order) => order.status === "orcamento" && !state.startedOrderIds.includes(order.id));
+    selector.innerHTML = quotes.length ? quotes.map((order) =>
+      `<label class="scenario-quote"><input type="checkbox" value="${escapeHtml(order.id)}" ${state.selectedQuoteIds.has(order.id) ? "checked" : ""} />${escapeHtml(formatOrder(order))}</label>`
+    ).join("") : '<span class="scenario-empty">Nenhum orçamento disponível para simular.</span>';
+    const result = $('planningScenarioResult');
+    const connection = $('planningConnectionState');
+    connection.innerHTML = state.scenarioDirty
+      ? '<span class="dot" style="background:#d58a1e"></span><span>Seleção alterada; atualize a simulação para ver a nova previsão.</span>'
+      : state.simulationError
+        ? `<span class="dot" style="background:#d58a1e"></span><span>Previsão indisponível: ${escapeHtml(state.simulationError)}</span>`
+        : state.scenario
+          ? '<span class="dot" style="background:var(--green)"></span><span>Previsão calculada, sem gravação de reservas.</span>'
+          : '<span class="dot"></span><span>Calendário carregado. Selecione um orçamento para simular.</span>';
+    if (state.simulationError) {
+      result.innerHTML = `<p class="scenario-error">${escapeHtml(state.simulationError)}</p>`;
+      return;
+    }
+    if (state.scenarioDirty) {
+      result.innerHTML = '<p class="scenario-empty">A seleção mudou. Clique em <strong>Atualizar simulação</strong> para recalcular o calendário.</p>';
+      return;
+    }
+    const scenario = state.scenario;
+    if (!scenario) {
+      result.innerHTML = '<p class="scenario-empty">A fila ainda não tem previsão calculada. Selecione um orçamento ou aprove um pedido.</p>';
+      return;
+    }
+    const cards = (scenario.orders || []).map((order) => {
+      const outcome = order.totalPlannedQuantity !== order.totalRequestedQuantity
+        ? `${order.totalPlannedQuantity} de ${order.totalRequestedQuantity} unidades com data`
+        : order.overLimitDays ? `${order.overLimitDays} dia(s) além dos 90 dias`
+          : order.requestedDelayDays ? `${order.requestedDelayDays} dia(s) além do prazo solicitado`
+            : "Dentro do prazo";
+      const issues = (order.conflicts || []).map((issue) => issue.message).slice(0, 2).join(" ");
+      return `<article class="scenario-order ${order.feasible ? "feasible" : "infeasible"}"><div><strong>${escapeHtml(order.orderNumber || "Pedido")}</strong><span>${order.status === "orcamento" ? "Orçamento · hipótese" : "Fila aprovada · previsão"}</span></div><div><strong>${escapeHtml(order.forecastEndDate ? formatDateBR(order.forecastEndDate) : "Sem data")}</strong><span>Fim do último acabamento</span></div><div><strong>${escapeHtml(outcome)}</strong><span>Limite ${formatDateBR(order.maximumDueDate)} · ${order.maximumQuantityWithin90Days}/${order.totalRequestedQuantity} un. cabem</span></div>${issues ? `<small>${escapeHtml(issues)}</small>` : ""}</article>`;
+    }).join("");
+    const bottleneck = scenario.bottleneck
+      ? `Maior carga: ${scenario.bottleneck.positionCode}, ${scenario.bottleneck.occupiedDays} dia(s) ocupados (${scenario.bottleneck.preparationDays} de preparação e ${scenario.bottleneck.castingDays} de concretagem).`
+      : "Sem posição ocupada no cenário.";
+    result.innerHTML = `<p class="scenario-caption">${scenario.orderCount} pedido(s) · ${scenario.totalUnits} unidade(s) · ${escapeHtml(bottleneck)} A simulação não grava reservas.</p><div class="scenario-orders">${cards}</div>`;
+  }
+
+  async function simulateSelectedOrders() {
+    const version = ++state.simulationVersion;
+    const selectedIds = [...state.selectedQuoteIds];
+    const approved = state.orders.some((order) => order.status === "aprovado" && !state.startedOrderIds.includes(order.id));
+    state.scenario = null;
+    state.scenarioUnits = null;
+    state.simulationError = "";
+    state.scenarioDirty = false;
+    if (!approved && !selectedIds.length) return;
+    try {
+      const response = await planningRepository.simulateProduction(selectedIds);
+      if (version !== state.simulationVersion) return;
+      state.scenario = response.scenario;
+      state.scenarioUnits = calendarUnitsFromScenario(response.scenario, state.orders);
+    } catch (error) {
+      if (version !== state.simulationVersion) return;
+      state.simulationError = error.message || "Não foi possível calcular a simulação.";
+    }
   }
 
   // Pedidos ainda não programados que compõem a fila apresentada acima do calendário.
@@ -488,7 +571,7 @@ export function initializePlanning({ planningRepository, operationsRepository, n
 
   function scheduledCountInVisibleRange(orderId) {
     if (!useLegacyScheduleView()) {
-      return state.productionOrders.filter((unit) => unit.order_id === orderId).length;
+      return displayUnits().filter((unit) => unit.order_id === orderId).length;
     }
     return state.schedules
       .filter((schedule) => schedule.order_id === orderId)
@@ -515,8 +598,9 @@ export function initializePlanning({ planningRepository, operationsRepository, n
         order.requested_due_date ? `Prazo: ${formatDateBR(order.requested_due_date)}` : "",
         visibleScheduled ? `${visibleScheduled}${total ? ` de ${total}` : ""} un. programadas no período visível` : "",
       ].filter(Boolean).join(" · ");
-      const explanation = visibleScheduled ? `Programação parcial ou sem término calculado: ${visibleScheduled} unidade(s) aparecem no intervalo selecionado.` : "Sem programação registrada para o pedido.";
-      return `<article class="planning-backlog-item"><div class="planning-backlog-item-main"><strong>${escapeHtml(formatOrder(order))}</strong><span>${escapeHtml(details || "Sem datas cadastradas")}</span><small>${escapeHtml(explanation)}</small></div><button class="btn" type="button" data-plan-order-id="${escapeHtml(order.id)}">Planejar</button></article>`;
+      const explanation = visibleScheduled ? `Programação legada: ${visibleScheduled} unidade(s) aparecem no intervalo selecionado.` : "A previsão é calculada com a fila aprovada; orçamentos entram somente se selecionados.";
+      const action = order.status === "orcamento" ? `<button class="btn" type="button" data-simulate-order-id="${escapeHtml(order.id)}">Incluir na simulação</button>` : "";
+      return `<article class="planning-backlog-item"><div class="planning-backlog-item-main"><strong>${escapeHtml(formatOrder(order))}</strong><span>${escapeHtml(details || "Sem datas cadastradas")}</span><small>${escapeHtml(explanation)}</small></div>${action}</article>`;
     }).join("") : `<p class="planning-backlog-empty">${state.orders.length ? "Nenhum pedido aguardando programação. Os pedidos ativos já têm data de término ou estão em produção." : "Nenhum pedido ativo cadastrado. Ao salvar um pedido em PEDIDOS, ele aparecerá aqui automaticamente."}</p>`;
     const works = $('planningBacklogWorks');
     works.hidden = !waitingWorks.length;
@@ -868,11 +952,22 @@ export function initializePlanning({ planningRepository, operationsRepository, n
       state.capacityByPositions = planning.capacityByPositions || [];
       state.startedOrderIds = planning.startedOrderIds || [];
       state.settings = settings.settings ? { ...settings.settings, rules: settings.rules || [] } : state.settings;
+      state.selectedQuoteIds = new Set([...state.selectedQuoteIds].filter((id) =>
+        state.orders.some((order) => order.id === id && order.status === "orcamento")
+      ));
+      await simulateSelectedOrders();
       renderCalendar();
-      connection.innerHTML = !useLegacyScheduleView()
-        ? '<span class="dot" style="background:var(--green)"></span><span>Backend conectado. Concretagem, cura, acabamento e posições carregados.</span>'
-        : '<span class="dot" style="background:#d58a1e"></span><span>Backend conectado com programação resumida. Posições, cura e acabamento ainda não estão disponíveis na integração.</span>';
+      connection.innerHTML = state.scenario
+        ? '<span class="dot" style="background:var(--green)"></span><span>Previsão calculada: preparação, concretagem, cura e acabamento. Sem gravação de reservas.</span>'
+        : state.simulationError
+          ? `<span class="dot" style="background:#d58a1e"></span><span>Calendário carregado; previsão indisponível: ${escapeHtml(state.simulationError)}</span>`
+          : '<span class="dot" style="background:var(--green)"></span><span>Calendário carregado. Selecione um orçamento para simular.</span>';
     } catch (error) {
+      state.scenario = null;
+      state.scenarioUnits = null;
+      state.simulationError = error.message || "Não foi possível carregar o planejamento.";
+      state.scenarioDirty = false;
+      renderScenario();
       stateContainer.className = "calendar-placeholder";
       stateContainer.innerHTML = `<div><strong>Não foi possível carregar o calendário</strong><p>${escapeHtml(error.message || "Verifique a configuração da API.")}</p></div>`;
       $('planningBacklogCount').textContent = "—";
@@ -980,11 +1075,7 @@ export function initializePlanning({ planningRepository, operationsRepository, n
     const orderEvent = event.target.closest("[data-order-event]");
     if (orderEvent) {
       event.preventDefault();
-      if (state.startedOrderIds.includes(orderEvent.dataset.orderEvent)) {
-        showToast("Este pedido já tem produção iniciada ou concluída e não pode ser replanejado.");
-        return;
-      }
-      openOrderPlanner(orderEvent.dataset.orderEvent);
+      showToast("Consulte a previsão no cenário acima. A confirmação da nova fila estará disponível após a integração de produção.");
       return;
     }
     const activityButton = event.target.closest("[data-day-action]");
@@ -1055,16 +1146,33 @@ export function initializePlanning({ planningRepository, operationsRepository, n
   $('planningNextBtn').addEventListener("click", () => navigate("etiquetas"));
   $('planningActivityBtn').addEventListener("click", () => openCalendarActivity());
   $('planningSettingsBtn').addEventListener("click", openCalendarSettings);
-  $('planningOrderBtn').addEventListener("click", async () => {
-    await refreshPlanning();
-    openOrderPlanner();
+  $('planningOrderBtn').addEventListener("click", () => $('planningScenario').scrollIntoView({ behavior: "smooth", block: "start" }));
+  $('planningSimulateBtn').addEventListener("click", async () => {
+    const button = $('planningSimulateBtn');
+    button.disabled = true;
+    button.textContent = "Simulando…";
+    await simulateSelectedOrders();
+    renderCalendar();
+    button.disabled = false;
+    button.textContent = "Atualizar simulação";
+  });
+  $('planningScenarioQuotes').addEventListener("change", (event) => {
+    if (!event.target.matches('input[type="checkbox"]')) return;
+    if (event.target.checked) state.selectedQuoteIds.add(event.target.value);
+    else state.selectedQuoteIds.delete(event.target.value);
+    state.simulationVersion += 1;
+    state.scenario = null;
+    state.scenarioUnits = null;
+    state.scenarioDirty = true;
+    renderCalendar();
   });
   $('planningBacklogList').addEventListener("click", async (event) => {
-    const button = event.target.closest("[data-plan-order-id]");
+    const button = event.target.closest("[data-simulate-order-id]");
     if (!button) return;
-    const orderId = button.dataset.planOrderId;
-    await refreshPlanning();
-    openOrderPlanner(orderId);
+    state.selectedQuoteIds.add(button.dataset.simulateOrderId);
+    await simulateSelectedOrders();
+    renderCalendar();
+    $('planningScenario').scrollIntoView({ behavior: "smooth", block: "start" });
   });
   $('planningCalendarState').addEventListener("click", handleCalendarClick);
   $('planningCalendarState').addEventListener("keydown", (event) => {
@@ -1073,10 +1181,8 @@ export function initializePlanning({ planningRepository, operationsRepository, n
       openCalendarDay(event.target.dataset.calendarDate);
     }
   });
-  $('planningCalendarState').addEventListener("dragstart", handleDragStart);
-  $('planningCalendarState').addEventListener("dragover", handleDragOver);
-  $('planningCalendarState').addEventListener("dragleave", handleDragLeave);
-  $('planningCalendarState').addEventListener("drop", handleDrop);
+  // A gravação e o arraste do plano antigo ficam inativos até a confirmação
+  // transacional do motor novo. As visões desta etapa são somente leitura.
   $('planningOrderSelect').addEventListener("change", () => {
     const order = orderById($('planningOrderSelect').value);
     resetPlanPreview();
@@ -1085,12 +1191,6 @@ export function initializePlanning({ planningRepository, operationsRepository, n
       $('planningOrderDue').value = order.requested_due_date || "";
     }
   });
-  $('orderPlanForm').addEventListener("submit", calculateOrderPlan);
-  $('commitOrderPlan').addEventListener("click", commitOrderPlan);
-  $('allowInfeasiblePlan').addEventListener("change", syncCommitButton);
-  $('closeOrderPlan').addEventListener("click", closeOrderPlanner);
-  $('cancelOrderPlan').addEventListener("click", closeOrderPlanner);
-  $('orderPlanModal').addEventListener("click", (event) => { if (event.target.id === "orderPlanModal") closeOrderPlanner(); });
   window.addEventListener("prelux:operations:changed", () => {
     if (!$('planningView').hidden) refreshPlanning();
   });

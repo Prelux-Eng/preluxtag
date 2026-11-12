@@ -1650,6 +1650,24 @@ main {
   font-size:10px;
   line-height:1.4
 }
+.planning-scenario{padding:18px 20px;margin-bottom:18px}
+.planning-scenario .planning-backlog-head{align-items:center}
+.scenario-quote-list{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0}
+.scenario-quote{display:inline-flex;align-items:center;gap:8px;padding:9px 12px;border:1px solid #cbdce9;border-radius:8px;background:#f8fbfd;color:#26475e;font-size:12px;font-weight:700;cursor:pointer}
+.scenario-quote input{accent-color:var(--blue)}
+.scenario-result{border-top:1px solid #e2e9ee;padding-top:14px}
+.scenario-caption,.scenario-empty{margin:0;color:#526778;font-size:12px;line-height:1.5}
+.scenario-error{margin:0;padding:10px 12px;border-radius:7px;background:#fff0ed;color:#9b342e;font-size:12px}
+.scenario-orders{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px;margin-top:12px}
+.scenario-order{display:grid;gap:9px;padding:12px;border:1px solid #cbdce9;border-left:4px solid #2b8a60;border-radius:8px;background:#fff}
+.scenario-order.infeasible{border-left-color:#cc6b35;background:#fffaf5}
+.scenario-order div{display:grid;gap:2px}
+.scenario-order strong{font-size:12px;color:#203e55}
+.scenario-order span,.scenario-order small{font-size:11px;color:#5c7080}
+.calendar-event.preparation-event,.gantt-work.preparation-work{background:#f1e9fc;color:#654598}
+.calendar-event.quote-forecast,.gantt-work.quote-forecast{border:1px dashed #a87a38;box-shadow:none}
+.calendar-legend i.preparation{background:#f1e9fc;border-color:#c8b5e7}
+.calendar-legend i.quote{background:#fff7e9;border:1px dashed #a87a38}
 /* Navegação acessível: preserva os nomes das três abas em telas estreitas. */
 .nav button:focus-visible {
   outline:3px solid #9bc7e5;
