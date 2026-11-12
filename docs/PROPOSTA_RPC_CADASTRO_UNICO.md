@@ -1,15 +1,15 @@
-# Proposta SQL — cadastro integrado de pedido e peça
+# Implementação SQL — cadastro integrado de pedido e peça
 
-> **Aprovado para integração local; migration ainda não aplicada ao Supabase ativo.**
+> **Aplicada ao Supabase ativo.** A migration 010 substitui a RPC de cadastro para usar apenas as dimensões X × Y × Z.
 
 ## Estado atual
 
-- O Supabase ativo está na migration 008; `database/009_fabio2_foundation.sql` foi atualizada localmente com esta proposta e ainda não foi aplicada ao projeto ativo.
+- O Supabase ativo contém as migrations 008, 009 e 010. A migration 009 criou as tabelas, views e RPCs do Fábio II; a 010 substituiu a RPC de cadastro para remover o cálculo geométrico composto.
 - A migration 009 já cria `calculation_constants`, `piece_mold_combinations`, as etapas do projeto e `commit_planning_queue`.
-- `piece_types.custom_fields` já existe. A proposta guarda `geometryParts` nesse JSON, sem criar uma tabela ou coluna paralela.
+- A RPC de cadastro calcula o volume como X × Y × Z em cm³ e estima o peso usando 2,5 g/cm³. `custom_fields` é gravado vazio pelo cadastro novo.
 - `allocations_one_active_position_day_idx` já impede duas unidades planejadas para a mesma posição e dia. A nova RPC reutiliza `production_orders`, `allocations` e `commit_planning_queue`.
 
-## Alterações integradas ao rascunho local da 009
+## Regras aplicadas pela RPC de cadastro
 
 1. Criar índice único parcial em `orders(organization_id, upper(order_number))`, somente para números no formato PED-<número>, preservando os números legados. A migration aborta se encontrar PED duplicado por organização:
 
@@ -28,18 +28,18 @@
    - bloqueio transacional por organização para gerar `PED-0001`, `PED-0002` etc. sem corrida;
    - busca ou criação do cliente pelo nome;
    - atualização da obra existente pelo número, ou criação quando não existir;
-   - criação do tipo de peça com o UUID previsto pelo planejador, dimensões, volume/peso recalculados na RPC e composição em `custom_fields.geometryParts`;
+   - criação do tipo de peça com o UUID previsto pelo planejador, dimensões X × Y × Z e volume/peso recalculados pela RPC;
    - gravação das compatibilidades de catálogo em `piece_type_molds` (braço fixo para braço; leito e lateral para pilar/viga);
    - criação do pedido e do item com os UUIDs usados pelo plano, prazo de 90 dias, quantidade e snapshot de minutos por unidade;
    - upsert dos dias de concretagem informados em `planningCalendarDays`;
    - chamada a `commit_planning_queue` quando houver planos a confirmar;
    - retorno de número do pedido, IDs criados e posições atribuídas.
 
-A Edge Function calcula as métricas para a prévia e para o planejador. A RPC valida as dimensões e recalcula volume e peso no banco antes de gravar, junto com a composição geométrica, para não confiar em valores derivados enviados pelo navegador.
+A Edge Function calcula as métricas para a prévia e para o planejador. A RPC valida as dimensões e recalcula volume e peso no banco usando X × Y × Z antes de gravar, para não confiar em valores derivados enviados pelo navegador.
 
-## Comportamento sem posição compatível
+## Comportamento sem posição livre
 
-O Edge não inclui o pedido novo na lista de planos quando a simulação não encontra posição compatível livre. A RPC ainda cria obra, pedido, item, peça e compatibilidade, mas não cria produção/alocação para essa peça. A tela deriva “Aguardando posição” quando a quantidade do item excede as unidades planejadas. O próximo replanejamento pode alocá-la quando uma posição compatível ficar livre.
+Os moldes compatíveis são determinados pelas dimensões da peça e ficam vinculados ao item do pedido. Se a simulação não encontrar posição física livre no período, o Edge não inclui o pedido novo na lista de planos. A RPC ainda cria obra, pedido, item, peça e compatibilidade, sem criar produção/alocação para as unidades pendentes. A tela deriva “Aguardando posição” quando a quantidade do item excede as unidades planejadas. O próximo replanejamento pode alocá-las quando uma posição ficar livre.
 
 ## Tempos por tipo
 

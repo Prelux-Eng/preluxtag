@@ -8,7 +8,7 @@ import { ensurePost, handleError, json, readJson } from "../_shared/http.js";
 import { buildPlanningQueue, findWorkingDayCompletionDate, OrderPlanningError } from "../_shared/order-planning.js";
 import { calculatePieceMetrics } from "../_shared/piece-metrics.js";
 import { calculatePlateMetrics } from "../_shared/plate-metrics.js";
-import { createOrderPieceRegistration } from "../_shared/registration-service.js";
+import { addOrderPieceItem, createOrderHeader, createOrderPieceRegistration } from "../_shared/registration-service.js";
 import { createAdminClient } from "../_shared/supabaseClient.js";
 
 const WORK_STATUSES = new Set(["planejamento", "ativa", "concluida", "cancelada"]);
@@ -82,6 +82,21 @@ function throwDbError(error: any, label: string): never {
       ? "Já existe um cadastro com o mesmo código ou número nesta unidade."
       : message;
   throw Object.assign(new Error(safeMessage), { status });
+}
+
+/** Preenche o campo legado de minutos com a etapa de concretagem já configurada. */
+async function castingMinutesForLegacyFields(db: ReturnType<typeof createAdminClient>, organizationId: string) {
+  const { data, error } = await db.from("calculation_constants")
+    .select("numeric_value, unit")
+    .eq("organization_id", organizationId)
+    .eq("constant_key", "casting_duration_minutes")
+    .maybeSingle();
+  if (error) throwDbError(error, "Não foi possível consultar a duração da concretagem.");
+  const minutes = Number(data?.numeric_value);
+  if (data?.unit !== "min" || !Number.isInteger(minutes) || minutes <= 0) {
+    throw badRequest("Configure a duração da concretagem em minutos antes de cadastrar peças.", 409);
+  }
+  return minutes;
 }
 
 async function resolveClientId(db: any, organizationId: string, input: Record<string, unknown>) {
@@ -278,9 +293,6 @@ async function readOperationsData(db: any, organizationId: string) {
     engineeringProjects: projects,
     productionOrderSteps: fabio2Available ? stepsResult.data || [] : [],
     calculationConstants: fabio2Available ? constantsResult.data || [] : [],
-    productionMinutesByKind: Object.fromEntries((fabio2Available ? constantsResult.data || [] : [])
-      .filter((row: any) => ["production_minutes_braco", "production_minutes_pilar", "production_minutes_viga"].includes(row.constant_key))
-      .map((row: any) => [row.constant_key.replace("production_minutes_", ""), Number(row.numeric_value)])),
   };
 }
 
@@ -301,6 +313,26 @@ async function replanOpenQueue(db: any, organizationId: string) {
   if (commitError) throwDbError(commitError, "Não foi possível recalcular o calendário após a alteração do cadastro.");
   const warnings = queuePlan.plans.flatMap(({ orderId, plan: queuedPlan }) => queuedPlan.feasible ? [] : queuedPlan.conflicts.map((conflict: any) => `Pedido ${queuedPlan.order?.orderNumber || orderId}: ${conflict.message}`));
   return { committed: true, warning: warnings.length ? warnings.slice(0, 5).join(" ") : null };
+}
+
+/** A alteração da forma já foi gravada; problemas no replanejamento viram aviso. */
+async function replanAfterPositionChange(db: any, organizationId: string, successMessage: string) {
+  try {
+    return await replanOpenQueue(db, organizationId);
+  } catch (planningError) {
+    return {
+      committed: false,
+      warning: planningError instanceof OrderPlanningError
+        ? planningError.message
+        : `${successMessage}, mas o calendário não pôde ser recalculado. Atualize o planejamento.`,
+    };
+  }
+}
+
+function positionCodeValue(input: Record<string, unknown>) {
+  const code = textValue(input.positionCode || input.code, "a posição", 3, true).toUpperCase();
+  if (!/^P0[1-4]$/.test(code)) throw badRequest("Selecione uma posição de P01 a P04.");
+  return code;
 }
 
 async function moldPreparationEndDate(db: any, organizationId: string, moldId: string, startDate: string) {
@@ -327,6 +359,14 @@ async function handler(request: Request) {
 
     if (action === "create_order_piece_registration") {
       return json({ ok: true, ...(await createOrderPieceRegistration(db, organizationId, input)) });
+    }
+
+    if (action === "create_order_header") {
+      return json({ ok: true, ...(await createOrderHeader(db, organizationId, input)) });
+    }
+
+    if (action === "add_order_piece_item") {
+      return json({ ok: true, ...(await addOrderPieceItem(db, organizationId, input)) });
     }
 
     if (action === "save_work") {
@@ -551,7 +591,6 @@ async function handler(request: Request) {
         x: input.x ?? input.dimensionX ?? input.dimension_x_cm,
         y: input.y ?? input.dimensionY ?? input.dimension_y_cm,
         z: input.z ?? input.dimensionZ ?? input.dimension_z_cm,
-        geometryParts: input.geometryParts,
       };
       const metrics = input.pieceKind === "placa"
         ? calculatePlateMetrics(dimensions)
@@ -588,6 +627,7 @@ async function handler(request: Request) {
         throw badRequest("Informe dimensões X, Y e Z maiores que zero, em centímetros.");
       }
       calculatePieceMetrics({ x: dimensionXcm, y: dimensionYcm, z: dimensionZcm });
+      const castingMinutes = await castingMinutesForLegacyFields(db, organizationId);
       const record = {
         id: textValue(input.id, "o identificador", 80) || null,
         code: textValue(input.code, "o código da peça", 60, true),
@@ -596,7 +636,7 @@ async function handler(request: Request) {
         dimensionXcm,
         dimensionYcm,
         dimensionZcm,
-        productionMinutesPerUnit: integerValue(input.productionMinutesPerUnit, "O tempo de produção", 1),
+        productionMinutesPerUnit: castingMinutes,
         observations: textValue(input.observations, "as observações", 1000),
       };
       const moldCatalogs = input.moldCatalogs && typeof input.moldCatalogs === "object" ? input.moldCatalogs as Record<string, unknown> : {};
@@ -629,6 +669,7 @@ async function handler(request: Request) {
         throw badRequest("Informe X, Y e espessura Z maiores que zero, em centímetros.");
       }
       calculatePlateMetrics({ x: dimensionXcm, y: dimensionYcm, z: dimensionZcm });
+      const castingMinutes = await castingMinutesForLegacyFields(db, organizationId);
       const record = {
         id: textValue(input.id, "o identificador", 80) || null,
         code: textValue(input.code, "o código da placa", 60, true),
@@ -636,7 +677,7 @@ async function handler(request: Request) {
         dimensionXcm,
         dimensionYcm,
         dimensionZcm,
-        productionMinutesPerUnit: integerValue(input.productionMinutesPerUnit, "O tempo de produção", 1),
+        productionMinutesPerUnit: castingMinutes,
         observations: textValue(input.observations, "as observações", 1000),
       };
       const { data, error } = await db.rpc("save_plate_type", { p_org_id: organizationId, p_record: record });
@@ -671,43 +712,23 @@ async function handler(request: Request) {
     if (action === "save_position") {
       const code = textValue(input.code, "a posição", 3, true);
       const status = enumValue(input.status, POSITION_STATUSES, "disponivel", "Status da posição");
-      const configurationKind = enumValue(input.configurationKind, new Set(["braco", "pilar_viga", "placa"]), "", "Configuração da posição");
-      const bracoCatalogCode = textValue(input.bracoCatalogCode, "o molde BRAÇO", 40);
-      const leitoCatalogCode = textValue(input.leitoCatalogCode, "o molde LEITO", 40);
-      const lateralCatalogCode = textValue(input.lateralCatalogCode, "o molde LATERAL", 40);
+      const useKind = enumValue(input.useKind, new Set(["formas", "placa"]), "formas", "Tipo de posição");
       const notes = textValue(input.notes, "as observações", 1000);
-      if (configurationKind === "braco" && (!bracoCatalogCode || leitoCatalogCode || lateralCatalogCode)) {
-        throw badRequest("Configure a posição com uma medida BRAÇO.");
-      }
-      if (configurationKind === "pilar_viga" && (bracoCatalogCode || !leitoCatalogCode || !lateralCatalogCode)) {
-        throw badRequest("Configure a posição com uma medida LEITO e uma LATERAL.");
-      }
-      if (configurationKind === "placa" && (bracoCatalogCode || leitoCatalogCode || lateralCatalogCode)) {
-        throw badRequest("A bancada de placa não pode ter formas vinculadas.");
-      }
       const { data, error } = await db.rpc("save_mold_position", {
         p_org_id: organizationId,
         p_code: code,
         p_status: status,
-        p_configuration_kind: configurationKind,
-        p_braco_catalog_code: bracoCatalogCode || null,
-        p_leito_catalog_code: leitoCatalogCode || null,
-        p_lateral_catalog_code: lateralCatalogCode || null,
+        // Formas de braço/pilar/viga vêm do pedido. Só a bancada plana para
+        // placa continua como característica fixa da posição física.
+        p_configuration_kind: useKind === "placa" ? "placa" : null,
+        p_braco_catalog_code: null,
+        p_leito_catalog_code: null,
+        p_lateral_catalog_code: null,
         p_notes: notes || null,
       });
-      if (error) throwDbError(error, "Não foi possível salvar a configuração da posição.");
+      if (error) throwDbError(error, "Não foi possível salvar a posição.");
 
-      let planning: Record<string, unknown>;
-      try {
-        planning = await replanOpenQueue(db, organizationId);
-      } catch (planningError) {
-        planning = {
-          committed: false,
-          warning: planningError instanceof OrderPlanningError
-            ? planningError.message
-            : "A posição foi salva, mas o calendário não pôde ser recalculado. Atualize o planejamento.",
-        };
-      }
+      const planning = await replanAfterPositionChange(db, organizationId, "A posição foi salva");
       return json({ ok: true, position: data, planning });
     }
 

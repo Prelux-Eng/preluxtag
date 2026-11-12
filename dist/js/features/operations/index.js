@@ -167,18 +167,19 @@ export function initializeOperations({ operationsRepository, listPieceMoldOption
       if (event.target.id === "allocationResourceKind") updateAllocationFields();
       if (event.target.id === "preparationStartDate" || event.target.id === "preparationMoldId") updatePreparationEnd();
       if (event.target.id === "orderWorkId") syncOrderClientHelp();
+      if (event.target.id === "registrationWorkMode") updateRegistrationWorkMode();
       if (event.target.id === "registrationPieceKind") updateRegistrationMoldFields();
-      if (event.target.id === "registrationMoldPair") syncRegistrationMoldPair();
-      if (event.target.id === "registrationMoldArm") updateRegistrationPositionHint();
       if (event.target.matches("[data-item-piece]") && $("orderProjectSections")) refreshOrderProjectSections();
       if (event.target.id === "pieceKind") { updatePieceMoldFields(); updatePieceMetrics(); }
       if (event.target.id === "pieceMoldPair") syncPieceMoldPair();
-      if (event.target.id === "positionConfigurationKind") updatePositionConfigFields();
       if (event.target.id === "projectOrderId") refreshProjectSectionsForOrder();
     });
     $("operationsModalBody").addEventListener("input", (event) => {
       if (["dimensionXcm", "dimensionYcm", "dimensionZcm"].includes(event.target.id)) updatePieceMetrics();
-      if (["registrationDimensionX", "registrationDimensionY", "registrationDimensionZ"].includes(event.target.id) || event.target.matches("[data-geometry-x],[data-geometry-y],[data-geometry-z],[data-geometry-quantity]")) updateRegistrationMetrics();
+      if (["registrationDimensionX", "registrationDimensionY", "registrationDimensionZ"].includes(event.target.id)) {
+        updateRegistrationMetrics();
+        updateRegistrationPositionHint();
+      }
       if (event.target.id === "registrationStartDate") updateRegistrationDueDate();
       if (event.target.id === "registrationDueDate") {
         event.target.dataset.manual = "true";
@@ -190,16 +191,8 @@ export function initializeOperations({ operationsRepository, listPieceMoldOption
     });
     $("operationsModalBody").addEventListener("click", (event) => {
       if (event.target.id === "addOrderItem") { addOrderItemRow(); refreshOrderProjectSections(); }
+      if (event.target.id === "registrationSaveItem") saveRegistrationItem();
       if (event.target.id === "registrationRestoreDue") updateRegistrationDueDate(true);
-      if (event.target.id === "registrationBack") {
-        $("operationsForm").dataset.registrationStep = "1";
-        $("operationsModalBody").querySelector('[data-registration-step="1"]').hidden = false;
-        $("operationsModalBody").querySelector('[data-registration-step="2"]').hidden = true;
-        $("operationsModalTitle").textContent = "Novo pedido e peça · Etapa 1 de 2";
-        $("operationsModalSave").textContent = "Continuar";
-      }
-      if (event.target.id === "registrationAddGeometryPart") { addRegistrationGeometryRow(); updateRegistrationMetrics(); }
-      if (event.target.closest("[data-remove-geometry]")) { event.target.closest(".ops-geometry-row")?.remove(); updateRegistrationMetrics(); }
       if (event.target.closest("[data-remove-order-item]")) { event.target.closest(".ops-item-row")?.remove(); refreshOrderProjectSections(); }
       if (event.target.id === "addProjectSection") addProjectSection();
       if (event.target.id === "addOrderProjectSection") addProjectSection();
@@ -233,7 +226,7 @@ export function initializeOperations({ operationsRepository, listPieceMoldOption
     metric("operationsOrdersMetric", data.orders.filter((order) => !["concluido", "entregue", "cancelado"].includes(order.status)).length);
     metric("operationsPiecesMetric", data.pieceTypes.length);
     metric("operationsMoldsMetric", data.molds.filter((mold) => mold.status === "ativo").length);
-    metric("operationsPositionsMetric", state.supportsStage4 ? data.positions.filter((position) => Boolean(position.configuration_kind)).length : "—");
+    metric("operationsPositionsMetric", state.supportsStage4 ? data.positions.filter((position) => position.status !== "em_manutencao").length : "—");
   }
 
   function tableHeader(title, description, placeholder, headers) {
@@ -276,7 +269,13 @@ export function initializeOperations({ operationsRepository, listPieceMoldOption
     const dimensions = [piece.dimension_x_cm, piece.dimension_y_cm, piece.dimension_z_cm];
     if (dimensions.some((value) => value == null)) return escapeHtml(piece.dimensions || "Não informado");
     const values = dimensions.map((value) => formatNumber(value, 3)).join(" × ");
-    const meaning = piece.piece_kind === "placa" ? "largura × altura × espessura" : "X × Y × Z";
+    const meaning = piece.piece_kind === "placa"
+      ? "largura × altura × espessura"
+      : piece.piece_kind === "braco"
+        ? "forma X × Z · comprimento Y"
+        : ["pilar", "viga"].includes(piece.piece_kind)
+          ? "LEITO X × comprimento Y × LATERAL Z"
+          : "X × Y × Z";
     return `${values} cm<span class="muted">${meaning}</span>`;
   }
 
@@ -291,12 +290,8 @@ export function initializeOperations({ operationsRepository, listPieceMoldOption
   }
 
   function positionConfigLabel(position) {
-    if (position.configuration_kind === "placa") return "Bancada plana";
-    if (position.configuration_kind === "braco" && position.braco_catalog_code) return catalogLabel(position.braco_catalog_code);
-    if (position.configuration_kind === "pilar_viga" && position.leito_catalog_code && position.lateral_catalog_code) {
-      return `${catalogLabel(position.leito_catalog_code)} + ${catalogLabel(position.lateral_catalog_code)}`;
-    }
-    return "Configuração pendente";
+    if (position.status === "em_manutencao") return "Indisponível para alocação";
+    return position.configuration_kind === "placa" ? "Bancada plana" : "Forma definida pelo pedido";
   }
 
   // Tabelas e indicadores: convertem o pacote do repositório em listas filtráveis.
@@ -371,14 +366,14 @@ export function initializeOperations({ operationsRepository, listPieceMoldOption
         </tr>`;
       }).join("") : `<tr><td colspan="5" class="empty">Ainda não há projetos de engenharia. Crie um projeto a partir de um pedido ativo.</td></tr>`;
     } else if (state.tab === "pieces") {
-      $("operationsTable").innerHTML = tableHeader("Catálogo de peças", "Tipos fixos, dimensões em centímetros e métricas calculadas automaticamente.", "Pesquisar código ou peça", ["Código / peça", "Tipo", "Medidas (cm)", "Volume / peso", "Tempo registrado", "Formas", "Ações"]);
+      $("operationsTable").innerHTML = tableHeader("Catálogo de peças", "Tipos fixos, dimensões em centímetros e métricas calculadas automaticamente.", "Pesquisar código ou peça", ["Código / peça", "Tipo", "Medidas (cm)", "Volume / peso", "Etapas", "Formas", "Ações"]);
       const rows = data.pieceTypes.filter((piece) => `${piece.code} ${piece.name} ${piece.piece_kind || ""} ${piece.dimensions}`.toLocaleLowerCase().includes(filter));
       $("operationsRows").innerHTML = rows.length ? rows.map((piece) => `<tr>
         <td>${escapeHtml(piece.code)}<span class="muted">${escapeHtml(piece.name)}</span></td>
         <td>${escapeHtml(pieceTypeLabel(piece.piece_kind))}</td>
         <td>${pieceDimensionsLabel(piece)}</td>
         ${pieceMetricsLabel(piece)}
-        <td>${Number(piece.production_minutes_per_unit)} min/un.<span class="muted">apenas registro</span></td>
+        <td>Concretagem, cura e acabamento<span class="muted">preparação da forma quando necessária</span></td>
         <td>${pieceMoldSummary(piece)}</td>
         <td><div class="row-actions">${actionButton("edit", piece.id, "Editar")}${actionButton("archive", piece.id, "Arquivar")}</div></td>
       </tr>`).join("") : `<tr><td colspan="7" class="empty">Nenhuma peça encontrada.</td></tr>`;
@@ -437,16 +432,16 @@ export function initializeOperations({ operationsRepository, listPieceMoldOption
     const rows = positions.filter((position) => `${position.code} ${position.status} ${positionConfigLabel(position)}`.toLocaleLowerCase().includes(filter));
     const positionRows = rows.map((position) => `<tr>
       <td>${escapeHtml(position.code)}</td>
-      <td>${escapeHtml(positionConfigLabel(position))}<span class="muted">${position.configuration_kind === "pilar_viga" ? "LEITO e LATERAL na mesma posição" : position.configuration_kind === "braco" ? "Forma única" : position.configuration_kind === "placa" ? "Bancada plana, sem forma" : "Selecione a configuração"}</span></td>
+      <td>${escapeHtml(positionConfigLabel(position))}<span class="muted">${position.configuration_kind === "placa" ? "Uso exclusivo para placa · sem forma" : "A fila associa os moldes exigidos pelo item"}</span></td>
       <td>${badge(position.status)}</td>
       <td>${escapeHtml(position.notes || "—")}</td>
       <td><div class="row-actions">${actionButton("edit-position", position.id, "Configurar")}</div></td>
     </tr>`).join("") || `<tr><td colspan="5" class="empty">Nenhuma posição encontrada.</td></tr>`;
     const setupStatus = state.supportsStage4 ? "" : `<div class="ops-form-hint full">Para configurar posições e formas, aplique database/007_stage4_piece_catalog_positions.sql e publique a Edge Function operations-admin atualizada.</div>`;
-    $("operationsTable").innerHTML = `<div class="operations-list-head"><div><h3>Posições físicas de produção</h3><p>Quatro posições fixas. Cada posição fica reservada durante a concretagem e a cura; a configuração determina quais peças ela atende.</p></div><input class="search" id="operationsSearch" value="${escapeHtml(state.query)}" placeholder="Pesquisar posição ou forma" aria-label="Pesquisar posições" /></div>
+    $("operationsTable").innerHTML = `<div class="operations-list-head"><div><h3>Posições físicas de produção</h3><p>Quatro posições fixas. Cada posição fica reservada durante a concretagem e a cura; o pedido define os moldes associados à posição.</p></div><input class="search" id="operationsSearch" value="${escapeHtml(state.query)}" placeholder="Pesquisar posição ou pedido" aria-label="Pesquisar posições" /></div>
       ${setupStatus}
       <div class="table-wrap"><table class="operations-table"><thead><tr><th>Posição</th><th>Configuração</th><th>Status</th><th>Observações</th><th>Ações</th></tr></thead><tbody>${positionRows}</tbody></table></div>
-      <p class="operations-help">Braço usa uma forma BRAÇO; Pilar e Viga usam LEITO e LATERAL; placa usa bancada plana sem forma.</p>`;
+      <p class="operations-help">Braço usa a forma BRAÇO correspondente a X × Z. Pilar e Viga usam LEITO para X e LATERAL para Z; Y é o comprimento. A fila associa essas formas à primeira posição livre. Bancadas planas são reservadas para placas.</p>`;
     $("operationsSearch").addEventListener("input", (event) => { state.query = event.target.value; renderTable(state.query); });
   }
 
@@ -521,57 +516,59 @@ export function initializeOperations({ operationsRepository, listPieceMoldOption
   }
 
   function registrationWizardBody() {
-    const moldOptions = (state.data?.moldCatalog || []).map((row) =>
-      [row.code, `${row.mold_type === "BRACO" ? "BRAÇO" : row.mold_type} ${row.measure_label} cm`]
-    );
-    const pairOptions = moldCombinationsFor("pilar");
     return `<section class="ops-registration-step" data-registration-step="1">
-      <div class="ops-registration-progress"><strong>Etapa 1 de 2 · Pedido e obra</strong><span>O pedido recebe o número automaticamente.</span></div>
+      <div class="ops-registration-progress"><strong>Etapa 1 · Dados recebidos</strong><span>Salve o pedido primeiro; os itens podem ser incluídos em seguida.</span></div>
       <div class="ops-form-grid">
-        ${inputField("registrationWorkNumber", "Número da obra", "", "text", { required: true })}
-        ${inputField("registrationWorkName", "Nome da obra", "", "text", { required: true })}
-        ${inputField("registrationResponsible", "Engenheiro responsável", "", "text", { required: true })}
-        ${inputField("registrationClient", "Cliente", "", "text", { required: true })}
-        ${inputField("registrationAddress", "Endereço da obra", "", "text", { full: true, required: true })}
+        ${selectField("registrationWorkMode", "Vínculo do pedido", "com_obra", [["com_obra", "Vincular a uma obra"], ["sem_obra", "Sem obra"]], { required: true })}
+        <div class="ops-form-grid full" id="registrationWorkFields">
+          ${inputField("registrationWorkNumber", "Número da obra", "", "text", { required: true })}
+          ${inputField("registrationWorkName", "Nome da obra", "", "text", { required: true })}
+          ${inputField("registrationResponsible", "Responsável", "", "text", { optional: true })}
+          ${inputField("registrationAddress", "Endereço da obra", "", "text", { optional: true })}
+          ${inputField("registrationClient", "Cliente", "", "text", { required: true })}
+        </div>
+        <div class="ops-form-grid full" id="registrationManualOrderFields" hidden>
+          ${inputField("registrationManualClient", "Cliente", "", "text", { required: true })}
+        </div>
         ${inputField("registrationStartDate", "Data de início", today(), "date", { required: true })}
-        <div class="field"><label for="registrationDueDate">Data prevista <span id="registrationDueMode">automática · início + 90 dias corridos</span></label><input class="input" id="registrationDueDate" name="registrationDueDate" type="date" required /><button class="btn ops-restore-due" id="registrationRestoreDue" type="button" hidden>Restaurar +90 dias</button></div>
+        <div class="field"><label for="registrationDueDate">Prazo previsto <span id="registrationDueMode">automático · início + 90 dias corridos</span></label><input class="input" id="registrationDueDate" name="registrationDueDate" type="date" required /><button class="btn ops-restore-due" id="registrationRestoreDue" type="button" hidden>Restaurar +90 dias</button></div>
+        ${textareaField("registrationOrderObservations", "Observações do pedido")}
         <div class="field"><label>Número do pedido</label><input class="input" id="registrationOrderPreview" value="${escapeHtml(nextOrderPreview())}" readonly /><span class="form-help">O banco gera a sequência definitiva no salvamento.</span></div>
         <div class="ops-form-hint full" id="registrationWorkMatch" aria-live="polite">Se o número da obra já existir, seus dados serão atualizados nesta gravação.</div>
       </div>
     </section>
     <section class="ops-registration-step" data-registration-step="2" hidden>
-      <div class="ops-registration-progress"><strong>Etapa 2 de 2 · Peça e forma</strong><button class="btn" id="registrationBack" type="button">Voltar aos dados do pedido</button></div>
+      <div class="ops-registration-progress"><strong id="registrationSavedOrderLabel">Pedido salvo</strong><span>Inclua um item por vez. Cada item fica gravado imediatamente.</span></div>
+      <div class="ops-registration-items" id="registrationSavedItemsList" aria-live="polite"><p>Nenhum item incluído ainda.</p></div>
       <div class="ops-form-grid">
         ${inputField("registrationPieceCode", "Código da peça", "", "text", { required: true })}
         ${inputField("registrationPieceName", "Nome da peça", "", "text", { required: true })}
         ${selectField("registrationPieceKind", "Tipo de peça", "", [["braco", "Braço"], ["pilar", "Pilar"], ["viga", "Viga"]], { required: true, placeholder: "Selecione o tipo" })}
         ${inputField("registrationQuantity", "Quantidade do pedido", "1", "number", { min: 1, step: 1, required: true })}
-        ${selectField("registrationMoldArm", "Forma fixa de braço", "", moldOptions.filter(([code]) => code.startsWith("BRACO_")), { required: true, placeholder: "Selecione uma forma" })}
-        ${selectField("registrationMoldPair", "Combinação LEITO × LATERAL", "", pairOptions, { required: true, placeholder: "Selecione uma combinação" })}
-        <input type="hidden" id="registrationMoldBed" name="registrationMoldBed" />
-        <input type="hidden" id="registrationMoldSide" name="registrationMoldSide" />
-        <div class="ops-form-hint full" id="registrationPositionHint">Escolha o tipo e a forma para consultar as posições configuradas compatíveis.</div>
-        ${inputField("registrationDimensionX", "Largura X (cm)", "", "number", { min: 0.001, step: "0.001", required: true })}
+        ${inputField("registrationDimensionX", "Dimensão X (cm)", "", "number", { min: 0.001, step: "0.001", required: true })}
         ${inputField("registrationDimensionY", "Comprimento Y (cm)", "", "number", { min: 0.001, step: "0.001", required: true })}
-        ${inputField("registrationDimensionZ", "Espessura Z (cm)", "", "number", { min: 0.001, step: "0.001", required: true })}
-        <div class="field"><label>Tempo cadastrado</label><input class="input" id="registrationProductionMinutes" readonly /><span class="form-help" id="registrationProductionHelp">Minutos por unidade; a capacidade diária é configurada separadamente.</span></div>
+        ${inputField("registrationDimensionZ", "Dimensão Z (cm)", "", "number", { min: 0.001, step: "0.001", required: true })}
+        <div class="ops-form-hint full" id="registrationPositionHint" aria-live="polite">Informe X e Z para localizar a forma; Y representa o comprimento da peça.</div>
+        <div class="ops-form-hint full">O prazo considera concretagem, cura e acabamento. Se a forma ainda não estiver pronta, inclui também a preparação antes da concretagem.</div>
         <div class="ops-computed-metrics full" aria-live="polite"><div><small>Volume</small><strong id="registrationVolumeM3">—</strong><span>m³</span></div><div><small>Peso estimado</small><strong id="registrationWeightKg">—</strong><span>kg</span></div><div><small>Volume bruto X × Y × Z</small><strong id="registrationVolumeCm3">—</strong><span>cm³</span></div></div>
-        <div class="field full" id="registrationGeometryField"><label>Composição geométrica da peça <span>opcional para perfil irregular</span></label><p class="ops-form-hint">Informe prismas retangulares ou triangulares; some as partes sólidas e subtraia vazios. Sem partes, usa X × Y × Z.</p><div class="ops-geometry-parts" id="registrationGeometryParts"></div><button class="btn" type="button" id="registrationAddGeometryPart">Adicionar parte geométrica</button></div>
         ${textareaField("registrationPieceObservations", "Observações da peça")}
         ${textareaField("registrationItemObservations", "Observações do item do pedido")}
+        <div class="ops-form-actions full"><button class="btn primary" id="registrationSaveItem" type="button">Salvar item no pedido</button></div>
       </div>
     </section>`;
   }
 
   function openRegistrationWizard() {
     if (!ensureFabio2()) return;
-    openModal("Novo pedido e peça", "Cadastre a obra, o pedido, a peça, a forma e a quantidade em duas etapas.", registrationWizardBody(), "registration");
+    openModal("Novo pedido", "Registre os dados recebidos e depois adicione os itens do pedido.", registrationWizardBody(), "registration");
     const form = $("operationsForm");
     form.dataset.registrationStep = "1";
-    $("operationsModalSave").textContent = "Continuar";
+    form.dataset.orderId = "";
+    form.dataset.orderNumber = "";
+    form.dataset.registrationSavedItems = "[]";
+    $("operationsModalSave").textContent = "Salvar pedido e continuar";
+    updateRegistrationWorkMode();
     updateRegistrationDueDate();
-    updateRegistrationMoldFields();
-    updateRegistrationMetrics();
   }
 
   function updateRegistrationDueDate(force = false) {
@@ -586,79 +583,86 @@ export function initializeOperations({ operationsRepository, listPieceMoldOption
     if (due.dataset.manual !== "true") due.value = addDays(start, 90);
   }
 
-  function registrationGeometryRows() {
-    return [...($("registrationGeometryParts")?.querySelectorAll(".ops-geometry-row") || [])].map((row) => ({
-      shape: row.querySelector("[data-geometry-shape]").value,
-      operation: row.querySelector("[data-geometry-operation]").value,
-      x: Number(row.querySelector("[data-geometry-x]").value),
-      y: Number(row.querySelector("[data-geometry-y]").value),
-      z: Number(row.querySelector("[data-geometry-z]").value),
-      quantity: Number(row.querySelector("[data-geometry-quantity]").value || 1),
-    }));
+  function updateRegistrationWorkMode() {
+    const linkedToWork = $("registrationWorkMode")?.value !== "sem_obra";
+    const workFields = $("registrationWorkFields");
+    const manualFields = $("registrationManualOrderFields");
+    if (!workFields || !manualFields) return;
+    workFields.hidden = !linkedToWork;
+    manualFields.hidden = linkedToWork;
+    for (const id of ["registrationWorkNumber", "registrationWorkName", "registrationClient"]) {
+      const field = $(id);
+      if (field) field.required = linkedToWork;
+    }
+    const manualClient = $("registrationManualClient");
+    if (manualClient) manualClient.required = !linkedToWork;
+    if (manualClient && linkedToWork) manualClient.value = "";
+    if (linkedToWork && $("registrationWorkNumber")?.value) populateExistingWork();
+    const help = $("registrationWorkMatch");
+    if (help) help.textContent = linkedToWork
+      ? "Uma obra com o mesmo número será atualizada; o cliente, o início e o prazo do pedido acompanharão a obra."
+      : "Este pedido ficará sem obra; informe o cliente e a data de início manualmente.";
   }
 
-  function addRegistrationGeometryRow() {
-    $("registrationGeometryParts").insertAdjacentHTML("beforeend", `<div class="ops-geometry-row">
-      <select class="select" data-geometry-operation aria-label="Operação"><option value="add">Somar</option><option value="subtract">Subtrair</option></select>
-      <select class="select" data-geometry-shape aria-label="Forma geométrica"><option value="rectangular_prism">Prisma retangular</option><option value="triangular_prism">Prisma triangular</option></select>
-      <input class="input" data-geometry-x type="number" min="0.001" step="0.001" placeholder="X cm" aria-label="Dimensão X da parte" />
-      <input class="input" data-geometry-y type="number" min="0.001" step="0.001" placeholder="Y cm" aria-label="Dimensão Y da parte" />
-      <input class="input" data-geometry-z type="number" min="0.001" step="0.001" placeholder="Z cm" aria-label="Dimensão Z da parte" />
-      <input class="input" data-geometry-quantity type="number" min="1" step="1" value="1" placeholder="Qtd." aria-label="Quantidade de partes iguais" />
-      <button class="ops-item-remove" type="button" data-remove-geometry aria-label="Remover parte">×</button>
-    </div>`);
+  function normalizeMeasure(value) {
+    const number = Number(String(value ?? "").trim().replace(",", "."));
+    return Number.isFinite(number) ? number : null;
+  }
+
+  function resolveRegistrationMolds(kind, xValue, zValue) {
+    const x = normalizeMeasure(xValue);
+    const z = normalizeMeasure(zValue);
+    if (!kind || x == null || z == null || x <= 0 || z <= 0) return null;
+    const catalog = state.data?.moldCatalog || [];
+    if (kind === "pilar" || kind === "viga") {
+      const bed = catalog.find((row) => row.mold_type === "LEITO" && normalizeMeasure(row.measure_label) === x);
+      const side = catalog.find((row) => row.mold_type === "LATERAL" && normalizeMeasure(row.measure_label) === z);
+      return bed && side ? { codes: [bed.code, side.code], label: `LEITO ${bed.measure_label} + LATERAL ${side.measure_label}` } : null;
+    }
+    if (kind === "braco") {
+      const arm = catalog.find((row) => {
+        if (row.mold_type !== "BRACO") return false;
+        const match = String(row.measure_label || "").match(/^\s*(\d+(?:[.,]\d+)?)\s*x\s*(\d+(?:[.,]\d+)?)\s*$/i);
+        return match && normalizeMeasure(match[1]) === x && normalizeMeasure(match[2]) === z;
+      });
+      return arm ? { codes: [arm.code], label: `FORMA FIXA ${arm.measure_label}` } : null;
+    }
+    return null;
   }
 
   function updateRegistrationMoldFields() {
     const kind = $("registrationPieceKind")?.value;
-    const arm = $("registrationMoldArm");
-    const pair = $("registrationMoldPair");
-    if (!arm || !pair) return;
-    const isArm = kind === "braco";
-    arm.closest(".field").hidden = !isArm;
-    pair.closest(".field").hidden = !(kind === "pilar" || kind === "viga");
-    arm.required = isArm;
-    pair.required = !isArm && Boolean(kind);
-    if (kind === "pilar" || kind === "viga") {
-      const previous = pair.value;
-      const options = moldCombinationsFor(kind);
-      pair.innerHTML = `<option value="">Selecione uma combinação</option>${options.map(([value, label]) => `<option value="${escapeHtml(value)}">${escapeHtml(label)}</option>`).join("")}`;
-      pair.value = options.some(([value]) => value === previous) ? previous : "";
-    } else pair.value = "";
-    if (!isArm) arm.value = "";
-    syncRegistrationMoldPair();
-    const configured = state.data?.productionMinutesByKind?.[kind];
-    $("registrationProductionMinutes").value = Number.isInteger(Number(configured)) && Number(configured) > 0 ? String(configured) : "";
-    $("registrationProductionHelp").textContent = Number(configured) > 0
-      ? "Minutos por unidade cadastrados em Planejamento → Configurações."
-      : "Configure os tempos de braço, pilar e viga em Planejamento → Configurações antes do primeiro cadastro.";
-    updateRegistrationPositionHint();
-  }
-
-  function syncRegistrationMoldPair() {
-    const [bed = "", side = ""] = String($("registrationMoldPair")?.value || "").split("|");
-    if ($("registrationMoldBed")) $("registrationMoldBed").value = bed;
-    if ($("registrationMoldSide")) $("registrationMoldSide").value = side;
+    const labels = {
+      registrationDimensionX: kind === "braco" ? "Dimensão X (cm) · BRAÇO" : "Dimensão X (cm) · LEITO",
+      registrationDimensionY: "Comprimento Y (cm)",
+      registrationDimensionZ: kind === "braco" ? "Dimensão Z (cm) · BRAÇO" : "Dimensão Z (cm) · LATERAL",
+    };
+    for (const [id, labelText] of Object.entries(labels)) {
+      const label = document.querySelector(`label[for="${id}"]`);
+      if (label?.firstChild) label.firstChild.textContent = labelText;
+    }
     updateRegistrationPositionHint();
   }
 
   function updateRegistrationPositionHint() {
     const kind = $("registrationPieceKind")?.value;
-    const arm = $("registrationMoldArm")?.value;
-    const bed = $("registrationMoldBed")?.value;
-    const side = $("registrationMoldSide")?.value;
-    const compatible = (state.data?.positions || []).filter((position) => {
-      if (position.status === "em_manutencao") return false;
-      if (kind === "braco") return position.configuration_kind === "braco" && position.braco_catalog_code === arm && Boolean(arm);
-      return ["pilar", "viga"].includes(kind) && position.configuration_kind === "pilar_viga" && position.leito_catalog_code === bed && position.lateral_catalog_code === side && Boolean(bed && side);
-    });
+    const x = $("registrationDimensionX")?.value;
+    const z = $("registrationDimensionZ")?.value;
+    const mold = resolveRegistrationMolds(kind, x, z);
+    const availablePositions = (state.data?.positions || []).filter((position) => position.status !== "em_manutencao");
     const message = $("registrationPositionHint");
     if (!message) return;
     message.textContent = !kind
-      ? "Escolha o tipo e a forma para consultar as posições configuradas compatíveis."
-      : compatible.length
-        ? `${compatible.length} posição(ões) configurada(s) com esta forma. A disponibilidade no período será confirmada ao salvar.`
-        : "Não há posição configurada com esta forma agora; o pedido poderá ser salvo aguardando uma posição compatível.";
+      ? "Escolha o tipo e informe X e Z para localizar a forma compatível automaticamente."
+      : !x || !z
+        ? "Informe X e Z para localizar a forma; Y é o comprimento e também participa do volume e do peso."
+        : !mold
+          ? kind === "braco"
+            ? "Não existe forma fixa de braço com as medidas X × Z no catálogo. Confira o catálogo antes de salvar."
+            : "Não existe no catálogo a combinação LEITO X + LATERAL Z. Confira as medidas cadastradas antes de salvar."
+          : availablePositions.length
+            ? `${mold.label}. O planejamento associa essa forma a uma das ${availablePositions.length} posições físicas e escolhe uma livre no período.`
+            : `${mold.label}. Não há posição física disponível agora; o item poderá ser salvo aguardando posição.`;
   }
 
   function updateRegistrationMetrics() {
@@ -666,22 +670,11 @@ export function initializeOperations({ operationsRepository, listPieceMoldOption
     const y = Number($("registrationDimensionY")?.value);
     const z = Number($("registrationDimensionZ")?.value);
     const valid = [x, y, z].every((value) => Number.isFinite(value) && value > 0);
-    const parts = registrationGeometryRows();
-    const partsValid = parts.every((part) => [part.x, part.y, part.z].every((value) => Number.isFinite(value) && value > 0));
-    let volumeCm3 = valid ? x * y * z : null;
-    if (valid && parts.length && partsValid) {
-      volumeCm3 = parts.reduce((sum, part) => {
-        const factor = part.shape === "triangular_prism" ? 0.5 : 1;
-        const sign = part.operation === "subtract" ? -1 : 1;
-        return sum + sign * part.x * part.y * part.z * factor * part.quantity;
-      }, 0);
-    }
-    const calculated = valid && partsValid && volumeCm3 > 0;
-    $("registrationVolumeCm3").textContent = calculated ? formatNumber(volumeCm3, 3) : "—";
-    $("registrationVolumeM3").textContent = calculated ? formatNumber(volumeCm3 / 1_000_000, 6) : "—";
-    $("registrationWeightKg").textContent = calculated ? formatNumber(volumeCm3 * 2.5 / 1000, 3) : "—";
+    const volumeCm3 = valid ? x * y * z : null;
+    $("registrationVolumeCm3").textContent = valid ? formatNumber(volumeCm3, 3) : "—";
+    $("registrationVolumeM3").textContent = valid ? formatNumber(volumeCm3 / 1_000_000, 6) : "—";
+    $("registrationWeightKg").textContent = valid ? formatNumber(volumeCm3 * 2.5 / 1000, 3) : "—";
   }
-
   function populateExistingWork() {
     const number = $("registrationWorkNumber")?.value.trim().toLocaleUpperCase();
     const work = (state.data?.works || []).find((item) => String(item.work_number || "").trim().toLocaleUpperCase() === number);
@@ -740,7 +733,7 @@ export function initializeOperations({ operationsRepository, listPieceMoldOption
   }
 
   function orderItemRow(item = {}) {
-    const typeOptions = state.data.pieceTypes.map((piece) => `<option value="${escapeHtml(piece.id)}" ${item.piece_type_id === piece.id ? "selected" : ""}>${escapeHtml(piece.code)} · ${escapeHtml(piece.name)} (${Number(piece.production_minutes_per_unit)} min/un.)</option>`).join("");
+    const typeOptions = state.data.pieceTypes.map((piece) => `<option value="${escapeHtml(piece.id)}" ${item.piece_type_id === piece.id ? "selected" : ""}>${escapeHtml(piece.code)} · ${escapeHtml(piece.name)}</option>`).join("");
     const itemKey = item.item_key || item.itemKey || item.id || createOrderItemKey();
     return `<div class="ops-item-row">
       <input type="hidden" data-item-key value="${escapeHtml(itemKey)}" />
@@ -785,7 +778,7 @@ export function initializeOperations({ operationsRepository, listPieceMoldOption
       ${inputField("startDate", "Data de início", order?.start_date || today(), "date", { required: true, readonly: Boolean(order?.work_id) })}
       ${inputField("requestedDueDate", "Prazo solicitado", order?.requested_due_date || "", "date", { optional: true })}
       ${selectField("status", "Status", order?.status === "concluido" ? "" : order?.status || "orcamento", statusOptions, { required: true, placeholder: order?.status === "concluido" ? "Escolha um status vigente" : "Selecione o status" })}
-      <div class="field full"><label>Itens do pedido <span>o tempo de produção é copiado do catálogo no salvamento</span></label><div class="ops-items" id="orderItems">${items.map(orderItemRow).join("")}</div><div class="ops-inline-actions"><button class="btn" type="button" id="addOrderItem">Adicionar item</button></div></div>
+      <div class="field full"><label>Itens do pedido <span>o prazo resulta das etapas e da preparação da forma quando necessária</span></label><div class="ops-items" id="orderItems">${items.map(orderItemRow).join("")}</div><div class="ops-inline-actions"><button class="btn" type="button" id="addOrderItem">Adicionar item</button></div></div>
       ${projectEditor}
       ${textareaField("observations", "Observações", order?.observations || "")}
     </div>`;
@@ -920,20 +913,22 @@ export function initializeOperations({ operationsRepository, listPieceMoldOption
     const armOptions = catalogChoices("BRACO");
     const combinations = moldCombinationsFor(piece?.piece_kind || "pilar");
     const selectedPair = molds.leito && molds.lateral ? `${molds.leito}|${molds.lateral}` : "";
+    const dimensionXLabel = isPlate ? "Largura (cm)" : "Dimensão X (cm)";
+    const dimensionYLabel = isPlate ? "Altura (cm)" : "Comprimento Y (cm)";
+    const dimensionZLabel = isPlate ? "Espessura (cm)" : "Dimensão Z (cm)";
     const body = `<div class="ops-form-grid">
       ${inputField("code", "Código da peça", piece?.code || "", "text", { required: true })}
       ${inputField("name", "Nome da peça", piece?.name || "", "text", { required: true })}
       ${selectField("pieceKind", "Tipo de peça", piece?.piece_kind || "", typeOptions, { required: true, placeholder: "Selecione braço, pilar, viga ou placa" })}
-      ${inputField("dimensionXcm", isPlate ? "Largura (cm)" : "Dimensão X (cm)", piece?.dimension_x_cm ?? "", "number", { min: 0.001, step: "0.001", required: true })}
-      ${inputField("dimensionYcm", isPlate ? "Altura (cm)" : "Dimensão Y (cm)", piece?.dimension_y_cm ?? "", "number", { min: 0.001, step: "0.001", required: true })}
-      ${inputField("dimensionZcm", isPlate ? "Espessura (cm)" : "Dimensão Z (cm)", piece?.dimension_z_cm ?? "", "number", { min: 0.001, step: "0.001", required: true })}
+      ${inputField("dimensionXcm", dimensionXLabel, piece?.dimension_x_cm ?? "", "number", { min: 0.001, step: "0.001", required: true })}
+      ${inputField("dimensionYcm", dimensionYLabel, piece?.dimension_y_cm ?? "", "number", { min: 0.001, step: "0.001", required: true })}
+      ${inputField("dimensionZcm", dimensionZLabel, piece?.dimension_z_cm ?? "", "number", { min: 0.001, step: "0.001", required: true })}
       <div class="ops-computed-metrics full" aria-live="polite">
         <div><small>Volume</small><strong id="pieceVolumeCm3">—</strong><span>cm³</span></div>
         <div><small>Volume</small><strong id="pieceVolumeM3">—</strong><span>m³</span></div>
         <div><small>Peso estimado</small><strong id="pieceWeightKg">—</strong><span>kg</span></div>
       </div>
-      ${inputField("productionMinutesPerUnit", "Tempo de produção (min/un.)", piece?.production_minutes_per_unit ?? "", "number", { min: 1, step: 1, required: true })}
-      <div class="ops-form-hint">O tempo fica registrado no cadastro e não limita a capacidade do planejamento.</div>
+      <div class="ops-form-hint full">O planejamento calcula o prazo pelas etapas de concretagem, cura e acabamento. A preparação da forma entra antes da concretagem quando for necessária.</div>
       ${selectField("pieceMoldBraco", "Forma BRAÇO", molds.braco || "", armOptions, { required: true, placeholder: "Selecione uma medida" })}
       ${selectField("pieceMoldPair", "Combinação de formas LEITO × LATERAL", selectedPair, combinations, { required: true, placeholder: "Selecione uma combinação" })}
       <input type="hidden" id="pieceMoldLeito" name="pieceMoldLeito" value="${escapeHtml(molds.leito || "")}" />
@@ -960,23 +955,15 @@ export function initializeOperations({ operationsRepository, listPieceMoldOption
 
   function openPositionForm(position) {
     if (!ensureStage4()) return;
-    const typeOptions = [["braco", "Braço"], ["pilar_viga", "Pilar / Viga"], ...(state.supportsFabio2 ? [["placa", "Placa · bancada plana"]] : [])];
-    const armOptions = catalogChoices("BRACO");
-    const bedOptions = catalogChoices("LEITO");
-    const sideOptions = catalogChoices("LATERAL");
     const body = `<div class="ops-form-grid">
       <input type="hidden" id="positionCode" name="positionCode" value="${escapeHtml(position.code)}" />
       <div class="field"><label>Posição física</label><input class="input" value="${escapeHtml(position.code)}" disabled /></div>
       ${selectField("status", "Status", position.status || "disponivel", [["disponivel", "Disponível"], ["em_preparacao", "Em preparação"], ["em_producao", "Em produção"], ["em_manutencao", "Em manutenção"]])}
-      ${selectField("positionConfigurationKind", "Configuração da posição", position.configuration_kind || "", typeOptions, { required: true, placeholder: "Selecione a configuração" })}
-      ${selectField("positionMoldBraco", "Forma BRAÇO", position.braco_catalog_code || "", armOptions, { required: true, placeholder: "Selecione uma medida" })}
-      ${selectField("positionMoldLeito", "Forma LEITO", position.leito_catalog_code || "", bedOptions, { required: true, placeholder: "Selecione uma medida" })}
-      ${selectField("positionMoldLateral", "Forma LATERAL", position.lateral_catalog_code || "", sideOptions, { required: true, placeholder: "Selecione uma medida" })}
+      ${selectField("positionUseKind", "Uso da posição", position.configuration_kind === "placa" ? "placa" : "formas", [["formas", "Formas definidas pelo pedido"], ["placa", "Bancada plana para placas"]], { required: true })}
       ${textareaField("positionNotes", "Observações", position.notes || "")}
-      <div class="ops-form-hint full">Braço usa a forma BRAÇO; pilar e viga usam LEITO × LATERAL; placa usa uma bancada plana sem forma. A fila será recalculada ao salvar.</div>
+      <div class="ops-form-hint full">Braço, pilar e viga recebem as formas exigidas pelo item do pedido. Uma bancada plana é reservada para produzir placas sem forma.</div>
     </div>`;
-    openModal(`Configurar posição ${position.code}`, "Defina as formas instaladas ou selecione a bancada plana para placas.", body, "position", position);
-    updatePositionConfigFields();
+    openModal(`Editar posição ${position.code}`, "Cadastre a disponibilidade e as observações da posição física.", body, "position", position);
   }
 
   // Regras de moldes: catálogo fixo, combinações e campos de posição compatíveis.
@@ -1002,9 +989,9 @@ export function initializeOperations({ operationsRepository, listPieceMoldOption
   function updatePieceMoldFields() {
     const kind = $("pieceKind")?.value;
     const dimensionLabels = {
-      dimensionXcm: kind === "placa" ? "Largura (cm)" : "Dimensão X (cm)",
-      dimensionYcm: kind === "placa" ? "Altura (cm)" : "Dimensão Y (cm)",
-      dimensionZcm: kind === "placa" ? "Espessura (cm)" : "Dimensão Z (cm)",
+      dimensionXcm: kind === "placa" ? "Largura (cm)" : kind === "braco" ? "Dimensão X (cm) · BRAÇO" : "Dimensão X (cm) · LEITO",
+      dimensionYcm: kind === "placa" ? "Altura (cm)" : "Comprimento Y (cm)",
+      dimensionZcm: kind === "placa" ? "Espessura (cm)" : kind === "braco" ? "Dimensão Z (cm) · BRAÇO" : "Dimensão Z (cm) · LATERAL",
     };
     for (const [id, labelText] of Object.entries(dimensionLabels)) {
       const label = document.querySelector(`label[for="${id}"]`);
@@ -1036,26 +1023,6 @@ export function initializeOperations({ operationsRepository, listPieceMoldOption
     if (isArm || isPlate) pair.value = "";
     if (!isArm || isPlate) arm.value = "";
     syncPieceMoldPair();
-  }
-
-  function updatePositionConfigFields() {
-    const kind = $("positionConfigurationKind")?.value;
-    const arm = $("positionMoldBraco");
-    const bed = $("positionMoldLeito");
-    const side = $("positionMoldLateral");
-    if (!arm || !bed || !side) return;
-    if (!kind) {
-      [arm, bed, side].forEach((select) => { select.closest(".field").hidden = true; select.required = false; });
-      return;
-    }
-    const isArm = kind === "braco";
-    const isPlate = kind === "placa";
-    arm.closest(".field").hidden = !isArm || isPlate;
-    bed.closest(".field").hidden = isArm || isPlate;
-    side.closest(".field").hidden = isArm || isPlate;
-    arm.required = isArm;
-    bed.required = !isArm && !isPlate;
-    side.required = !isArm && !isPlate;
   }
 
   function updatePieceMetrics() {
@@ -1231,6 +1198,106 @@ export function initializeOperations({ operationsRepository, listPieceMoldOption
     const element = $("operationsModalStatus");
     element.textContent = message;
     element.classList.add("show");
+    element.classList.remove("success");
+  }
+
+  function showModalSuccess(message) {
+    const element = $("operationsModalStatus");
+    element.textContent = message;
+    element.classList.add("show", "success");
+    element.classList.remove("error");
+  }
+
+  function registrationClientName(form) {
+    return formValue(form, formValue(form, "registrationWorkMode") === "sem_obra" ? "registrationManualClient" : "registrationClient");
+  }
+
+  function renderRegistrationItems() {
+    const rows = JSON.parse($("operationsForm").dataset.registrationSavedItems || "[]");
+    const target = $("registrationSavedItemsList");
+    if (!target) return;
+    target.innerHTML = rows.length
+      ? rows.map((item, index) => `<article class="ops-registration-item"><div><strong>${index + 1}. ${escapeHtml(item.code)} · ${escapeHtml(item.name)}</strong><span>${escapeHtml(item.kindLabel)} · ${item.quantity} un. · ${escapeHtml(item.dimensions)}</span></div><span>${escapeHtml(item.planningLabel)}</span></article>`).join("")
+      : "<p>Nenhum item incluído ainda.</p>";
+  }
+
+  async function saveRegistrationItem() {
+    const form = $("operationsForm");
+    const button = $("registrationSaveItem");
+    if (!form.dataset.orderId || !button || button.disabled) return;
+    const requiredValues = ["registrationPieceCode", "registrationPieceName", "registrationPieceKind"];
+    const missing = requiredValues.some((id) => !String($(id)?.value || "").trim());
+    const requiredNumbers = ["registrationQuantity", "registrationDimensionX", "registrationDimensionY", "registrationDimensionZ"];
+    const invalid = requiredNumbers.map((id) => $(id)).find((field) => !field?.checkValidity() || !Number.isFinite(Number(field.value)) || Number(field.value) <= 0);
+    if (missing) {
+      showModalError("Preencha o código, o nome e o tipo da peça.");
+      return;
+    }
+    if (invalid) { invalid.reportValidity(); return; }
+    if (!Number.isInteger(Number($("registrationQuantity").value))) {
+      showModalError("A quantidade precisa ser um número inteiro maior que zero.");
+      $("registrationQuantity").focus();
+      return;
+    }
+    const kind = $("registrationPieceKind").value;
+    const x = Number($("registrationDimensionX").value);
+    const y = Number($("registrationDimensionY").value);
+    const z = Number($("registrationDimensionZ").value);
+    const molds = resolveRegistrationMolds(kind, x, z);
+    if (!molds) {
+      showModalError("Não encontrei uma forma compatível no catálogo para X e Z. Ajuste as medidas ou atualize o catálogo.");
+      $("registrationDimensionX").focus();
+      return;
+    }
+    const savedItems = JSON.parse(form.dataset.registrationSavedItems || "[]");
+    button.disabled = true;
+    button.textContent = "Salvando item…";
+    try {
+      const response = await operationsRepository.addOrderPieceItem({
+        orderId: form.dataset.orderId,
+        pieceCode: formValue(form, "registrationPieceCode"),
+        pieceName: formValue(form, "registrationPieceName"),
+        pieceKind: kind,
+        quantity: Number(formValue(form, "registrationQuantity")),
+        dimensionXcm: x,
+        dimensionYcm: y,
+        dimensionZcm: z,
+        pieceObservations: formValue(form, "registrationPieceObservations"),
+        itemObservations: formValue(form, "registrationItemObservations"),
+        moldCatalogCodes: molds.codes,
+        sequence: savedItems.length + 1,
+      });
+      const positions = response?.planning?.positionCodes || response?.registration?.positionCodes || [];
+      const typeLabels = { braco: "Braço", pilar: "Pilar", viga: "Viga" };
+      savedItems.push({
+        code: formValue(form, "registrationPieceCode").toLocaleUpperCase(),
+        name: formValue(form, "registrationPieceName"),
+        kindLabel: typeLabels[kind],
+        quantity: Number(formValue(form, "registrationQuantity")),
+        dimensions: `${formatNumber(x, 3)} × ${formatNumber(y, 3)} × ${formatNumber(z, 3)} cm`,
+        planningLabel: response?.planning?.waitingForPosition
+          ? "Aguardando posição livre"
+          : positions.length ? `Posição: ${positions.join(", ")}` : "Planejamento atualizado",
+      });
+      form.dataset.registrationSavedItems = JSON.stringify(savedItems);
+      renderRegistrationItems();
+      showModalSuccess(`Item ${formValue(form, "registrationPieceCode").toLocaleUpperCase()} salvo no pedido.`);
+      for (const id of ["registrationPieceCode", "registrationPieceName", "registrationDimensionX", "registrationDimensionY", "registrationDimensionZ", "registrationPieceObservations", "registrationItemObservations"]) {
+        const field = $(id);
+        if (field) field.value = "";
+      }
+      $("registrationQuantity").value = "1";
+      updateRegistrationMetrics();
+      updateRegistrationPositionHint();
+      $("registrationPieceCode").focus();
+      await refreshData(true);
+    } catch (error) {
+      showModalError(error.message || "Não foi possível salvar o item.");
+      $("operationsModalStatus").classList.add("error");
+    } finally {
+      button.disabled = false;
+      button.textContent = "Salvar item no pedido";
+    }
   }
 
   // A gravação escolhe a ação adequada e atualiza os dados após sucesso.
@@ -1248,62 +1315,56 @@ export function initializeOperations({ operationsRepository, listPieceMoldOption
       if (kind === "registration") {
         const step = form.dataset.registrationStep || "1";
         const activeStep = $("operationsModalBody").querySelector(`[data-registration-step="${step}"]`);
-        const invalid = [...(activeStep?.querySelectorAll("input,select,textarea") || [])].find((field) => !field.checkValidity());
-        if (invalid) {
-          invalid.reportValidity();
-          save.disabled = false;
-          save.textContent = step === "1" ? "Continuar" : "Criar pedido e peça";
-          return;
-        }
         if (step === "1") {
+          const invalid = [...(activeStep?.querySelectorAll("input,select,textarea") || [])].find((field) => !field.disabled && !field.checkValidity());
+          if (invalid) {
+            invalid.reportValidity();
+            save.disabled = false;
+            save.textContent = "Salvar pedido e continuar";
+            return;
+          }
+          const workMode = formValue(form, "registrationWorkMode");
+          const startDate = formValue(form, "registrationStartDate");
+          const dueDate = formValue(form, "registrationDueDate");
+          const linkedToWork = workMode !== "sem_obra";
+          const response = await operationsRepository.createOrderHeader({
+            clientName: registrationClientName(form),
+            startDate,
+            requestedDueDate: dueDate,
+            requestedDueDateManual: $("registrationDueDate").dataset.manual === "true",
+            orderObservations: formValue(form, "registrationOrderObservations"),
+            work: linkedToWork ? {
+              workNumber: formValue(form, "registrationWorkNumber"),
+              name: formValue(form, "registrationWorkName"),
+              responsibleName: formValue(form, "registrationResponsible"),
+              address: formValue(form, "registrationAddress"),
+              clientName: registrationClientName(form),
+              startDate,
+              requestedDueDate: dueDate,
+              requestedDueDateManual: $("registrationDueDate").dataset.manual === "true",
+            } : null,
+          });
+          const header = response?.order || response?.registration || response;
+          form.dataset.orderId = String(header?.orderId || header?.id || "");
+          form.dataset.orderNumber = String(header?.orderNumber || header?.order_number || "");
+          if (!form.dataset.orderId) throw new Error("O pedido foi recebido, mas o banco não retornou o identificador para incluir itens.");
+          $("registrationSavedOrderLabel").textContent = `Pedido ${form.dataset.orderNumber} salvo`;
           form.dataset.registrationStep = "2";
           $("operationsModalBody").querySelector('[data-registration-step="1"]').hidden = true;
           $("operationsModalBody").querySelector('[data-registration-step="2"]').hidden = false;
-          $("operationsModalTitle").textContent = "Novo pedido e peça · Etapa 2 de 2";
+          $("operationsModalTitle").textContent = `Pedido ${form.dataset.orderNumber} · Itens`;
+          for (const field of $("operationsModalBody").querySelector('[data-registration-step="2"]').querySelectorAll("input,select,textarea")) field.required = false;
           save.disabled = false;
-          save.textContent = "Criar pedido e peça";
+          save.textContent = "Concluir por agora";
           updateRegistrationMoldFields();
           updateRegistrationMetrics();
           $("registrationPieceCode").focus();
           return;
         }
-
-        const geometryParts = registrationGeometryRows();
-        if (geometryParts.length && geometryParts.some((part) => ![part.x, part.y, part.z].every((value) => Number.isFinite(value) && value > 0) || !Number.isInteger(part.quantity) || part.quantity < 1)) {
-          throw new Error("Preencha X, Y, Z e quantidade de cada parte geométrica.");
-        }
-        const kind = formValue(form, "registrationPieceKind");
-        const bedCode = formValue(form, "registrationMoldBed");
-        const sideCode = formValue(form, "registrationMoldSide");
-        const armCode = formValue(form, "registrationMoldArm");
-        const response = await operationsRepository.createOrderPieceRegistration({
-          workNumber: formValue(form, "registrationWorkNumber"),
-          workName: formValue(form, "registrationWorkName"),
-          responsibleName: formValue(form, "registrationResponsible"),
-          clientName: formValue(form, "registrationClient"),
-          address: formValue(form, "registrationAddress"),
-          startDate: formValue(form, "registrationStartDate"),
-          requestedDueDate: formValue(form, "registrationDueDate"),
-          requestedDueDateManual: $("registrationDueDate").dataset.manual === "true",
-          pieceCode: formValue(form, "registrationPieceCode"),
-          pieceName: formValue(form, "registrationPieceName"),
-          pieceKind: kind,
-          quantity: Number(formValue(form, "registrationQuantity")),
-          dimensionXcm: formValue(form, "registrationDimensionX"),
-          dimensionYcm: formValue(form, "registrationDimensionY"),
-          dimensionZcm: formValue(form, "registrationDimensionZ"),
-          geometryParts,
-          bracoCatalogCode: armCode,
-          leitoCatalogCode: bedCode,
-          lateralCatalogCode: sideCode,
-          pieceObservations: formValue(form, "registrationPieceObservations"),
-          itemObservations: formValue(form, "registrationItemObservations"),
-        });
-        const number = response?.registration?.orderNumber || response?.registration?.order?.order_number || nextOrderPreview();
-        const positions = response?.registration?.positionCodes || [];
-        savedNotice = response?.planning?.waitingForPosition
-          ? `Pedido ${number} salvo. Peça criada e aguardando posição compatível.`
-          : `Pedido ${number} e peça salvos. ${positions.length ? `Posição(ões): ${positions.join(", ")}.` : "Planejamento registrado."}`;
+        const count = JSON.parse(form.dataset.registrationSavedItems || "[]").length;
+        savedNotice = count
+          ? `Pedido ${form.dataset.orderNumber} salvo com ${count} ${count === 1 ? "item" : "itens"}.`
+          : `Pedido ${form.dataset.orderNumber} salvo sem itens. Você pode adicioná-los depois.`;
       } else if (kind === "work") {
         const response = await operationsRepository.saveWork({
           id,
@@ -1427,7 +1488,6 @@ export function initializeOperations({ operationsRepository, listPieceMoldOption
           dimensionXcm: formValue(form, "dimensionXcm"),
           dimensionYcm: formValue(form, "dimensionYcm"),
           dimensionZcm: formValue(form, "dimensionZcm"),
-          productionMinutesPerUnit: Number(formValue(form, "productionMinutesPerUnit")),
           observations: formValue(form, "observations"),
         };
         const response = pieceKind === "placa"
@@ -1453,10 +1513,7 @@ export function initializeOperations({ operationsRepository, listPieceMoldOption
         const response = await operationsRepository.saveMoldPosition({
           code: formValue(form, "positionCode"),
           status: formValue(form, "status"),
-          configurationKind: formValue(form, "positionConfigurationKind"),
-          bracoCatalogCode: formValue(form, "positionConfigurationKind") === "braco" ? formValue(form, "positionMoldBraco") : "",
-          leitoCatalogCode: formValue(form, "positionConfigurationKind") === "pilar_viga" ? formValue(form, "positionMoldLeito") : "",
-          lateralCatalogCode: formValue(form, "positionConfigurationKind") === "pilar_viga" ? formValue(form, "positionMoldLateral") : "",
+          useKind: formValue(form, "positionUseKind"),
           notes: formValue(form, "positionNotes"),
         });
         if (response?.planning?.warning) savedNotice = `Posição salva. ${response.planning.warning}`;

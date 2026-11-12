@@ -43,16 +43,3 @@ export function previewNextOrderNumber(orderNumbers = []) {
   }, 0);
   return `PED-${String(maxExisting + 1).padStart(4, "0")}`;
 }
-
-/** Exige o tempo configurado para o tipo de peça antes de abrir um cadastro. */
-export function productionMinutesForKind(pieceKind, configuredMinutes = {}) {
-  const kind = String(pieceKind ?? "").trim();
-  if (!["braco", "pilar", "viga"].includes(kind)) {
-    throw new RegistrationRuleError("Selecione braço, pilar ou viga.");
-  }
-  const minutes = Number(configuredMinutes?.[kind]);
-  if (!Number.isInteger(minutes) || minutes <= 0) {
-    throw new RegistrationRuleError(`Configure o tempo padrão de ${kind} em minutos por unidade antes de cadastrar esta peça.`, 409);
-  }
-  return minutes;
-}

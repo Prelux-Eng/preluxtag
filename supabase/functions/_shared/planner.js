@@ -2,7 +2,8 @@
  * Planejamento linear PRELUX.
  *
  * A capacidade de concretagem é medida em posições ocupadas por dia útil.
- * O tempo informado no cadastro é mantido apenas como dado de referência.
+ * O campo legado de minutos registra somente a carga de concretagem do dia.
+ * A duração do processo vem das etapas: concretagem, cura e acabamento.
  * O módulo é puro para permitir os mesmos cálculos nas Edge Functions e nos
  * testes Node.js.
  */
@@ -80,13 +81,11 @@ function normalizedPosition(position) {
   const code = String(readField(position, "code", "code", "")).trim();
   const status = String(position?.status ?? "disponivel");
   if (!/^P0[1-4]$/.test(code)) throw new PlannerError(`Posição de molde inválida: ${code || "sem código"}.`);
-  const configurationKind = readField(position, "configurationKind", "configuration_kind");
-  const catalogCodes = [
-    readField(position, "bracoCatalogCode", "braco_catalog_code"),
-    readField(position, "leitoCatalogCode", "leito_catalog_code"),
-    readField(position, "lateralCatalogCode", "lateral_catalog_code"),
-  ].filter(Boolean).map((value) => String(value).trim());
-  return { code, status, configurationKind, catalogCodes };
+  return {
+    code,
+    status,
+    configurationKind: readField(position, "configurationKind", "configuration_kind"),
+  };
 }
 
 function normalizedItem(item, index) {
@@ -127,14 +126,21 @@ function normalizedItem(item, index) {
   };
 }
 
+function itemHasMoldConfiguration(item) {
+  // Os moldes exigidos acompanham o item; não ficam gravados na posição.
+  const requiredCountByKind = { braco: 1, pilar: 2, viga: 2, placa: 0 };
+  const expectedCount = requiredCountByKind[item.pieceKind];
+  if (expectedCount === 0) return item.requiredMoldCodes.length === 0;
+  if (expectedCount !== undefined) return item.requiredMoldCodes.length === expectedCount;
+  return item.requiredMoldCodes.length > 0 || !item.requiresMoldConfig;
+}
+
 function positionCanProduce(position, item) {
+  // A posição é apenas o espaço físico. O planejador a associa ao pedido que
+  // contém os moldes exigidos quando encontra uma vaga livre.
   if (item.pieceKind === "placa") return position.configurationKind === "placa";
-  if (item.pieceKind === "braco" && position.configurationKind !== "braco") return false;
-  if (["pilar", "viga"].includes(item.pieceKind) && position.configurationKind !== "pilar_viga") return false;
-  if (!item.requiredMoldCodes.length) return !item.requiresMoldConfig;
-  const configured = [...position.catalogCodes].sort();
-  return configured.length === item.requiredMoldCodes.length &&
-    configured.every((code, index) => code === item.requiredMoldCodes[index]);
+  if (position.configurationKind === "placa") return false;
+  return itemHasMoldConfiguration(item);
 }
 
 function scheduleDate(schedule) {
@@ -314,14 +320,12 @@ export function planOrder({
     throw new PlannerError("O calendário não contém a data inicial solicitada.", 409);
   }
 
-  const positionList = positions
-    .map(normalizedPosition)
-    .filter((position) => position.status !== "em_manutencao")
-    .sort((a, b) => a.code.localeCompare(b.code));
-  if (!positionList.length) throw new PlannerError("Não há posição de molde disponível para programação.", 409);
-  if (new Set(positionList.map((position) => position.code)).size !== positionList.length) {
+  const allPositions = positions.map(normalizedPosition).sort((a, b) => a.code.localeCompare(b.code));
+  if (!allPositions.length) throw new PlannerError("As posições físicas ainda não foram cadastradas para programação.", 409);
+  if (new Set(allPositions.map((position) => position.code)).size !== allPositions.length) {
     throw new PlannerError("O catálogo contém posições de molde duplicadas.");
   }
+  const positionList = allPositions.filter((position) => position.status !== "em_manutencao");
 
   let effectiveStartDate = requestedStartDate;
   while (effectiveStartDate <= latestCalendarDate && !calendarByDate.get(effectiveStartDate)?.isWorking) {
@@ -343,12 +347,15 @@ export function planOrder({
   if (!normalizedItems.length) throw new PlannerError("O pedido precisa ter ao menos um item.");
 
   const conflicts = [];
-  const itemsWithoutPosition = normalizedItems.filter((item) => !positionList.some((position) => positionCanProduce(position, item)));
-  for (const item of itemsWithoutPosition) {
+  const itemsWithoutMoldConfiguration = normalizedItems.filter((item) => !itemHasMoldConfiguration(item));
+  const itemsWithoutCompatiblePosition = normalizedItems.filter((item) =>
+    itemHasMoldConfiguration(item) && !positionList.some((position) => positionCanProduce(position, item))
+  );
+  for (const item of itemsWithoutMoldConfiguration) {
     conflicts.push({
       type: "mold_configuration",
       pieceTypeId: item.pieceTypeId,
-      message: `Nenhuma posição tem a configuração de moldes cadastrada para ${item.code || item.name || "esta peça"}.`,
+      message: `Não há configuração de molde compatível cadastrada para ${item.code || item.name || "esta peça"}.`,
     });
   }
   const occupiedByDate = new Map();
@@ -379,6 +386,10 @@ export function planOrder({
       const phases = productionTiming
         ? buildProductionPhases({ castDate, ...productionTiming })
         : null;
+      // A cura ocupa a posição, mas não consome os minutos de trabalho do dia.
+      // Quando há etapas detalhadas, a carga diária vem da concretagem delas.
+      const castingMinutes = phases?.steps.find((step) => step.stepKind === "concretagem")?.durationMinutes
+        ?? item.productionMinutesPerUnit;
       const occupied = occupiedByDate.get(castDate) || new Map();
       const freePositions = positionList.filter((position) =>
         !occupied.has(position.code) && positionCanProduce(position, item) &&
@@ -405,7 +416,7 @@ export function planOrder({
           cureEndDate,
           finishDate,
           plannedEndDate: finishDate,
-          productionMinutesSnapshot: item.productionMinutesPerUnit,
+          productionMinutesSnapshot: castingMinutes,
           ...(phases ? {
             steps: phases.steps,
             occupiedFromAt: phases.occupiedFromAt,
@@ -424,6 +435,7 @@ export function planOrder({
     }
 
     const itemEndDates = itemUnits.map((unit) => unit.plannedEndDate).sort();
+    const plannedCastingMinutes = itemUnits.reduce((sum, unit) => sum + unit.productionMinutesSnapshot, 0);
     itemPlans.push({
       itemId: item.itemId,
       pieceTypeId: item.pieceTypeId,
@@ -432,10 +444,10 @@ export function planOrder({
       requestedQuantity: item.quantity,
       quantityToProduce: item.quantity,
       curingDays: item.curingDays,
-      productionMinutesPerUnit: item.productionMinutesPerUnit,
+      productionMinutesPerUnit: itemUnits[0]?.productionMinutesSnapshot ?? item.productionMinutesPerUnit,
       plannedQuantity: itemUnits.length,
       remainingQuantity: item.quantity - itemUnits.length,
-      plannedMinutes: itemUnits.length * item.productionMinutesPerUnit,
+      plannedMinutes: plannedCastingMinutes,
       plannedEndDate: itemEndDates.at(-1) ?? null,
       units: itemUnits,
     });
@@ -487,14 +499,19 @@ export function planOrder({
     });
   }
   if (totalRemainingQuantity > 0) {
+    const hasCompatiblePosition = itemsWithoutCompatiblePosition.length === 0 && positionList.length > 0;
     conflicts.push({
-      type: itemsWithoutPosition.length ? "mold_configuration" : "horizon",
+      type: itemsWithoutMoldConfiguration.length
+        ? "mold_configuration"
+        : itemsWithoutCompatiblePosition.length || !positionList.length ? "position" : "horizon",
       dueDate: due,
       suggestedDueDate: null,
       remainingQuantity: totalRemainingQuantity,
-      message: itemsWithoutPosition.length
-        ? `Há ${totalRemainingQuantity} unidade(s) sem posição com a configuração de moldes exigida; revise os moldes nas posições P01–P04.`
-        : `O horizonte não comporta ${totalRemainingQuantity} unidade(s); amplie o horizonte ou revise as posições disponíveis.`,
+      message: itemsWithoutMoldConfiguration.length
+        ? `Há ${totalRemainingQuantity} unidade(s) sem configuração de molde compatível; revise os moldes exigidos no cadastro da peça.`
+        : hasCompatiblePosition
+          ? `O horizonte não comporta ${totalRemainingQuantity} unidade(s); amplie o horizonte ou revise as posições disponíveis.`
+          : `Há ${totalRemainingQuantity} unidade(s) aguardando posição física adequada; confira a disponibilidade das posições.`,
     });
   }
 

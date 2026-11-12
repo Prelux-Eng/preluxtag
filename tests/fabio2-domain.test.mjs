@@ -84,6 +84,6 @@ test("posição plana só recebe placa e não aceita braço ou pilar/viga", () =
   });
 
   assert.equal(result.units.length, 0);
-  assert.equal(result.conflicts.some((conflict) => conflict.type === "mold_configuration"), true);
+  assert.equal(result.conflicts.some((conflict) => conflict.type === "position"), true);
 });
 

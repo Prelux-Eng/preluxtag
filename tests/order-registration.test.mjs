@@ -3,6 +3,7 @@ import test from "node:test";
 
 import { calculatePieceMetrics } from "../supabase/functions/_shared/piece-metrics.js";
 import { buildPlanningQueue } from "../supabase/functions/_shared/order-planning.js";
+import { resolveCatalogMolds } from "../supabase/functions/_shared/registration-service.js";
 import { listPieceMoldOptions } from "../dist/js/domain/mold-compatibility.js";
 import {
   addCalendarDays,
@@ -39,34 +40,6 @@ test("tempo por unidade é configurado por organização e tipo de peça", () =>
   assert.throws(() => productionMinutesForKind("viga", { braco: 45 }), /Configure o tempo padrão/);
 });
 
-test("peça composta soma e subtrai prismas retangulares e triangulares", () => {
-  const metrics = calculatePieceMetrics({
-    x: 100,
-    y: 80,
-    z: 60,
-    geometryParts: [
-      { shape: "rectangular_prism", operation: "add", x: 100, y: 80, z: 60, quantity: 1 },
-      { shape: "triangular_prism", operation: "add", x: 40, y: 30, z: 60, quantity: 1 },
-      { shape: "rectangular_prism", operation: "subtract", x: 10, y: 10, z: 10, quantity: 2 },
-    ],
-  });
-
-  assert.equal(metrics.volumeCm3, 514_000);
-  assert.equal(metrics.volumeM3, 0.514);
-  assert.equal(metrics.weightKg, 1_285);
-});
-
-test("geometria composta rejeita dimensões inválidas e volume final não positivo", () => {
-  assert.throws(() => calculatePieceMetrics({
-    x: 10, y: 10, z: 10,
-    geometryParts: [{ shape: "rectangular_prism", operation: "subtract", x: 20, y: 20, z: 20 }],
-  }), /maior que zero/);
-  assert.throws(() => calculatePieceMetrics({
-    x: 10, y: 10, z: 10,
-    geometryParts: [{ shape: "unknown", operation: "add", x: 1, y: 1, z: 1 }],
-  }), /forma geométrica inválida/);
-});
-
 test("compatibilidade gera produto cartesiano para pilar/viga e mantém braço fixo", () => {
   const catalog = [
     { code: "LEITO_25", mold_type: "LEITO", measure_label: "25" },
@@ -81,6 +54,21 @@ test("compatibilidade gera produto cartesiano para pilar/viga e mantém braço f
     "LEITO_25|LATERAL_40", "LEITO_25|LATERAL_50", "LEITO_30|LATERAL_40", "LEITO_30|LATERAL_50",
   ]);
   assert.deepEqual(listPieceMoldOptions("braco", { catalog }).map(([key]) => key), ["BRACO_25X35"]);
+});
+
+test("moldes de pilar/viga usam X e Z; Y permanece como comprimento", () => {
+  const catalog = [
+    { code: "LEITO_20", mold_type: "LEITO", measure_label: "20" },
+    { code: "LATERAL_30", mold_type: "LATERAL", measure_label: "30" },
+    { code: "BRACO_20X30", mold_type: "BRACO", measure_label: "20x30" },
+  ];
+  assert.deepEqual(resolveCatalogMolds("viga", 20, 30, catalog), [
+    { role: "leito", catalogCode: "LEITO_20" },
+    { role: "lateral", catalogCode: "LATERAL_30" },
+  ]);
+  assert.deepEqual(resolveCatalogMolds("braco", 20, 30, catalog), [
+    { role: "braco", catalogCode: "BRACO_20X30" },
+  ]);
 });
 
 function registrationMockDb(positions) {
@@ -118,9 +106,9 @@ const draftRegistration = {
   requiredMoldCodes: ["LEITO_25", "LATERAL_40"],
 };
 
-test("planeja registro ainda não persistido na posição compatível", async () => {
+test("planeja registro e associa os moldes do pedido a uma posição física livre", async () => {
   const positions = [
-    { id: "p1", organization_id: "org-1", code: "P01", status: "disponivel", configuration_kind: "pilar_viga", leito_catalog_code: "LEITO_25", lateral_catalog_code: "LATERAL_40" },
+    { id: "p1", organization_id: "org-1", code: "P01", status: "disponivel", configuration_kind: "braco", braco_catalog_code: "BRACO_25X35" },
     ...["P02", "P03", "P04"].map((code) => ({ id: code, organization_id: "org-1", code, status: "disponivel", configuration_kind: null })),
   ];
   const result = await buildPlanningQueue({ db: registrationMockDb(positions), organizationId: "org-1", input: { draft: draftRegistration } });
@@ -128,9 +116,9 @@ test("planeja registro ainda não persistido na posição compatível", async ()
   assert.equal(result.targetPlan.units[0].positionCode, "P01");
 });
 
-test("registro sem posição compatível fica na fila sem alocação prevista", async () => {
+test("registro sem posição livre fica na fila sem alocação prevista", async () => {
   const positions = ["P01", "P02", "P03", "P04"].map((code) => ({
-    id: code, organization_id: "org-1", code, status: "disponivel", configuration_kind: "braco", braco_catalog_code: "BRACO_25X35",
+    id: code, organization_id: "org-1", code, status: "em_manutencao", configuration_kind: "braco", braco_catalog_code: "BRACO_25X35",
   }));
   const result = await buildPlanningQueue({ db: registrationMockDb(positions), organizationId: "org-1", input: { draft: draftRegistration } });
   assert.equal(result.targetPlan.feasible, false);

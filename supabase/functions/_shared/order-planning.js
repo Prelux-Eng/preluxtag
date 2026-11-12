@@ -219,7 +219,7 @@ export async function buildPlanningQueue({ db, organizationId, input = {} }) {
       .eq("organization_id", organizationId)
       .maybeSingle(),
     db.from("mold_positions")
-      .select("id, code, status, configuration_kind, braco_catalog_code, leito_catalog_code, lateral_catalog_code")
+      .select("id, code, status, configuration_kind")
       .eq("organization_id", organizationId)
       .order("code", { ascending: true }),
   ]);
@@ -446,8 +446,9 @@ export async function buildPlanningQueue({ db, organizationId, input = {} }) {
         requiresMoldConfig: ["braco", "pilar", "viga", "placa"].includes(piece.piece_kind),
         quantity: item.quantity,
         curingDays: DEFAULT_CURING_DAYS,
-        productionMinutesSnapshot: numberOrZero(item.production_minutes_snapshot) ||
-          numberOrZero(piece.production_minutes_per_unit),
+        // Campos legados de capacidade: a duração total da peça está nas etapas.
+        productionMinutesSnapshot: productionTiming?.castingDurationMinutes ??
+          (numberOrZero(item.production_minutes_snapshot) || numberOrZero(piece.production_minutes_per_unit)),
       };
     });
     let plan;

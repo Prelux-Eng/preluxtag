@@ -1,14 +1,11 @@
-# Banco PRELUX · planejamento e cadastros operacionais
+# Banco PRELUX · schema e regras
 
-O banco atual é de uma unidade produtiva PRELUX. A partir da migração 006, o
-planejamento de concretagem usa quatro posições físicas por dia útil; os minutos
-permanecem somente como dado de registro nas programações legadas.
+O sistema usa Supabase/PostgreSQL. As mudanças de schema são incrementais e
+preservam as tabelas de catálogo, pedido, produção e posição que já existem.
 
-## Aplicação no Supabase
+## Ordem das migrations
 
-Em uma instalação nova, execute os arquivos na ordem abaixo pelo SQL Editor do
-Supabase. Os scripts ficam em `database/` e não são descobertos automaticamente
-por `supabase db push`.
+Em uma instalação nova, aplique os arquivos em ordem:
 
 1. `001_initial_schema.sql`
 2. `002_stage2_functions.sql`
@@ -18,114 +15,63 @@ por `supabase db push`.
 6. `006_position_based_planning.sql`
 7. `007_stage4_piece_catalog_positions.sql`
 8. `008_stage5_work_order_inheritance.sql`
-9. `009_fabio2_foundation.sql` (rascunho da Etapa 5, ainda não aplicado)
+9. `009_fabio2_foundation.sql`
+10. `010_remove_composed_geometry.sql`
+11. `011_order_first_item_flow.sql`
+12. `012_order_driven_position_allocation.sql`
 
-Em uma instalação que já aplicou 001–005, execute `006_position_based_planning.sql`.
-Ela cria P01–P04, ordens unitárias, alocações por posição, ajustes manuais de
-prazo e mantém `production_schedules` como resumo compatível com a tela atual.
-Em seguida, aplique `007_stage4_piece_catalog_positions.sql` para incluir os
-catálogos fixos, dimensões X/Y/Z, requisitos de molde por peça e configuração
-das quatro posições. Após a migração, publique a Edge Function
-`operations-admin` atualizada para habilitar os novos formulários e o vínculo
-de compatibilidade com o planejador.
+O Supabase ativo já contém as migrations 001–012. A 012 atualiza a regra de
+alocação das posições. Os arquivos ficam em `database/` e não são executados
+automaticamente pelo `supabase db push`.
 
-O script cria a organização inicial com o ID:
+## Moldes e posições
 
-`11111111-1111-4111-8111-111111111111`
+`mold_catalog` é o catálogo global de medidas BRAÇO, LEITO e LATERAL.
+`piece_type_molds` guarda os códigos exigidos por cada tipo de peça.
 
-Esse valor deve ser configurado como `PRELUX_ORGANIZATION_ID` nas Edge Functions. O `SUPABASE_SERVICE_ROLE_KEY` deve ficar apenas no ambiente do Supabase; nunca deve ser colocado no HTML, no PWA ou no aplicativo mobile.
+- Braço: X × Z localiza o molde fixo BRAÇO correspondente; Y é o comprimento.
+- Pilar e viga: X localiza o LEITO; Z localiza a LATERAL; Y é o comprimento.
+- Z é a espessura usada no cálculo dimensional já existente.
+- `piece_mold_combinations` lista as opções válidas do catálogo; os pares não
+  são duplicados como moldes físicos.
 
-As tabelas estão protegidas por RLS sem policies públicas. Portanto, o navegador não fala diretamente com o banco: ele chama as Edge Functions, que validam o payload e usam a chave administrativa somente no servidor.
+`mold_positions` representa os quatro espaços físicos P01–P04. Uma posição não
+fica presa a uma configuração de forma: o item do pedido determina as formas e
+o planejador associa o item à posição livre durante o período reservado. Uma
+posição fica indisponível enquanto estiver em manutenção ou ocupada por outra
+alocação no mesmo intervalo. A exceção é a posição marcada como bancada plana,
+reservada para produzir placas sem forma. A gravação da posição mantém status,
+observações e, quando necessário, essa marca de bancada; os antigos códigos de
+forma ficam no schema por compatibilidade e histórico.
 
-Regras legadas da migração 004: a preparação do molde era de sete dias corridos e só podia ser aprovada após limpeza, desmoldante e montagem. A migration 009 propõe cinco dias úteis segundo `calendar_days` e ajusta o valor `preparation_days` das formas já cadastradas de 7 para 5. Ela também preenche rótulos de medidas nas linhas existentes do histórico de posições. Não aplique 009 antes de publicar junto o fluxo de tela e serviço atualizado.
+Nesta etapa, a alocação associa códigos do catálogo ao item e à posição, sem
+reservar uma instância física específica de `molds.id`. O cadastro físico de
+moldes continua separado do catálogo de medidas.
 
-A migração 006 originalmente persistia datas de planejamento também em `orders`.
-A migration 009 propõe que o planejamento grave suas datas em `production_orders`
-e `allocations`, mantendo os campos do pedido como dados da entrada. O resumo
-`v_order_progress` passa a derivar as datas das ordens unitárias.
+## Produção e planejamento
 
-O cadastro de tipo de peça mantém X/Y/Z e os cálculos existentes de volume e
-peso para braço, pilar e viga. A migration 009 adiciona etapas com horários
-exatos a `production_order_steps`; os tempos aprovados são 120 minutos para
-concretagem e 12 horas para cura. Acabamento, inspeção e liberação ainda precisam
-de durações definidas pela engenharia para o planejador calcular a liberação
-final.
+`production_orders` representa cada unidade do item. `production_order_steps`
+guarda etapas e horários exatos; `allocations` reserva a posição desde a
+concretagem até o fim da cura. A validação no banco confere se o item tem os
+moldes adequados ao seu tipo e impede intervalos sobrepostos na mesma posição.
 
-O catálogo fixo da Etapa 4 contém LEITO 20, 25, 30, 35, 40, 50, 60 cm;
-LATERAL 25, 30, 40, 50, 60 cm; e BRAÇO 25x35, 25x52, 30x60 cm. Peças Braço
-selecionam um molde BRAÇO. Peças Pilar e Viga selecionam um LEITO e um LATERAL.
-Cada posição recebe uma configuração de braço ou um par leito/lateral. A posição
-`placa` é uma bancada plana sem forma vinculada. O planejador só aloca peça em
-configuração compatível; uma configuração não pode mudar enquanto houver
-produção planejada ou em andamento vinculada à posição.
+As regras aprovadas de concretagem e cura estão em `calculation_constants`.
+Minutos de produção por unidade devem ser configurados separadamente por tipo
+de peça. Não insira valores fictícios: os valores PRELUX ainda serão fornecidos.
+Capacidade diária continua em `calendar_settings`.
 
-O setup para trocar a configuração de uma posição não foi informado e não entra
-no prazo calculado. A preparação de cinco dias úteis usa o calendário existente.
+`orders.work_id` é opcional. Quando há obra, triggers existentes sincronizam o
+cliente e a data de início; sem obra, esses dados são informados no pedido.
+O fluxo sem login continua usando Edge Functions públicas com `service_role`
+somente no servidor; RLS não concede escrita direta ao navegador.
 
-## Etapa 5 · fundação Fábio II (migration 009 em revisão)
+## Aplicação de migrations
 
-As decisões já esclarecidas e as pendências que precisam ser resolvidas antes de fechar a migration estão em [`docs/FABIO_II_ETAPA5_REVISAO.md`](../docs/FABIO_II_ETAPA5_REVISAO.md).
+Leia cada migration completa antes de aplicá-la ao projeto ativo. Para a base
+PRELUX em uso, aplique somente migrations que ainda não aparecem no histórico do
+Supabase. Preserve pedidos, catálogo, posições, produção e histórico existentes.
 
-A etapa reaproveita `works`, `orders`, `order_items`, `piece_types`, `mold_catalog`,
-`piece_type_molds`, `mold_positions`, `production_orders` e `allocations`. Não
-recria nem renomeia essas tabelas; a migration 009 só altera os pontos descritos
-acima e adiciona tabelas para projeto, constantes e etapas. O diagrama e as
-chaves relevantes estão em [`ER.md`](ER.md).
-
-As migrations anteriores já herdam cliente e data de início da obra no pedido.
-Pedido sem obra continua aceitando cliente e data informados manualmente.
-
-As sugestões vêm do catálogo existente: as opções fixas de BRAÇO e todas as
-combinações LEITO × LATERAL para pilar e viga. A migration 009 mantém o vínculo
-em `piece_type_molds`, adiciona `placa` como tipo de peça e posição de bancada,
-cria os registros de projeto/seções ligados a pedidos/itens, registra etapas de
-produção com horários e guarda constantes por organização. Não cria catálogo
-paralelo de formas nem altera as funções atuais de volume e peso. O peso da
-placa usa X×Y como área, Z como espessura e a mesma densidade fixa de 2,5 t/m³
-do cálculo atual de volume e peso das peças existentes.
-
-Os prazos de preparação permanecem no campo existente `molds.preparation_days`;
-a proposta fixa esse valor em cinco dias úteis e usa `calendar_days` para achar a
-data de conclusão.
-
-Como premissa de engenharia, uma seção maciça retangular de braço resulta em
-218,75 kg/m para 25×35 cm, 325 kg/m para 25×52 cm e 450 kg/m para 30×60 cm,
-usando 2,5 t/m³. O peso efetivo da peça continua dependendo do comprimento Z
-cadastrado e da fórmula existente.
-
-O planejador grava concretagem e cura em `production_order_steps` com horários
-exatos, usa 120 minutos para concretagem e 12 horas para cura, e mantém a posição
-reservada até o fim da cura. O horário padrão é 08:00 no fuso da organização
-(`calculation_constants.casting_start_hour`); ajuste-o para o início real do
-turno antes de aplicar a migration se a fábrica começar em outro horário.
-Acabamento, inspeção e liberação aparecem como etapas pendentes enquanto suas
-durações não forem definidas.
-
-O cadastro de projeto chama `save_engineering_project_structure` para gravar o
-projeto, as seções e a distribuição dos itens em uma transação. A RPC confere
-que cada item pertence ao pedido escolhido e exige que a soma distribuída nas
-seções seja exatamente igual à quantidade pedida. Somente `service_role` pode
-executá-la; acesso direto de escrita às tabelas do projeto fica restrito às
-RPCs para que essa regra também seja verificada no banco.
-
-Quando o pedido já possui projeto, a edição dos dados do pedido, dos itens e da
-distribuição por seções usa `save_order_with_project`, que salva os três no mesmo
-commit. O formulário de edição do pedido inclui a distribuição atual para que
-tipos e quantidades possam ser ajustados sem deixar o projeto incompleto.
-
-As tabelas novas continuam com RLS ligado, sem policies para acesso anônimo;
-somente as Edge Functions com `service_role` acessam os dados. Sem login, a
-aplicação ainda depende da organização fixa configurada no servidor e não tem
-isolamento multi-organização por usuário. As Edge Functions públicas continuam
-sendo a fronteira de acesso e precisam validar organização e payload.
-
-**A migration 009 e a integração da Etapa 5 estão no repositório/branch de
-revisão. Não execute a migration nem publique as Edge Functions no projeto
-Supabase ativo nesta etapa.** A
-ferramenta Supabase CLI não está instalada neste ambiente, por isso o arquivo
-segue a convenção `database/001–008` existente; ele não fica em
-`supabase/migrations/` e não é executado automaticamente por `db push`.
-
-A regra para rejeitar o status legado `concluido` não é validada contra linhas
-históricas: pedidos já concluídos continuam preservados na base e precisam
-receber um status vigente antes de serem editados.
+O identificador inicial da organização de PRELUX é
+`11111111-1111-4111-8111-111111111111`. Configure-o no servidor como
+`PRELUX_ORGANIZATION_ID`. A chave `SUPABASE_SERVICE_ROLE_KEY` nunca deve ser
+incluída no front-end nem em arquivos versionados.
