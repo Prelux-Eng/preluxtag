@@ -55,6 +55,7 @@
 .operations-modal-body{padding:20px 22px 8px}
 .ops-form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
 .ops-form-grid.full{grid-column:1/-1}
+.ops-form-grid[hidden]{display:none!important}
 .ops-form-grid .field{margin:0}
 .ops-form-grid .field.full{grid-column:1/-1}
 .ops-form-grid .field[hidden]{display:none!important}
