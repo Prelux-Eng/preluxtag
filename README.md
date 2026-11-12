@@ -2,7 +2,7 @@
 
 Aplicação PWA da PRELUX para conduzir pedidos, planejamento e etiquetas de produção. A primeira etapa funciona sem login. O front-end é servido como site estático; os dados e as operações de produção usam Supabase (PostgreSQL e Edge Functions).
 
-Site publicado: [prelux-emissor-etiquetas.openbat65.chatgpt.site](https://prelux-emissor-etiquetas.openbat65.chatgpt.site/).
+Site publicado: [PRELUX Etiquetas](https://prelux-emissor-etiquetas.glaubertmiranda15.chatgpt.site/).
 
 ## Estrutura
 
@@ -38,12 +38,13 @@ Se o comando `npm` não estiver disponível, execute `node scripts/serve.mjs`. D
 
 Consulte [`database/README.md`](database/README.md) para a ordem das migrações e [`backend/README.md`](backend/README.md) para publicação das Edge Functions.
 Para decisões e pendências da Etapa 5, consulte [`docs/FABIO_II_ETAPA5_REVISAO.md`](docs/FABIO_II_ETAPA5_REVISAO.md).
+O motor de simulação da Etapa 2 e sua API somente de leitura estão documentados em [`docs/ETAPA2_MOTOR_SIMULACAO.md`](docs/ETAPA2_MOTOR_SIMULACAO.md).
 
-- Em uma instalação nova, aplique os scripts `database/001` a `database/012` na ordem descrita.
-- O projeto Supabase em uso já contém as migrations 001–012. As posições são espaços físicos que recebem os moldes exigidos por cada pedido.
+- Em uma instalação nova, aplique os scripts `database/001` a `database/014` na ordem descrita.
+- O projeto Supabase em uso já contém as migrations 001–014. As posições são espaços físicos que recebem os moldes exigidos por cada pedido.
 - Pedidos com obra herdam cliente e início; sem obra, os dados são informados no pedido. BRAÇO usa X × Z; Pilar e Viga usam LEITO para X e LATERAL para Z, com Y como comprimento.
 - Volume e peso seguem calculados pela lógica existente no site.
-- As migrations `database/009_fabio2_foundation.sql` a `database/012_order_driven_position_allocation.sql` fazem parte do schema ativo do Supabase.
+- As migrations `database/009_fabio2_foundation.sql` a `database/014_order_approval_timestamp.sql` fazem parte do schema ativo do Supabase.
 
 A `SUPABASE_SERVICE_ROLE_KEY` pertence somente ao ambiente das Edge Functions. Nunca a coloque no front-end, em um arquivo `.env` versionado, no GitHub ou em aplicativos distribuídos.
 
