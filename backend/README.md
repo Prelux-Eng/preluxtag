@@ -2,10 +2,12 @@
 
 O backend usa Supabase/PostgreSQL e Edge Functions em Deno. O PWA consome o calendário e os cadastros de obras, pedidos, peças e moldes.
 
+O motor de simulação da Etapa 2 está descrito em [ETAPA2_MOTOR_SIMULACAO.md](../docs/ETAPA2_MOTOR_SIMULACAO.md). A nova rota é somente de leitura; `plan-order` e `commit-order-plan` ainda usam o planejador anterior até a integração das próximas etapas.
+
 ## Publicação
 
 1. Use o projeto Supabase existente ou crie um projeto novo.
-2. Em uma instalação nova, execute as migrações `database/001_initial_schema.sql` até `database/008_stage5_work_order_inheritance.sql`, nessa ordem. O Supabase do Site atual já está na etapa 8; não reaplique as migrações nele. Em uma base que esteja na etapa 7, aplique somente a 008 antes de atualizar `operations-admin`.
+2. Em uma instalação nova, execute as migrations de `database/001_initial_schema.sql` a `database/014_order_approval_timestamp.sql`, na ordem de [database/README.md](../database/README.md). A base ativa já recebeu a 014; não reaplique scripts nela por tentativa.
 3. Instale a CLI do Supabase, faça login e vincule este checkout ao projeto:
 
 ```bash
@@ -29,6 +31,7 @@ supabase functions deploy calendar-admin
 supabase functions deploy plan-order
 supabase functions deploy commit-order-plan
 supabase functions deploy operations-admin
+supabase functions deploy simulate-production
 ```
 
 Não use `--no-verify-jwt` em produção sem uma decisão explícita: essa opção deixa a função acessível sem um JWT válido.
@@ -45,6 +48,7 @@ Todos recebem `POST` com JSON e aceitam `OPTIONS` para CORS.
 | `rebuild-calendar` | `{ startDate, endDate }` | Gera/atualiza `calendar_days` |
 | `plan-order` | `{ orderId, startDate?, requestedDueDate? }` | Prévia da programação por posição, prazo base e conflitos |
 | `commit-order-plan` | mesmos campos + `allowInfeasible?` | Recalcula e grava a programação por posição |
+| `simulate-production` | `{ orderIds: ["uuid-1", "uuid-2"] }` | Simula até 30 pedidos com preparação condicional, cura fora da posição, limite de 90 dias e sem escrita |
 | `calendar-admin` com `action: planning_data` | `{ startDate, endDate }` | Lista pedidos ativos e programações do período para o calendário |
 | `calendar-admin` com `action: get_settings` | `{}` | Lê capacidade padrão e dias de trabalho |
 | `calendar-admin` com `action: save_settings` | `{ defaultCapacityMinutes, rules }` | Salva dias úteis e capacidade diária padrão |
@@ -55,7 +59,7 @@ Todos recebem `POST` com JSON e aceitam `OPTIONS` para CORS.
 | `operations-admin` com `action: save_delay_adjustment` | pedido, motivo, data e nova previsão | Registra reajuste manual e atualiza a previsão |
 | `operations-admin` com `action: save_piece_type` | catálogo + moldes compatíveis | Cria ou atualiza um tipo de peça |
 | `operations-admin` com `action: save_mold` | molde + peças compatíveis | Cria ou atualiza um molde |
-| `operations-admin` com `action: save_preparation` | molde, início, checklist e status | Registra preparação contínua de sete dias |
+| `operations-admin` com `action: save_preparation` | molde, início, checklist e status | Registra preparação de cinco dias úteis pelo fluxo anterior de forma física |
 | `operations-admin` com `action: save_allocation` | recurso, pedido/peça e período | Reserva molde ou registra exceção justificada de outro recurso |
 
 Ao salvar ou replanejar um pedido, `operations-admin` chama o motor e regrava em uma transação a fila dos pedidos ainda não iniciados, por data de início e ordem de cadastro. Se um prazo solicitado for inviável, a programação calcula a data base mais próxima e retorna o aviso junto com o pedido salvo. As Edge Functions alteradas dependem da migração 006, que instala o RPC `commit_planning_queue`.
@@ -67,7 +71,7 @@ a fila depois de uma mudança de data.
 
 O prazo base usa quatro posições, uma concretagem por posição em cada dia útil, dois dias corridos de cura e acabamento no primeiro dia útil seguinte. O tempo de produção fica como registro e não limita capacidade. A falta de material não altera esta programação base; a validação de liberação por materiais pertence às etapas de BOM e produção.
 
-Depois de aplicar as migrações, publique também `operations-admin`, `calendar-admin`, `plan-order` e `commit-order-plan`. Não há seed de moldes: códigos, dimensões e ciclos precisam vir do cadastro real da unidade. O setup de troca de configuração da posição continua pendente de definição.
+O catálogo global de 15 medidas já existe na base ativa. A troca de configuração foi definida como cinco dias úteis com posição ocupada, mas ainda não é persistida pelo planejador anterior; a rota `simulate-production` já considera a regra no cálculo.
 
 ## Teste local do cálculo
 

@@ -8,7 +8,6 @@ import { listPieceMoldOptions } from "../dist/js/domain/mold-compatibility.js";
 import {
   addCalendarDays,
   previewNextOrderNumber,
-  productionMinutesForKind,
   resolveRequestedDueDate,
 } from "../supabase/functions/_shared/registration-rules.js";
 
@@ -33,11 +32,6 @@ test("prazo manual é mantido e não pode anteceder o início", () => {
 test("prévia do pedido usa o próximo sequencial PED-0001", () => {
   assert.equal(previewNextOrderNumber([]), "PED-0001");
   assert.equal(previewNextOrderNumber(["PED-0001", "PED-0009", "O.0000"]), "PED-0010");
-});
-
-test("tempo por unidade é configurado por organização e tipo de peça", () => {
-  assert.equal(productionMinutesForKind("braco", { braco: 45 }), 45);
-  assert.throws(() => productionMinutesForKind("viga", { braco: 45 }), /Configure o tempo padrão/);
 });
 
 test("compatibilidade gera produto cartesiano para pilar/viga e mantém braço fixo", () => {

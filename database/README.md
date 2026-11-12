@@ -19,9 +19,12 @@ Em uma instalação nova, aplique os arquivos em ordem:
 10. `010_remove_composed_geometry.sql`
 11. `011_order_first_item_flow.sql`
 12. `012_order_driven_position_allocation.sql`
+13. `013_process_stage_timing.sql`
+14. `014_order_approval_timestamp.sql`
 
-O Supabase ativo já contém as migrations 001–012. A 012 atualiza a regra de
-alocação das posições. Os arquivos ficam em `database/` e não são executados
+O Supabase ativo já contém as migrations 001–014. A 012 atualiza a regra de
+alocação das posições; a 013 ajusta a carga legada de concretagem. A 014
+registra a ordem de aprovação para a simulação. Os arquivos ficam em `database/` e não são executados
 automaticamente pelo `supabase db push`.
 
 ## Moldes e posições
@@ -55,10 +58,12 @@ guarda etapas e horários exatos; `allocations` reserva a posição desde a
 concretagem até o fim da cura. A validação no banco confere se o item tem os
 moldes adequados ao seu tipo e impede intervalos sobrepostos na mesma posição.
 
-As regras aprovadas de concretagem e cura estão em `calculation_constants`.
-Minutos de produção por unidade devem ser configurados separadamente por tipo
-de peça. Não insira valores fictícios: os valores PRELUX ainda serão fornecidos.
-Capacidade diária continua em `calendar_settings`.
+O planejador anterior lê concretagem e cura de `calculation_constants` (120
+minutos e 12 horas no banco ativo). A migration 013 passou a preencher as colunas
+legadas de minutos pela concretagem configurada. O novo simulador diário da
+Etapa 2 usa 1 dia útil de concretagem, 2 dias corridos de cura e 1 dia útil de
+acabamento sem converter o turno em minutos. Capacidade diária continua em
+`calendar_settings`.
 
 `orders.work_id` é opcional. Quando há obra, triggers existentes sincronizam o
 cliente e a data de início; sem obra, esses dados são informados no pedido.
