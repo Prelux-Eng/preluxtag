@@ -17,9 +17,10 @@ async function handler(request: Request) {
     const scenario = await simulateProductionOrders({
       db: createAdminClient(config),
       organizationId: config.organizationId,
-      input,
+      input: { ...input, allowEmpty: true },
     });
-    return json({ ok: true, scenario });
+    const { commitContext: _internalContext, ...publicScenario } = scenario;
+    return json({ ok: true, scenario: publicScenario });
   } catch (error) {
     if (error instanceof FactorySimulationError || error instanceof PlannerError) {
       return json({ error: error.message, details: error.details ?? null }, error.status ?? 422);

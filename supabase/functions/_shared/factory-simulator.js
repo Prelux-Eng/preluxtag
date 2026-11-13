@@ -59,9 +59,23 @@ function configurationFor(item) {
   return { kind: "pilar_viga", codes, key: `pilar_viga:${codes.join("|")}` };
 }
 
+function configurationFromCatalogCodes(rawCodes) {
+  if (!Array.isArray(rawCodes)) return null;
+  const codes = rawCodes.map((code) => String(code).toUpperCase()).sort();
+  if (codes.length === 1 && codes[0].startsWith("BRACO_")) return `braco:${codes[0]}`;
+  if (codes.length === 2 && codes.some((code) => code.startsWith("LEITO_")) &&
+      codes.some((code) => code.startsWith("LATERAL_"))) return `pilar_viga:${codes.join("|")}`;
+  return null;
+}
+
 function positionConfiguration(position) {
   const kind = position.configurationKind ?? position.configuration_kind ?? null;
   if (kind === "placa") return "placa";
+  // A última concretagem concluída prevalece sobre um cadastro legado da
+  // posição. Depois de desmontar, os campos legados não valem mais.
+  const installed = configurationFromCatalogCodes(position.installedMoldCatalogCodes ?? position.installed_mold_catalog_codes);
+  if (installed) return installed;
+  if (position.formResetAt ?? position.form_reset_at) return null;
   if (kind === "braco") {
     const code = position.bracoCatalogCode ?? position.braco_catalog_code;
     return code ? `braco:${String(code).toUpperCase()}` : null;
@@ -79,7 +93,8 @@ function normalizedCalendar(days) {
   for (const day of days || []) {
     const date = normalizeDate(day.date, "dia do calendário");
     if (byDate.has(date)) throw new PlannerError(`O calendário contém a data duplicada ${date}.`);
-    byDate.set(date, Boolean(day.isWorking ?? day.is_working));
+    const capacity = Number(day.capacityMinutes ?? day.capacity_minutes ?? 0);
+    byDate.set(date, Boolean(day.isWorking ?? day.is_working) && capacity > 0);
   }
   return {
     byDate,
@@ -90,7 +105,7 @@ function normalizedCalendar(days) {
 }
 
 function normalizedOrders(orders) {
-  if (!Array.isArray(orders) || !orders.length) throw new PlannerError("Informe ao menos um pedido para simular.");
+  if (!Array.isArray(orders)) throw new PlannerError("Os pedidos precisam ser enviados como uma lista.");
   const ids = new Set();
   let totalUnits = 0;
   const result = orders.map((order) => {
@@ -160,18 +175,28 @@ function normalizedOrders(orders) {
   );
 }
 
-function normalizedPositions(positions, reservations) {
+function normalizedPositions(positions, reservations, asOfDate) {
   const states = new Map();
   for (const position of positions || []) {
     const code = String(position.code ?? "").trim();
     if (!/^P0[1-4]$/.test(code) || states.has(code)) throw new PlannerError("As posições P01–P04 devem ser únicas.");
+    const currentReservation = reservations.some((reservation) =>
+      (reservation.positionCode ?? reservation.position_code) === code &&
+      ["planned", "in_progress", "done"].includes(reservation.status) &&
+      (reservation.startDate ?? reservation.start_date) <= asOfDate &&
+      (reservation.endDate ?? reservation.end_date) >= asOfDate
+    );
     states.set(code, {
       code,
-      // Sem uma data confiável de liberação, uma posição não disponível não
-      // pode ser prometida em um cenário novo.
-      available: position.status === "disponivel",
+      // Preparação e concretagem são ocupações temporárias: a reserva fixa
+      // informa quando a posição volta. Manutenção ou ocupação sem data de
+      // liberação conhecida continuam bloqueadas.
+      available: position.status === "disponivel" ||
+        (["em_preparacao", "em_producao"].includes(position.status) && currentReservation),
       plateOnly: (position.configurationKind ?? position.configuration_kind) === "placa",
       initialConfig: positionConfiguration(position),
+      formResetAt: position.formResetAt ?? position.form_reset_at ?? null,
+      formResetLocalDate: position.formResetLocalDate ?? position.form_reset_local_date ?? null,
       events: [],
       busy: new Set(),
       preparationDays: 0,
@@ -185,7 +210,14 @@ function normalizedPositions(positions, reservations) {
     const end = normalizeDate(reservation.endDate ?? reservation.end_date ?? start, "fim da reserva");
     if (end < start) throw new PlannerError("O fim da reserva não pode anteceder seu início.");
     for (let date = start; date <= end; date = addDays(date, 1)) state.busy.add(date);
+    const installed = configurationFromCatalogCodes(reservation.moldCatalogCodes ?? reservation.mold_catalog_codes);
+    const eventAt = reservation.occupiedUntilAt ?? reservation.occupied_until_at ?? null;
+    const afterReset = !state.formResetAt || (eventAt
+      ? Date.parse(eventAt) > Date.parse(state.formResetAt)
+      : end > state.formResetLocalDate);
+    if (installed && afterReset) state.events.push({ date: end, key: installed });
   }
+  for (const state of states.values()) state.events.sort((a, b) => a.date.localeCompare(b.date));
   return [...states.values()].sort((a, b) => a.code.localeCompare(b.code));
 }
 
@@ -249,16 +281,24 @@ function reserve(candidate, item) {
  * Retorna previsão para todos os pedidos sem efeitos colaterais. Orçamentos
  * entram depois dos aprovados apenas neste cenário e nunca viram reserva.
  */
-export function simulateFactory({ calendarDays, positions, orders, existingReservations = [] }) {
+export function simulateFactory({ calendarDays, positions, orders, existingReservations = [], earliestSchedulingDate = null }) {
   const calendar = normalizedCalendar(calendarDays);
   const queue = normalizedOrders(orders);
-  const positionStates = normalizedPositions(positions, existingReservations);
-  if (!positionStates.length || !positionStates.some((position) => position.available)) {
+  const schedulingFloor = earliestSchedulingDate
+    ? normalizeDate(earliestSchedulingDate, "primeira data de programação")
+    : null;
+  const positionStates = normalizedPositions(positions, existingReservations, schedulingFloor ?? calendar.firstDate);
+  if (queue.length && (!positionStates.length || !positionStates.some((position) => position.available))) {
     throw new PlannerError("Não há posição de produção disponível.");
   }
   const results = [];
   for (const order of queue) {
-    if (!calendar.byDate.has(order.startDate)) {
+    // A data contratual do pedido continua intacta para prazo e atraso. A
+    // programação física começa hoje quando o pedido foi aberto no passado.
+    const schedulingStartDate = schedulingFloor && schedulingFloor > order.startDate
+      ? schedulingFloor
+      : order.startDate;
+    if (!calendar.byDate.has(schedulingStartDate)) {
       throw new PlannerError(`O calendário não contém a data inicial do pedido ${order.id}.`, 409);
     }
     const units = [];
@@ -269,7 +309,7 @@ export function simulateFactory({ calendarDays, positions, orders, existingReser
     for (const item of order.items) {
       totalRequested += item.quantity;
       for (let sequence = 1; sequence <= item.quantity; sequence += 1) {
-        const candidate = bestCandidate(positionStates, item, order.startDate, calendar);
+        const candidate = bestCandidate(positionStates, item, schedulingStartDate, calendar);
         if (!candidate) {
           conflicts.push({ type: "position", itemId: item.id, unitSequence: sequence, message: "Nenhuma posição compatível cabe no horizonte de simulação." });
           continue;
@@ -292,6 +332,8 @@ export function simulateFactory({ calendarDays, positions, orders, existingReser
           moldCatalogCodes: item.config.codes,
           preparationStartDate: candidate.preparationDates[0] ?? null,
           preparationEndDate: candidate.preparationDates.at(-1) ?? null,
+          preparationDates: candidate.preparationDates,
+          curingDays: item.curingDays,
           castDate: candidate.castDate,
           cureStartDate,
           cureEndDate,

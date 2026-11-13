@@ -96,6 +96,60 @@ test("forma não pronta ocupa a posição por cinco dias úteis antes da concret
   assert.equal(result.positionUsage[0].occupiedDays, 6);
 });
 
+test("pedido antigo começa a programação hoje sem mudar o prazo contratual", () => {
+  const result = simulateFactory({
+    calendarDays: calendar(),
+    positions: [position("P01", ready)],
+    orders: [order("PED-0001")],
+    earliestSchedulingDate: "2026-01-07",
+  });
+  assert.equal(result.orders[0].units[0].castDate, "2026-01-07");
+  assert.equal(result.orders[0].startDate, "2026-01-05");
+  assert.equal(result.orders[0].maximumDueDate, "2026-04-05");
+});
+
+test("forma concluída dispensa preparação, mas desmontagem descarta o estado antigo", () => {
+  const mounted = simulateFactory({
+    calendarDays: calendar(),
+    positions: [position("P01", { installedMoldCatalogCodes: ["LEITO_20", "LATERAL_25"] })],
+    orders: [order("PED-0001")],
+  });
+  assert.equal(mounted.orders[0].units[0].preparationStartDate, null);
+
+  const dismantled = simulateFactory({
+    calendarDays: calendar(),
+    positions: [position("P01", {
+      ...ready,
+      formResetAt: "2026-01-05T12:00:00.000Z",
+      formResetLocalDate: "2026-01-05",
+    })],
+    existingReservations: [{
+      positionCode: "P01", status: "done", startDate: "2026-01-02", endDate: "2026-01-02",
+      occupiedUntilAt: "2026-01-02T20:00:00.000Z",
+      moldCatalogCodes: ["LEITO_20", "LATERAL_25"],
+    }],
+    orders: [order("PED-0001")],
+  });
+  assert.equal(dismantled.orders[0].units[0].preparationStartDate, "2026-01-05");
+  assert.equal(dismantled.orders[0].units[0].castDate, "2026-01-12");
+});
+
+test("posição em produção volta à fila após a reserva e conserva a forma", () => {
+  const result = simulateFactory({
+    calendarDays: calendar(),
+    positions: [position("P01", { status: "em_producao" })],
+    existingReservations: [{
+      positionCode: "P01", status: "in_progress", startDate: "2026-01-05", endDate: "2026-01-05",
+      occupiedUntilAt: "2026-01-05T20:00:00.000Z",
+      moldCatalogCodes: ["LEITO_20", "LATERAL_25"],
+    }],
+    orders: [order("PED-0001")],
+    earliestSchedulingDate: "2026-01-05",
+  });
+  assert.equal(result.orders[0].units[0].castDate, "2026-01-06");
+  assert.equal(result.orders[0].units[0].preparationStartDate, null);
+});
+
 test("prazo acima de 90 dias informa excesso e quantidade que cabe no limite", () => {
   const result = simulateFactory({
     calendarDays: calendar(),
@@ -218,6 +272,7 @@ test("API de simulação lê pedidos aprovados e orçamento selecionado sem grav
     ],
     calendar_exceptions: [],
     delay_adjustments: [],
+    factory_plan_revisions: [{ organization_id: "org", revision: 1 }],
   };
   let writes = 0;
   class Query {
@@ -239,8 +294,16 @@ test("API de simulação lê pedidos aprovados e orçamento selecionado sem grav
       return Promise.resolve({ data: single ? rows[0] ?? null : rows, error: null });
     }
   }
-  const db = { from: (name) => new Query(name) };
-  const result = await simulateProductionOrders({ db, organizationId: "org", input: { orderIds: ["quoted"] } });
+  const db = {
+    from: (name) => new Query(name),
+    rpc: (name) => name === "factory_installed_form_by_position"
+      ? Promise.resolve({ data: [], error: null })
+      : Promise.reject(new Error(`RPC inesperada: ${name}`)),
+  };
+  const result = await simulateProductionOrders({
+    db, organizationId: "org", input: { orderIds: ["quoted"] },
+    now: new Date("2026-01-05T12:00:00.000Z"),
+  });
   assert.equal(writes, 0);
   assert.deepEqual(result.orders.map((entry) => [entry.orderId, entry.units[0].castDate]), [
     ["approved", "2026-01-05"], ["quoted", "2026-01-06"],

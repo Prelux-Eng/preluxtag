@@ -5,7 +5,8 @@
  */
 import { getServerConfig } from "../_shared/env.js";
 import { ensurePost, handleError, json, readJson } from "../_shared/http.js";
-import { buildPlanningQueue, findWorkingDayCompletionDate, OrderPlanningError } from "../_shared/order-planning.js";
+import { findWorkingDayCompletionDate } from "../_shared/order-planning.js";
+import { reconcileFactoryPlan } from "../_shared/factory-plan-service.js";
 import { calculatePieceMetrics } from "../_shared/piece-metrics.js";
 import { calculatePlateMetrics } from "../_shared/plate-metrics.js";
 import { addOrderPieceItem, createOrderHeader, createOrderPieceRegistration } from "../_shared/registration-service.js";
@@ -168,6 +169,11 @@ async function readOperationsData(db: any, organizationId: string) {
   const results = [clientsResult, worksResult, ordersResult, piecesResult, moldsResult, compatResult, preparationsResult, allocationsResult, catalogResult, pieceMoldsResult, positionsResult];
   const labels = ["clientes", "obras", "pedidos", "tipos de peça", "moldes", "compatibilidades", "preparações", "alocações", "catálogo fixo de moldes", "moldes das peças", "posições de molde"];
   results.forEach((result, index) => { if (result.error) throwDbError(result.error, `Não foi possível carregar ${labels[index]}.`); });
+  const installedFormsResult = await db.rpc("factory_installed_form_by_position", { p_org_id: organizationId });
+  if (installedFormsResult.error) throwDbError(installedFormsResult.error, "Não foi possível carregar as formas montadas.");
+  const installedFormsByPosition = new Map((installedFormsResult.data || []).map((form: any) => [
+    form.mold_position_id, form.mold_catalog_codes || [],
+  ]));
   const combinationsResult = await db.from("piece_mold_combinations")
     .select("piece_kind, configuration_kind, option_key, braco_catalog_code, leito_catalog_code, lateral_catalog_code, label, sort_order")
     .order("piece_kind").order("sort_order");
@@ -287,7 +293,10 @@ async function readOperationsData(db: any, organizationId: string) {
     })),
     moldCatalog: catalogResult.data || [],
     moldCombinations,
-    positions: positionsResult.data || [],
+    positions: (positionsResult.data || []).map((position: any) => ({
+      ...position,
+      installed_mold_catalog_codes: installedFormsByPosition.get(position.id) || [],
+    })),
     preparations: preparationsResult.data || [],
     allocations: allocationsResult.data || [],
     engineeringProjects: projects,
@@ -297,22 +306,20 @@ async function readOperationsData(db: any, organizationId: string) {
 }
 
 async function replanOpenQueue(db: any, organizationId: string) {
-  const { data: openOrders, error: orderError } = await db.from("orders")
-    .select("id, status")
-    .eq("organization_id", organizationId).eq("is_active", true)
-    .order("start_date", { ascending: true }).order("created_at", { ascending: true }).limit(1000);
-  if (orderError) throwDbError(orderError, "Não foi possível localizar pedidos para replanejar.");
-  const targetOrder = (openOrders || []).find((order: any) => ["aprovado", "em_producao", "atrasado"].includes(order.status));
-  if (!targetOrder) return { committed: true, warning: null };
-
-  const queuePlan = await buildPlanningQueue({ db, organizationId, input: { orderId: targetOrder.id } });
-  const { error: commitError } = await db.rpc("commit_planning_queue", {
-    p_org_id: organizationId,
-    p_plans: queuePlan.plans.map((entry) => ({ orderId: entry.orderId, plan: entry.plan })),
-  });
-  if (commitError) throwDbError(commitError, "Não foi possível recalcular o calendário após a alteração do cadastro.");
-  const warnings = queuePlan.plans.flatMap(({ orderId, plan: queuedPlan }) => queuedPlan.feasible ? [] : queuedPlan.conflicts.map((conflict: any) => `Pedido ${queuedPlan.order?.orderNumber || orderId}: ${conflict.message}`));
-  return { committed: true, warning: warnings.length ? warnings.slice(0, 5).join(" ") : null };
+  const { scenario, result } = await reconcileFactoryPlan({ db, organizationId });
+  const waitingOrders = (scenario.orders || []).filter((order: any) =>
+    order.totalPlannedQuantity < order.totalRequestedQuantity
+  );
+  const warnings = waitingOrders.map((order: any) =>
+    `${order.orderNumber || "Pedido"}: ${order.totalRequestedQuantity - order.totalPlannedQuantity} unidade(s) aguardam posição.`
+  );
+  return {
+    committed: true,
+    plannedOrderCount: scenario.orderCount,
+    plannedUnitCount: result?.scheduledUnitCount || 0,
+    waitingUnitCount: result?.waitingUnitCount || 0,
+    warning: warnings.length ? warnings.slice(0, 5).join(" ") : null,
+  };
 }
 
 /** A alteração da forma já foi gravada; problemas no replanejamento viram aviso. */
@@ -322,7 +329,7 @@ async function replanAfterPositionChange(db: any, organizationId: string, succes
   } catch (planningError) {
     return {
       committed: false,
-      warning: planningError instanceof OrderPlanningError
+      warning: planningError instanceof Error
         ? planningError.message
         : `${successMessage}, mas o calendário não pôde ser recalculado. Atualize o planejamento.`,
     };
@@ -443,6 +450,15 @@ async function handler(request: Request) {
       if (order.requestedDueDate && order.requestedDueDate < order.startDate) {
         throw badRequest("O prazo do pedido não pode ser anterior ao início.");
       }
+      const previousOrderResult = order.id
+        ? await db.from("orders").select("status")
+          .eq("organization_id", organizationId).eq("id", order.id).maybeSingle()
+        : { data: null, error: null };
+      if (previousOrderResult.error) throwDbError(previousOrderResult.error, "Não foi possível conferir o status atual do pedido.");
+      if ((!previousOrderResult.data || previousOrderResult.data.status === "orcamento")
+        && ["aprovado", "em_producao", "atrasado", "entregue"].includes(order.status)) {
+        throw badRequest("A aprovação deve ser feita na área Planejamento, junto com a confirmação da reserva de posições.", 409);
+      }
       let data: any;
       let error: any;
       let existingProject: any = null;
@@ -502,71 +518,16 @@ async function handler(request: Request) {
       }
       if (error) throwDbError(error, "Não foi possível salvar o pedido.");
 
-      // O cadastro e a programação usam transações separadas porque o motor
-      // é calculado em JavaScript. Se houver falha, o pedido permanece salvo
-      // e a resposta informa claramente que a programação precisa ser revista.
+      // O cadastro e a simulação usam transações separadas. A confirmação da
+      // fila, porém, grava as reservas e a aprovação dos orçamentos em um só commit.
       let planning: Record<string, unknown> = { committed: false };
       try {
-        if (data.status === "orcamento") {
-          // Retira qualquer alocação pendente ao voltar para orçamento. A
-          // simulação continua disponível na área Planejamento, sem reserva.
-          const { error: releaseError } = await db.rpc("commit_order_plan", {
-            p_org_id: organizationId,
-            p_order_id: data.id,
-            p_plan: { units: [] },
-          });
-          if (releaseError) throwDbError(releaseError, "Não foi possível liberar a posição reservada pelo pedido.");
-          const { error: clearPlanError } = await db.from("orders")
-            .update({ planned_start_date: null, planned_end_date: null, forecast_end_date: null })
-            .eq("organization_id", organizationId)
-            .eq("id", data.id);
-          if (clearPlanError) throw clearPlanError;
-          planning = { committed: false, simulatedOnly: true, warning: null };
-        } else {
-          const { error: clearPlanError } = await db.from("orders")
-            .update({ planned_start_date: null, planned_end_date: null, forecast_end_date: null })
-            .eq("organization_id", organizationId)
-            .eq("id", data.id);
-          if (clearPlanError) throw clearPlanError;
-          const queuePlan = await buildPlanningQueue({
-            db,
-            organizationId,
-            input: {
-              orderId: data.id,
-              allowClosedTarget: ["cancelado", "entregue", "concluido"].includes(data.status),
-            },
-          });
-          const { data: committed, error: commitError } = await db.rpc("commit_planning_queue", {
-            p_org_id: organizationId,
-            p_plans: queuePlan.plans.map((entry) => ({ orderId: entry.orderId, plan: entry.plan })),
-          });
-          if (commitError) throwDbError(commitError, "Não foi possível atualizar o calendário do pedido.");
-          const warningMessages = queuePlan.plans.flatMap(({ orderId, plan: queuedPlan }) =>
-            queuedPlan.feasible
-              ? []
-              : queuedPlan.conflicts.map((conflict: any) =>
-                `Pedido ${queuedPlan.order?.orderNumber || orderId}: ${conflict.message}`
-              )
-          );
-          planning = {
-            committed: true,
-            feasible: queuePlan.targetPlan?.feasible ?? true,
-            queueFeasible: queuePlan.queue.infeasibleOrderIds.length === 0,
-            replanOrderCount: queuePlan.queue.replanOrderCount,
-            removedFromPlan: queuePlan.removedTargetFromPlan,
-            plannedStartDate: queuePlan.targetPlan?.effectiveStartDate ?? null,
-            plannedEndDate: queuePlan.targetPlan?.plannedEndDate ?? null,
-            suggestedDueDate: queuePlan.targetPlan?.suggestedDueDate ?? null,
-            totalPlannedQuantity: queuePlan.targetPlan?.totalPlannedQuantity ?? 0,
-            totalRemainingQuantity: queuePlan.targetPlan?.totalRemainingQuantity ?? 0,
-            commit: committed,
-            warning: warningMessages.length ? warningMessages.slice(0, 5).join(" ") : null,
-          };
-        }
+        planning = {
+          ...(await replanOpenQueue(db, organizationId)),
+          simulatedOnly: data.status === "orcamento",
+        };
       } catch (planningError) {
-        const message = planningError instanceof OrderPlanningError
-          ? planningError.message
-          : "O pedido foi salvo, mas o calendário não pôde ser atualizado. Atualize o planejamento para tentar novamente.";
+        const message = "O pedido foi salvo, mas a fila não pôde ser atualizada. Recarregue o Planejamento e tente novamente.";
         planning = { committed: false, warning: message };
       }
       return json({ ok: true, order: data, planning });
@@ -669,7 +630,7 @@ async function handler(request: Request) {
       } catch (planningError) {
         planning = {
           committed: false,
-          warning: planningError instanceof OrderPlanningError
+          warning: planningError instanceof Error
             ? planningError.message
             : "A peça foi salva, mas o calendário não pôde ser recalculado. Atualize o planejamento.",
         };
@@ -704,7 +665,7 @@ async function handler(request: Request) {
       } catch (planningError) {
         planning = {
           committed: false,
-          warning: planningError instanceof OrderPlanningError
+          warning: planningError instanceof Error
             ? planningError.message
             : "A placa foi salva, mas o calendário não pôde ser recalculado. Atualize o planejamento.",
         };
@@ -745,6 +706,17 @@ async function handler(request: Request) {
       if (error) throwDbError(error, "Não foi possível salvar a posição.");
 
       const planning = await replanAfterPositionChange(db, organizationId, "A posição foi salva");
+      return json({ ok: true, position: data, planning });
+    }
+
+    if (action === "reset_position_form") {
+      const code = positionCodeValue(input);
+      const { data, error } = await db.rpc("reset_factory_position_form", {
+        p_org_id: organizationId,
+        p_code: code,
+      });
+      if (error) throwDbError(error, "Não foi possível desmontar a forma desta posição.");
+      const planning = await replanAfterPositionChange(db, organizationId, "A forma foi desmontada");
       return json({ ok: true, position: data, planning });
     }
 

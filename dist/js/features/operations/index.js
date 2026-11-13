@@ -291,7 +291,9 @@ export function initializeOperations({ operationsRepository, listPieceMoldOption
 
   function positionConfigLabel(position) {
     if (position.status === "em_manutencao") return "Indisponível para alocação";
-    return position.configuration_kind === "placa" ? "Bancada plana" : "Forma definida pelo pedido";
+    if (position.configuration_kind === "placa") return "Bancada plana";
+    const installed = position.installed_mold_catalog_codes || [];
+    return installed.length ? `Forma montada: ${installed.map(catalogLabel).join(" + ")}` : "Forma definida pelo pedido";
   }
 
   // Tabelas e indicadores: convertem o pacote do repositório em listas filtráveis.
@@ -435,10 +437,10 @@ export function initializeOperations({ operationsRepository, listPieceMoldOption
       <td>${escapeHtml(positionConfigLabel(position))}<span class="muted">${position.configuration_kind === "placa" ? "Uso exclusivo para placa · sem forma" : "A fila associa os moldes exigidos pelo item"}</span></td>
       <td>${badge(position.status)}</td>
       <td>${escapeHtml(position.notes || "—")}</td>
-      <td><div class="row-actions">${actionButton("edit-position", position.id, "Configurar")}</div></td>
+      <td><div class="row-actions">${actionButton("edit-position", position.id, "Configurar")}${position.installed_mold_catalog_codes?.length ? actionButton("reset-position-form", position.id, "Desmontar forma") : ""}</div></td>
     </tr>`).join("") || `<tr><td colspan="5" class="empty">Nenhuma posição encontrada.</td></tr>`;
     const setupStatus = state.supportsStage4 ? "" : `<div class="ops-form-hint full">Para configurar posições e formas, aplique database/007_stage4_piece_catalog_positions.sql e publique a Edge Function operations-admin atualizada.</div>`;
-    $("operationsTable").innerHTML = `<div class="operations-list-head"><div><h3>Posições físicas de produção</h3><p>Quatro posições fixas. Cada posição fica reservada durante a concretagem e a cura; o pedido define os moldes associados à posição.</p></div><input class="search" id="operationsSearch" value="${escapeHtml(state.query)}" placeholder="Pesquisar posição ou pedido" aria-label="Pesquisar posições" /></div>
+    $("operationsTable").innerHTML = `<div class="operations-list-head"><div><h3>Posições físicas de produção</h3><p>Quatro posições fixas. A preparação e a concretagem ocupam a posição; a cura acontece fora dela. A forma permanece montada até troca ou desmontagem.</p></div><input class="search" id="operationsSearch" value="${escapeHtml(state.query)}" placeholder="Pesquisar posição ou pedido" aria-label="Pesquisar posições" /></div>
       ${setupStatus}
       <div class="table-wrap"><table class="operations-table"><thead><tr><th>Posição</th><th>Configuração</th><th>Status</th><th>Observações</th><th>Ações</th></tr></thead><tbody>${positionRows}</tbody></table></div>
       <p class="operations-help">Braço usa a forma BRAÇO correspondente a X × Z. Pilar e Viga usam LEITO para X e LATERAL para Z; Y é o comprimento. A fila associa essas formas à primeira posição livre. Bancadas planas são reservadas para placas.</p>`;
@@ -777,7 +779,8 @@ export function initializeOperations({ operationsRepository, listPieceMoldOption
 
   function openOrderForm(order = null) {
     const workOptions = state.data.works.map((work) => [work.id, `${work.work_number ? `${work.work_number} · ` : ""}${work.name}`]);
-    const statusOptions = [["orcamento", "Orçamento"], ["aprovado", "Aprovado"], ["em_producao", "Em produção"], ["entregue", "Entregue"], ["atrasado", "Atrasado"], ["cancelado", "Cancelado"]];
+    const statusOptions = [["orcamento", "Orçamento"], ["em_producao", "Em produção"], ["entregue", "Entregue"], ["atrasado", "Atrasado"], ["cancelado", "Cancelado"]];
+    if (order && order.status !== "orcamento") statusOptions.splice(1, 0, ["aprovado", "Aprovado"]);
     const items = order?.items?.length ? order.items : [{}];
     const engineeringProject = order
       ? (state.data.engineeringProjects || []).find((project) => project.order_id === order.id)
@@ -1165,6 +1168,16 @@ export function initializeOperations({ operationsRepository, listPieceMoldOption
       return openProjectForm(data.engineeringProjects.find((item) => item.id === id));
     }
     if (action === "edit-position") return openPositionForm(data.positions.find((item) => item.id === id));
+    if (action === "reset-position-form") {
+      const position = data.positions.find((item) => item.id === id);
+      if (!position || !confirm(`Desmontar a forma montada em ${position.code}?`)) return;
+      try {
+        const response = await operationsRepository.resetPositionForm({ code: position.code });
+        toast(response?.planning?.warning || `Forma de ${position.code} desmontada.`);
+        await refreshData(true);
+      } catch (error) { showStatus(error.message || "Não foi possível desmontar a forma.", true); }
+      return;
+    }
     if (action === "prepare") return openPreparationForm(data.molds.find((item) => item.id === id));
     if (action === "allocate") return openAllocationForm(data.molds.find((item) => item.id === id));
     if (action === "edit-preparation") return openPreparationForm(null, data.preparations.find((item) => item.id === id));

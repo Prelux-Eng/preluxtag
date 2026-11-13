@@ -8,6 +8,7 @@
 import { buildCalendarDays } from "./calendar.js";
 import { addDays, PlannerError } from "./planner.js";
 import { simulateFactory } from "./factory-simulator.js";
+import { buildDailyProductionSteps } from "./production-phases.js";
 
 export class FactorySimulationError extends Error {
   constructor(message, status = 422) {
@@ -41,22 +42,31 @@ function selectedIds(input) {
   return unique;
 }
 
-async function fixedReservations({ db, organizationId, startedOrderIds, positions, timeZone }) {
-  if (!startedOrderIds.length) return [];
-  const units = checked(await db.from("production_orders")
+async function fixedReservations({ db, organizationId, startedOrderIds, positions, timeZone, today }) {
+  const units = startedOrderIds.length ? checked(await db.from("production_orders")
     .select("id, order_id")
     .eq("organization_id", organizationId)
     .in("order_id", startedOrderIds)
     .in("status", ["planned", "in_progress", "done", "scrapped"])
-    .limit(10000), "Não foi possível ler unidades em execução");
-  if (!units.length) return [];
+    .limit(10000), "Não foi possível ler unidades em execução") : [];
   const unitIds = units.map((unit) => unit.id);
-  const allocations = checked(await db.from("allocations")
-    .select("production_order_id, mold_position_id, scheduled_date, occupied_from_at, occupied_until_at, status")
+  const fields = "id, production_order_id, mold_position_id, scheduled_date, occupied_from_at, occupied_until_at, mold_catalog_codes, status";
+  const startedAllocations = unitIds.length ? checked(await db.from("allocations")
+    .select(fields)
     .eq("organization_id", organizationId)
     .in("production_order_id", unitIds)
     .in("status", ["planned", "in_progress", "done"])
-    .limit(10000), "Não foi possível ler posições ocupadas");
+    .limit(10000), "Não foi possível ler posições ocupadas") : [];
+  // Uma concretagem já concluída hoje também consumiu a posição hoje,
+  // mesmo que o pedido tenha saído da fila por entrega.
+  const completedToday = checked(await db.from("allocations")
+    .select(fields)
+    .eq("organization_id", organizationId)
+    .eq("status", "done")
+    .gte("scheduled_date", today)
+    .limit(10000), "Não foi possível ler concretagens concluídas");
+  const allocations = [...new Map([...startedAllocations, ...completedToday]
+    .map((allocation) => [allocation.id, allocation])).values()];
   const codeById = new Map(positions.map((position) => [position.id, position.code]));
   return allocations.map((allocation) => {
     const positionCode = codeById.get(allocation.mold_position_id);
@@ -68,23 +78,36 @@ async function fixedReservations({ db, organizationId, startedOrderIds, position
     const endDate = allocation.occupied_until_at
       ? localDate(new Date(Date.parse(allocation.occupied_until_at) - 1), timeZone)
       : allocation.scheduled_date;
-    return { positionCode, startDate, endDate };
+    return {
+      positionCode, startDate, endDate,
+      status: allocation.status,
+      moldCatalogCodes: allocation.mold_catalog_codes,
+      occupiedUntilAt: allocation.occupied_until_at,
+    };
   });
 }
 
-export async function simulateProductionOrders({ db, organizationId, input = {} }) {
+export async function simulateProductionOrders({ db, organizationId, input = {}, now = new Date() }) {
   if (!input || typeof input !== "object" || Array.isArray(input)) {
     throw new FactorySimulationError("Envie um objeto JSON com os pedidos a simular.", 400);
   }
   const requestedIds = selectedIds(input);
-  const [ordersResult, positionsResult, settingsResult, rulesResult, orgResult] = await Promise.all([
+  const revisionResult = await db.from("factory_plan_revisions")
+    .select("revision").eq("organization_id", organizationId).maybeSingle();
+  if (revisionResult.error) throw new FactorySimulationError("Não foi possível conferir a versão do Planejamento.", 500);
+  const sourceRevision = Number(revisionResult.data?.revision);
+  if (!Number.isSafeInteger(sourceRevision) || sourceRevision < 1) {
+    throw new FactorySimulationError("A versão do Planejamento não foi inicializada.", 500);
+  }
+
+  const [ordersResult, positionsResult, settingsResult, rulesResult, orgResult, constantsResult, formsResult] = await Promise.all([
     db.from("orders")
       .select("id, order_number, status, start_date, requested_due_date, approved_at, created_at, is_active")
       .eq("organization_id", organizationId).eq("is_active", true)
       .in("status", ["orcamento", "aprovado", "em_producao", "atrasado"])
       .limit(1000),
     db.from("mold_positions")
-      .select("id, code, status, configuration_kind, braco_catalog_code, leito_catalog_code, lateral_catalog_code")
+      .select("id, code, status, configuration_kind, braco_catalog_code, leito_catalog_code, lateral_catalog_code, form_reset_at")
       .eq("organization_id", organizationId).order("code", { ascending: true }),
     db.from("calendar_settings")
       .select("default_capacity_minutes, planning_horizon_days")
@@ -93,14 +116,29 @@ export async function simulateProductionOrders({ db, organizationId, input = {} 
       .select("weekday, is_working, capacity_minutes")
       .eq("organization_id", organizationId),
     db.from("organizations").select("timezone").eq("id", organizationId).maybeSingle(),
+    db.from("calculation_constants").select("constant_key, numeric_value, unit")
+      .eq("organization_id", organizationId).eq("constant_key", "casting_start_hour").maybeSingle(),
+    db.rpc("factory_installed_form_by_position", { p_org_id: organizationId }),
   ]);
   const allOrders = checked(ordersResult, "Não foi possível ler os pedidos");
-  const positions = checked(positionsResult, "Não foi possível ler as posições");
+  const organization = checked(orgResult, "Não foi possível ler a unidade");
+  const timeZone = organization.timezone || "America/Sao_Paulo";
+  const installedForms = new Map(checked(formsResult, "Não foi possível ler as formas montadas")
+    .map((form) => [form.mold_position_id, form.mold_catalog_codes]));
+  const positions = checked(positionsResult, "Não foi possível ler as posições").map((position) => ({
+    ...position,
+    installedMoldCatalogCodes: installedForms.get(position.id) || [],
+    formResetLocalDate: position.form_reset_at ? localDate(position.form_reset_at, timeZone) : null,
+  }));
   const settingsRow = checked(settingsResult, "Não foi possível ler o calendário");
   const settings = Array.isArray(settingsRow) ? { default_capacity_minutes: 480 } : settingsRow;
   const rules = checked(rulesResult, "Não foi possível ler os dias úteis");
-  const organization = checked(orgResult, "Não foi possível ler a unidade");
-  const timeZone = organization.timezone || "America/Sao_Paulo";
+  const castingStart = checked(constantsResult, "Não foi possível ler o horário de concretagem");
+  const startMinutes = Math.round(Number(castingStart?.numeric_value ?? 8) * 60);
+  if (!Number.isInteger(startMinutes) || startMinutes < 0 || startMinutes >= 24 * 60) {
+    throw new FactorySimulationError("O horário de concretagem configurado é inválido.", 409);
+  }
+  const castStartTime = `${String(Math.floor(startMinutes / 60)).padStart(2, "0")}:${String(startMinutes % 60).padStart(2, "0")}`;
   const selected = new Set(requestedIds);
   if (requestedIds.some((id) => !allOrders.some((order) => order.id === id))) {
     throw new FactorySimulationError("Um pedido selecionado não existe ou está encerrado.", 404);
@@ -108,48 +146,76 @@ export async function simulateProductionOrders({ db, organizationId, input = {} 
   const candidateOrders = allOrders.filter((order) =>
     ["aprovado", "em_producao", "atrasado"].includes(order.status) || selected.has(order.id)
   );
-  if (!candidateOrders.length) throw new FactorySimulationError("Não há pedidos para simular.");
+  if (!candidateOrders.length && input.allowEmpty !== true) throw new FactorySimulationError("Não há pedidos para simular.");
   if (candidateOrders.length > 30) throw new FactorySimulationError("A fila contém mais de 30 pedidos; reduza o cenário.", 422);
   if (positions.length !== 4) throw new FactorySimulationError("Cadastre as quatro posições P01–P04 antes de simular.", 409);
 
   const candidateIds = candidateOrders.map((order) => order.id);
-  const startedUnits = checked(await db.from("production_orders")
-    .select("order_id")
-    .eq("organization_id", organizationId)
-    .in("order_id", candidateIds)
-    .in("status", ["in_progress", "done", "scrapped"])
-    .limit(10000), "Não foi possível verificar produção iniciada");
-  const startedOrderIds = [...new Set(startedUnits.map((unit) => unit.order_id))];
+  const [unitsResult, startedSchedulesResult] = candidateIds.length ? await Promise.all([
+    db.from("production_orders").select("id, order_id, status").eq("organization_id", organizationId)
+      .in("order_id", candidateIds).limit(10000),
+    db.from("production_schedules").select("order_id").eq("organization_id", organizationId)
+      .in("order_id", candidateIds).in("status", ["in_progress", "done"]).limit(10000),
+  ]) : [{ data: [], error: null }, { data: [], error: null }];
+  const productionUnits = checked(unitsResult, "Não foi possível verificar produção iniciada");
+  const unitIds = productionUnits.map((unit) => unit.id);
+  const [startedStepsResult, startedAllocationsResult] = unitIds.length ? await Promise.all([
+    db.from("production_order_steps").select("production_order_id").eq("organization_id", organizationId)
+      .in("production_order_id", unitIds).in("status", ["in_progress", "done"]).limit(10000),
+    db.from("allocations").select("production_order_id").eq("organization_id", organizationId)
+      .in("production_order_id", unitIds).in("status", ["in_progress", "done"]).limit(10000),
+  ]) : [{ data: [], error: null }, { data: [], error: null }];
+  const startedUnitIds = new Set([
+    ...productionUnits.filter((unit) => ["in_progress", "done", "scrapped"].includes(unit.status)).map((unit) => unit.id),
+    ...checked(startedStepsResult, "Não foi possível verificar etapas iniciadas").map((step) => step.production_order_id),
+    ...checked(startedAllocationsResult, "Não foi possível verificar posições ocupadas").map((allocation) => allocation.production_order_id),
+  ]);
+  const startedOrderIds = [...new Set([
+    ...productionUnits.filter((unit) => startedUnitIds.has(unit.id)).map((unit) => unit.order_id),
+    ...checked(startedSchedulesResult, "Não foi possível verificar produção iniciada").map((schedule) => schedule.order_id),
+    ...candidateOrders.filter((order) => order.status === "em_producao").map((order) => order.id),
+  ])];
   if (requestedIds.some((id) => startedOrderIds.includes(id))) {
     throw new FactorySimulationError("Pedido com produção iniciada não pode ser reprogramado neste cenário.", 409);
   }
   const schedulableOrders = candidateOrders.filter((order) => !startedOrderIds.includes(order.id));
-  if (!schedulableOrders.length) throw new FactorySimulationError("Todos os pedidos da fila já iniciaram produção.", 409);
+  if (!schedulableOrders.length && input.allowEmpty !== true) {
+    throw new FactorySimulationError("Todos os pedidos da fila já iniciaram produção.", 409);
+  }
   const orderIds = schedulableOrders.map((order) => order.id);
-  const startDate = schedulableOrders.map((order) => order.start_date).sort()[0];
-  const endDate = addDays(schedulableOrders.map((order) => order.start_date).sort().at(-1), 740);
+  const today = localDate(now, timeZone);
+  const dates = schedulableOrders.map((order) => order.start_date > today ? order.start_date : today).sort();
+  const startDate = dates[0] || today;
+  const endDate = addDays(dates.at(-1) || today, 740);
 
   const [itemsResult, exceptionsResult, adjustmentsResult, reservations] = await Promise.all([
-    db.from("order_items")
-      .select("id, order_id, piece_type_id, quantity, sequence")
+    orderIds.length ? db.from("order_items")
+      .select("id, order_id, piece_type_id, quantity, sequence, production_minutes_snapshot")
       .eq("organization_id", organizationId).in("order_id", orderIds)
-      .order("sequence", { ascending: true }).limit(10000),
+      .order("sequence", { ascending: true }).limit(10000)
+      : Promise.resolve({ data: [], error: null }),
     db.from("calendar_exceptions")
       .select("id, name, kind, start_date, end_date, is_working, capacity_minutes, priority, is_active, updated_at")
       .eq("organization_id", organizationId).eq("is_active", true)
       .lte("start_date", endDate).gte("end_date", startDate),
-    db.from("delay_adjustments")
+    orderIds.length ? db.from("delay_adjustments")
       .select("order_id, impact_days")
-      .eq("organization_id", organizationId).in("order_id", orderIds).limit(10000),
-    fixedReservations({ db, organizationId, startedOrderIds, positions, timeZone }),
+      .eq("organization_id", organizationId).in("order_id", orderIds).limit(10000)
+      : Promise.resolve({ data: [], error: null }),
+    fixedReservations({ db, organizationId, startedOrderIds, positions, timeZone, today }),
   ]);
   const items = checked(itemsResult, "Não foi possível ler os itens");
   const exceptions = checked(exceptionsResult, "Não foi possível ler as exceções");
   const adjustments = checked(adjustmentsResult, "Não foi possível ler ajustes de prazo");
+  const orderIdsWithItems = new Set(items.map((item) => item.order_id));
+  const selectedWithoutItems = requestedIds.find((id) => !orderIdsWithItems.has(id));
+  if (selectedWithoutItems) {
+    throw new FactorySimulationError("Inclua ao menos um item no orçamento antes de simulá-lo.", 422);
+  }
   const pieceIds = [...new Set(items.map((item) => item.piece_type_id))];
   const [piecesResult, moldsResult] = await Promise.all([
     pieceIds.length ? db.from("piece_types")
-      .select("id, piece_kind, dimension_x_cm, dimension_y_cm, dimension_z_cm")
+      .select("id, piece_kind, dimension_x_cm, dimension_y_cm, dimension_z_cm, curing_days")
       .eq("organization_id", organizationId).in("id", pieceIds)
       : Promise.resolve({ data: [], error: null }),
     pieceIds.length ? db.from("piece_type_molds")
@@ -172,6 +238,7 @@ export async function simulateProductionOrders({ db, organizationId, input = {} 
     list.push({
       ...item,
       pieceKind: piece.piece_kind,
+      curingDays: piece.curing_days || 2,
       requiredMoldCodes: moldsByPiece.get(piece.id) || [],
       dimensionXcm: piece.dimension_x_cm,
       dimensionYcm: piece.dimension_y_cm,
@@ -184,27 +251,55 @@ export async function simulateProductionOrders({ db, organizationId, input = {} 
     impactByOrder.set(adjustment.order_id,
       (impactByOrder.get(adjustment.order_id) || 0) + Number(adjustment.impact_days));
   }
-  const calendarDays = buildCalendarDays({
-    startDate,
-    endDate,
-    settings,
-    rules,
-    exceptions,
-  });
+  const calendarDays = buildCalendarDays({ startDate, endDate, settings, rules, exceptions });
   const scenario = simulateFactory({
     calendarDays,
     positions,
     existingReservations: reservations,
-    orders: schedulableOrders.map((order) => ({
+    earliestSchedulingDate: today,
+    orders: schedulableOrders.filter((order) => orderIdsWithItems.has(order.id)).map((order) => ({
       ...order,
       items: itemsByOrder.get(order.id) || [],
       adjustmentDays: impactByOrder.get(order.id) || 0,
     })),
   });
+
+  const itemById = new Map(items.map((item) => [item.id, item]));
+  for (const order of scenario.orders) {
+    for (const unit of order.units) {
+      const item = itemById.get(unit.itemId);
+      const piece = pieceById.get(item?.piece_type_id);
+      const curingDays = Number(piece?.curing_days || 2);
+      const phases = buildDailyProductionSteps({
+        castDate: unit.castDate,
+        finishDate: unit.finishDate,
+        preparationDates: unit.preparationDates,
+        calendarDays,
+        curingDays,
+        timeZone,
+        castStartTime,
+      });
+      Object.assign(unit, {
+        curingDays,
+        productionMinutesSnapshot: Number(item?.production_minutes_snapshot || 0),
+        plannedEndDate: unit.finishDate,
+        ...phases,
+      });
+    }
+  }
+
+  const revisionAfter = await db.from("factory_plan_revisions")
+    .select("revision").eq("organization_id", organizationId).maybeSingle();
+  if (revisionAfter.error) throw new FactorySimulationError("Não foi possível validar os dados do Planejamento.", 500);
+  if (Number(revisionAfter.data?.revision) !== sourceRevision) {
+    throw new FactorySimulationError("Os dados do Planejamento mudaram durante o cálculo. Atualize a simulação.", 409);
+  }
+
   return {
     ...scenario,
     selectedOrderIds: requestedIds,
     fixedStartedOrderCount: startedOrderIds.length,
     generatedAt: new Date().toISOString(),
+    commitContext: { sourceRevision, calendarDays, timeZone, castStartTime },
   };
 }

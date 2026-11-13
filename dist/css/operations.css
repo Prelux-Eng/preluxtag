@@ -1,6 +1,7 @@
 #operationsView[hidden]{display:none!important}
 .planning-backlog{margin-bottom:20px;padding:18px 20px}
 .planning-backlog-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}
+.planning-scenario-actions{display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:wrap}
 .planning-backlog-head h3{margin:0;font-size:15px}
 .planning-backlog-head p{margin:5px 0 0;color:var(--muted);font-size:12px;line-height:1.5}
 .planning-backlog-count{display:grid;place-items:center;flex:0 0 auto;min-width:30px;height:30px;border-radius:999px;background:#edf7ff;color:#145f95;font-size:13px;font-weight:850}

@@ -38,11 +38,12 @@ Se o comando `npm` não estiver disponível, execute `node scripts/serve.mjs`. D
 
 Consulte [`database/README.md`](database/README.md) para a ordem das migrações e [`backend/README.md`](backend/README.md) para publicação das Edge Functions.
 Para decisões e pendências da Etapa 5, consulte [`docs/FABIO_II_ETAPA5_REVISAO.md`](docs/FABIO_II_ETAPA5_REVISAO.md).
+O fluxo de simulação e confirmação da fila está em [`docs/ETAPA5_CONFIRMACAO_PLANO.md`](docs/ETAPA5_CONFIRMACAO_PLANO.md).
 O motor de simulação da Etapa 2 e sua API somente de leitura estão documentados em [`docs/ETAPA2_MOTOR_SIMULACAO.md`](docs/ETAPA2_MOTOR_SIMULACAO.md).
 O calendário de previsão da Etapa 3 está documentado em [`docs/ETAPA3_CALENDARIO.md`](docs/ETAPA3_CALENDARIO.md).
 
 - Em uma instalação nova, aplique os scripts `database/001` a `database/014` na ordem descrita.
-- O projeto Supabase em uso já contém as migrations 001–014. As posições são espaços físicos que recebem os moldes exigidos por cada pedido.
+- O projeto Supabase em uso contém a estrutura até a migration 018. As posições são espaços físicos que recebem os moldes exigidos por cada pedido.
 - Pedidos com obra herdam cliente e início; sem obra, os dados são informados no pedido. BRAÇO usa X × Z; Pilar e Viga usam LEITO para X e LATERAL para Z, com Y como comprimento.
 - Volume e peso seguem calculados pela lógica existente no site.
 - As migrations `database/009_fabio2_foundation.sql` a `database/014_order_approval_timestamp.sql` fazem parte do schema ativo do Supabase.

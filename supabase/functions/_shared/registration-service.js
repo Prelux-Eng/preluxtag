@@ -3,7 +3,7 @@
  * A Edge Function valida a chamada HTTP; este servico aplica as regras,
  * consulta o dominio de planejamento e delega a gravacao atomica a uma RPC.
  */
-import { buildPlanningQueue } from "./order-planning.js";
+import { reconcileFactoryPlan } from "./factory-plan-service.js";
 import { calculatePieceMetrics } from "./piece-metrics.js";
 import { resolveRequestedDueDate } from "./registration-rules.js";
 import { registrationRepository } from "./registration-repository.js";
@@ -130,44 +130,8 @@ export async function createOrderPieceRegistration(db, organizationId, input) {
       : "A forma LEITO precisa corresponder a X e a LATERAL precisa corresponder a Z.", 422);
   }
 
-  const draftOrder = {
-    id: orderId,
-    order_number: "",
-    client_id: null,
-    start_date: startDate,
-    requested_due_date: dueDate,
-    planned_end_date: null,
-    forecast_end_date: null,
-    status: "orcamento",
-    created_at: new Date().toISOString(),
-    is_active: true,
-  };
-  const draftItem = {
-    id: itemId,
-    order_id: orderId,
-    piece_type_id: pieceId,
-    quantity,
-    production_minutes_snapshot: castingMinutes,
-    sequence: 1,
-  };
-
-  // Este fluxo legado também cria orçamento; deixa a reserva para a aprovação.
-  const queuePlan = draftOrder.status === "orcamento" ? null : await buildPlanningQueue({
-    db,
-    organizationId,
-    input: {
-      persistCalendarDays: false,
-      draft: { order: draftOrder, item: draftItem, piece, requiredMoldCodes: molds.map((mold) => mold.catalogCode) },
-    },
-  });
-
-  const targetPlan = queuePlan?.targetPlan || null;
-  const targetHasPosition = Boolean(targetPlan?.feasible);
-  const plans = (queuePlan?.plans || [])
-    .filter((entry) => entry.orderId !== orderId || targetHasPosition)
-    .map((entry) => ({ orderId: entry.orderId, plan: entry.plan }));
-  const plannedDates = new Set(plans.flatMap((entry) => entry.plan.units.map((unit) => unit.castDate)));
-  const planningCalendarDays = (queuePlan?.calendarDays || []).filter((day) => plannedDates.has(day.date));
+  // Este fluxo cria um orçamento. Não calcula nem grava posições; a confirmação
+  // passa exclusivamente pelo Planejamento transacional da Etapa 5.
   const registration = {
     orderId,
     itemId,
@@ -189,8 +153,8 @@ export async function createOrderPieceRegistration(db, organizationId, input) {
       productionMinutesPerUnit: castingMinutes,
       moldCatalogs: Object.fromEntries(molds.map((mold) => [mold.role, mold.catalogCode])),
     },
-    plans,
-    planningCalendarDays,
+    plans: [],
+    planningCalendarDays: [],
   };
   const { data, error } = await registrationRepository.createRegistration(db, organizationId, registration);
   if (error) throwDatabaseError(error, "Nao foi possivel gravar obra, pedido, peca e planejamento. A RPC depende da proposta SQL aprovada.");
@@ -198,14 +162,12 @@ export async function createOrderPieceRegistration(db, organizationId, input) {
   return {
     registration: data,
     planning: {
-      committed: Boolean(queuePlan) && targetHasPosition,
-      simulatedOnly: !queuePlan,
-      waitingForPosition: Boolean(queuePlan) && !targetHasPosition,
-      feasible: queuePlan ? targetHasPosition : null,
-      plannedUnitCount: targetPlan?.units?.length || 0,
-      warning: !queuePlan
-        ? "Orçamento salvo sem reserva; simule no Planejamento."
-        : targetHasPosition ? null : "Pedido salvo e aguardando uma posição livre.",
+      committed: false,
+      simulatedOnly: true,
+      waitingForPosition: false,
+      feasible: null,
+      plannedUnitCount: 0,
+      warning: "Orçamento salvo sem reserva; simule no Planejamento.",
     },
   };
 }
@@ -322,33 +284,9 @@ export async function addOrderPieceItem(db, organizationId, input) {
       : "Não existe a combinação cadastrada de LEITO X e LATERAL Z para essas medidas.", 422);
   }
 
-  const draftItem = {
-    id: itemId,
-    order_id: orderId,
-    piece_type_id: pieceId,
-    quantity,
-    production_minutes_snapshot: castingMinutes,
-    sequence,
-  };
   // Orçamentos podem ser simulados no Planejamento, mas não gravam alocações.
   // Somente pedidos aprovados entram na fila que confirma posições.
   const isBudget = order.status === "orcamento";
-  const queuePlan = isBudget ? null : await buildPlanningQueue({
-    db,
-    organizationId,
-    input: {
-      orderId,
-      persistCalendarDays: false,
-      draft: { item: draftItem, piece, requiredMoldCodes: molds.map((mold) => mold.catalogCode) },
-    },
-  });
-  const targetPlan = queuePlan?.targetPlan || null;
-  const targetHasPosition = Boolean(targetPlan?.feasible);
-  const plans = (queuePlan?.plans || [])
-    .filter((entry) => entry.orderId !== orderId || targetHasPosition)
-    .map((entry) => ({ orderId: entry.orderId, plan: entry.plan }));
-  const plannedDates = new Set(plans.flatMap((entry) => entry.plan.units.map((unit) => unit.castDate)));
-  const planningCalendarDays = (queuePlan?.calendarDays || []).filter((day) => plannedDates.has(day.date));
 
   const registration = {
     orderId,
@@ -370,24 +308,45 @@ export async function addOrderPieceItem(db, organizationId, input) {
       productionMinutesPerUnit: castingMinutes,
       moldCatalogs: Object.fromEntries(molds.map((mold) => [mold.role, mold.catalogCode])),
     },
-    plans,
-    planningCalendarDays,
+    // A gravação do item não envia horários antigos. O motor da Etapa 5
+    // refaz a fila a partir dos dados persistidos depois que a RPC retorna.
+    plans: [],
+    planningCalendarDays: [],
   };
   const { data, error } = await registrationRepository.addOrderPieceItem(db, organizationId, registration);
   if (error) throwDatabaseError(error, "Não foi possível salvar o item, a peça e o planejamento.");
 
+  let scenario = null;
+  let result = null;
+  let planningError = null;
+  if (!isBudget) {
+    try {
+      ({ scenario, result } = await reconcileFactoryPlan({ db, organizationId }));
+    } catch (error) {
+      planningError = error;
+    }
+  }
+  const targetPlan = scenario?.orders?.find((entry) => entry.orderId === orderId) || null;
+  const plannedUnitCount = Number(targetPlan?.totalPlannedQuantity || 0);
+  const requestedUnitCount = Number(targetPlan?.totalRequestedQuantity || quantity);
+  const waitingForPosition = !isBudget && plannedUnitCount < requestedUnitCount;
+  const warning = isBudget
+    ? "Orçamento salvo sem reserva; simule-o no Planejamento."
+    : planningError
+      ? "O item foi salvo, mas a fila não pôde ser atualizada. Recarregue o Planejamento."
+      : waitingForPosition ? "O item foi salvo e parte da quantidade aguarda posição livre." : null;
+
   return {
     registration: data,
     planning: {
-      committed: !isBudget && targetHasPosition,
+      committed: !isBudget && !planningError,
       simulatedOnly: isBudget,
-      waitingForPosition: !isBudget && !targetHasPosition,
-      feasible: targetHasPosition,
-      plannedUnitCount: targetPlan?.units?.length || 0,
-      positionCodes: data?.positionCodes || [],
-      warning: isBudget
-        ? "Orçamento salvo sem reserva; simule no Planejamento."
-        : targetHasPosition ? null : "O item foi salvo e aguarda uma posição livre.",
+      waitingForPosition,
+      feasible: Boolean(targetPlan?.feasible),
+      plannedUnitCount,
+      positionCodes: [...new Set((targetPlan?.units || []).map((unit) => unit.positionCode))],
+      reservedUnitCount: result?.scheduledUnitCount || 0,
+      warning,
     },
   };
 }
