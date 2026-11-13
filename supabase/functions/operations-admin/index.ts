@@ -13,7 +13,7 @@ import { addOrderPieceItem, createOrderHeader, createOrderPieceRegistration } fr
 import { createAdminClient } from "../_shared/supabaseClient.js";
 
 const WORK_STATUSES = new Set(["planejamento", "ativa", "concluida", "cancelada"]);
-const ORDER_STATUSES = new Set(["orcamento", "aprovado", "em_producao", "entregue", "atrasado", "cancelado"]);
+const ORDER_STATUSES = new Set(["orcamento", "aprovado", "em_producao", "concluido", "entregue", "atrasado", "cancelado"]);
 const MOLD_STATUSES = new Set(["ativo", "manutencao", "bloqueado", "retirado"]);
 const POSITION_STATUSES = new Set(["disponivel", "em_preparacao", "em_producao", "em_manutencao"]);
 const PREPARATION_STATUSES = new Set(["planejada", "em_andamento", "aguardando_aprovacao", "aprovada", "reprovada", "cancelada"]);
@@ -201,7 +201,7 @@ async function readOperationsData(db: any, organizationId: string) {
       .eq("organization_id", organizationId).order("planned_start_at").limit(10000),
     db.from("calculation_constants").select("constant_key, numeric_value, unit")
       .eq("organization_id", organizationId).order("constant_key"),
-    db.from("production_orders").select("id, order_id, order_item_id, status")
+    db.from("production_orders").select("id, order_id, order_item_id, unit_sequence, status")
       .eq("organization_id", organizationId).limit(20000),
   ]);
   const fabio2Results = [projectsResult, sectionsResult, sectionItemsResult, stepsResult, constantsResult, productionOrdersResult];
@@ -229,6 +229,12 @@ async function readOperationsData(db: any, organizationId: string) {
     itemsByOrder.set(item.order_id, list);
   }
   const orderItemById = new Map((itemsResult.data || []).map((item: any) => [item.id, item]));
+  const productionStepsByUnit = new Map<string, any[]>();
+  for (const step of stepsResult.data || []) {
+    const list = productionStepsByUnit.get(step.production_order_id) || [];
+    list.push(step);
+    productionStepsByUnit.set(step.production_order_id, list);
+  }
   const sectionsByProject = new Map<string, any[]>();
   for (const section of sectionsResult.data || []) {
     const rows = sectionsByProject.get(section.project_id) || [];
@@ -301,6 +307,12 @@ async function readOperationsData(db: any, organizationId: string) {
     allocations: allocationsResult.data || [],
     engineeringProjects: projects,
     productionOrderSteps: fabio2Available ? stepsResult.data || [] : [],
+    productionUnits: fabio2Available ? (productionOrdersResult.data || []).map((unit: any) => {
+      const item: any = orderItemById.get(unit.order_item_id);
+      const piece: any = pieceById.get(item?.piece_type_id);
+      return { ...unit, piece_code: piece?.code || "", piece_name: piece?.name || "",
+        steps: (productionStepsByUnit.get(unit.id) || []).sort((a, b) => a.sequence - b.sequence) };
+    }) : [],
     calculationConstants: fabio2Available ? constantsResult.data || [] : [],
   };
 }
@@ -456,7 +468,7 @@ async function handler(request: Request) {
         : { data: null, error: null };
       if (previousOrderResult.error) throwDbError(previousOrderResult.error, "Não foi possível conferir o status atual do pedido.");
       if ((!previousOrderResult.data || previousOrderResult.data.status === "orcamento")
-        && ["aprovado", "em_producao", "atrasado", "entregue"].includes(order.status)) {
+        && ["aprovado", "em_producao", "concluido", "atrasado", "entregue"].includes(order.status)) {
         throw badRequest("A aprovação deve ser feita na área Planejamento, junto com a confirmação da reserva de posições.", 409);
       }
       let data: any;
@@ -718,6 +730,15 @@ async function handler(request: Request) {
       if (error) throwDbError(error, "Não foi possível desmontar a forma desta posição.");
       const planning = await replanAfterPositionChange(db, organizationId, "A forma foi desmontada");
       return json({ ok: true, position: data, planning });
+    }
+
+    if (action === "complete_production_step") {
+      const stepId = textValue(input.stepId, "a etapa", 80, true);
+      const { data, error } = await db.rpc("complete_production_step", {
+        p_org_id: organizationId, p_step_id: stepId,
+      });
+      if (error) throwDbError(error, "Não foi possível concluir a etapa de produção.");
+      return json({ ok: true, production: data });
     }
 
     if (action === "calculate_preparation_end") {

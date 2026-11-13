@@ -57,19 +57,19 @@ export function initializeOperations({ operationsRepository, listPieceMoldOption
   function statusLabel(value) {
     const labels = {
       planejamento: "Planejamento", ativa: "Ativa", concluida: "Concluída", cancelada: "Cancelada",
-      orcamento: "Orçamento", aprovado: "Aprovado", em_producao: "Em produção", concluido: "Concluído (legado)",
+      orcamento: "Orçamento", aprovado: "Aprovado", em_producao: "Em produção", concluido: "Concluído",
       entregue: "Entregue", atrasado: "Atrasado", cancelado: "Cancelado", ativo: "Ativo",
       manutencao: "Manutenção", bloqueado: "Bloqueado", retirado: "Retirado", planejada: "Planejada",
       disponivel: "Disponível", em_preparacao: "Em preparação", em_manutencao: "Em manutenção",
       em_andamento: "Em andamento", aguardando_aprovacao: "Aguardando aprovação", aprovada: "Aprovada",
       reprovada: "Reprovada", planned: "Planejada", in_progress: "Em andamento", done: "Concluída",
-      cancelled: "Cancelada",
+      cancelled: "Cancelada", pronta: "Pronta",
     };
     return labels[value] || value || "—";
   }
 
   function badge(value) {
-    const tone = ["ativa", "concluida", "aprovado", "em_producao", "entregue", "ativo", "aprovada", "done", "disponivel"].includes(value)
+    const tone = ["ativa", "concluida", "concluido", "pronta", "aprovado", "em_producao", "entregue", "ativo", "aprovada", "done", "disponivel"].includes(value)
       ? "good"
       : ["atrasado", "manutencao", "em_manutencao", "em_preparacao", "aguardando_aprovacao", "em_andamento", "in_progress"].includes(value)
         ? "warn"
@@ -94,7 +94,7 @@ export function initializeOperations({ operationsRepository, listPieceMoldOption
       </div>
       <div class="metric-grid">
         <div class="card metric-card"><small>Obras ativas</small><strong id="operationsWorksMetric">—</strong><span>cadastros em andamento</span></div>
-        <div class="card metric-card"><small>Pedidos abertos</small><strong id="operationsOrdersMetric">—</strong><span>fora dos status entregues, cancelados ou legados</span></div>
+        <div class="card metric-card"><small>Pedidos abertos</small><strong id="operationsOrdersMetric">—</strong><span>fora dos status concluídos, entregues ou cancelados</span></div>
         <div class="card metric-card"><small>Tipos de peça</small><strong id="operationsPiecesMetric">—</strong><span>catálogo ativo</span></div>
         <div class="card metric-card"><small>Formas disponíveis</small><strong id="operationsMoldsMetric">—</strong><span>formas ativas</span></div>
         <div class="card metric-card"><small>Posições configuradas</small><strong id="operationsPositionsMetric">—</strong><span>de 4 posições físicas</span></div>
@@ -136,14 +136,6 @@ export function initializeOperations({ operationsRepository, listPieceMoldOption
       const button = event.target.closest("button[data-flow-stage]");
       if (!button) return;
       const stage = button.dataset.flowStage;
-      if (stage === "produzir") {
-        state.tab = "orders";
-        state.cadastroOpen = false;
-        renderTabs();
-        renderTable();
-        navigate?.("planejamento");
-        return;
-      }
       state.tab = stage;
       state.cadastroOpen = false;
       state.query = "";
@@ -212,9 +204,9 @@ export function initializeOperations({ operationsRepository, listPieceMoldOption
     ).join("");
     $("operationsCadastroHeading").hidden = !state.cadastroOpen;
     $("operationsTabs").hidden = !state.cadastroOpen;
-    const labels = { works: "Nova obra", orders: "Novo pedido", engineering: "Novo pedido", projects: "Novo projeto", pieces: "Nova peça", molds: "Nova forma", positions: "Gerenciar posições" };
+    const labels = { works: "Nova obra", orders: "Novo pedido", engineering: "Novo pedido", projects: "Novo projeto", produzir: "Produção", pieces: "Nova peça", molds: "Nova forma", positions: "Gerenciar posições" };
     $("operationsNew").textContent = labels[state.tab];
-    $("operationsNew").hidden = state.tab === "engineering" || state.tab === "positions";
+    $("operationsNew").hidden = ["engineering", "produzir", "positions"].includes(state.tab);
   }
 
   function metric(id, value) { $(id).textContent = String(value); }
@@ -367,6 +359,9 @@ export function initializeOperations({ operationsRepository, listPieceMoldOption
           <td><div class="row-actions">${actionButton("edit-project", project.id, "Abrir projeto")}</div></td>
         </tr>`;
       }).join("") : `<tr><td colspan="5" class="empty">Ainda não há projetos de engenharia. Crie um projeto a partir de um pedido ativo.</td></tr>`;
+    } else if (state.tab === "produzir") {
+      renderProduction(filter);
+      return;
     } else if (state.tab === "pieces") {
       $("operationsTable").innerHTML = tableHeader("Catálogo de peças", "Tipos fixos, dimensões em centímetros e métricas calculadas automaticamente.", "Pesquisar código ou peça", ["Código / peça", "Tipo", "Medidas (cm)", "Volume / peso", "Etapas", "Formas", "Ações"]);
       const rows = data.pieceTypes.filter((piece) => `${piece.code} ${piece.name} ${piece.piece_kind || ""} ${piece.dimensions}`.toLocaleLowerCase().includes(filter));
@@ -387,6 +382,27 @@ export function initializeOperations({ operationsRepository, listPieceMoldOption
       renderMolds(filter);
       return;
     }
+    $("operationsSearch").addEventListener("input", (event) => { state.query = event.target.value; renderTable(state.query); });
+  }
+
+  function renderProduction(filter) {
+    const orders = new Map(state.data.orders.map((order) => [order.id, order]));
+    const units = (state.data.productionUnits || []).filter((unit) => {
+      const order = orders.get(unit.order_id);
+      return `${order?.order_number || ""} ${unit.piece_code} ${unit.piece_name} ${unit.status}`
+        .toLocaleLowerCase().includes(filter);
+    });
+    $("operationsTable").innerHTML = tableHeader("Produzir", "Conclua cada etapa da unidade. A peça fica Pronta após todas as etapas; o pedido fica Concluído quando todas as quantidades estiverem prontas.", "Pesquisar pedido ou peça", ["Pedido", "Peça produzida", "Etapas", "Status da peça", "Ação"]);
+    $("operationsRows").innerHTML = units.length ? units.map((unit) => {
+      const order = orders.get(unit.order_id);
+      const next = (unit.steps || []).find((step) => step.status !== "done");
+      const steps = (unit.steps || []).map((step) => `${escapeHtml(step.step_kind)}: ${escapeHtml(statusLabel(step.status))}`).join(" · ");
+      const canFinish = next && !["cancelled", "scrapped", "pronta"].includes(unit.status) && next.status !== "cancelled";
+      return `<tr><td>${escapeHtml(order?.order_number || "Pedido")}<span class="muted">${badge(order?.status)}</span></td>
+        <td>${escapeHtml(unit.piece_code || unit.piece_name || "Peça")} · unidade ${Number(unit.unit_sequence)}</td>
+        <td>${steps || "Etapas não cadastradas"}</td><td>${badge(unit.status)}</td>
+        <td><div class="row-actions">${canFinish ? actionButton("complete-production-step", next.id, `Concluir ${escapeHtml(next.step_kind)}`) : unit.status === "pronta" ? "Peça pronta" : "Aguardando etapa"}</div></td></tr>`;
+    }).join("") : `<tr><td colspan="5" class="empty">Nenhuma unidade programada. Confirme um pedido no Planejamento para iniciar a produção.</td></tr>`;
     $("operationsSearch").addEventListener("input", (event) => { state.query = event.target.value; renderTable(state.query); });
   }
 
@@ -781,6 +797,7 @@ export function initializeOperations({ operationsRepository, listPieceMoldOption
     const workOptions = state.data.works.map((work) => [work.id, `${work.work_number ? `${work.work_number} · ` : ""}${work.name}`]);
     const statusOptions = [["orcamento", "Orçamento"], ["em_producao", "Em produção"], ["entregue", "Entregue"], ["atrasado", "Atrasado"], ["cancelado", "Cancelado"]];
     if (order && order.status !== "orcamento") statusOptions.splice(1, 0, ["aprovado", "Aprovado"]);
+    if (order) statusOptions.splice(3, 0, ["concluido", "Concluído"]);
     const items = order?.items?.length ? order.items : [{}];
     const engineeringProject = order
       ? (state.data.engineeringProjects || []).find((project) => project.order_id === order.id)
@@ -794,7 +811,8 @@ export function initializeOperations({ operationsRepository, listPieceMoldOption
       <div class="ops-form-hint full" id="orderClientHelp">Ao escolher uma obra, o pedido usa automaticamente o cliente cadastrado nela.</div>
       ${inputField("startDate", "Data de início", order?.start_date || today(), "date", { required: true, readonly: Boolean(order?.work_id) })}
       ${inputField("requestedDueDate", "Prazo solicitado", order?.requested_due_date || "", "date", { optional: true })}
-      ${selectField("status", "Status", order?.status === "concluido" ? "" : order?.status || "orcamento", statusOptions, { required: true, placeholder: order?.status === "concluido" ? "Escolha um status vigente" : "Selecione o status" })}
+      ${selectField("status", "Status", order?.status || "orcamento", statusOptions, { required: true, placeholder: "Selecione o status" })}
+      <div class="ops-form-hint full">Concluído é aplicado quando todas as unidades produzidas estiverem Prontas.</div>
       <div class="field full"><label>Itens do pedido <span>o prazo resulta das etapas e da preparação da forma quando necessária</span></label><div class="ops-items" id="orderItems">${items.map(orderItemRow).join("")}</div><div class="ops-inline-actions"><button class="btn" type="button" id="addOrderItem">Adicionar item</button></div></div>
       ${projectEditor}
       ${textareaField("observations", "Observações", order?.observations || "")}
@@ -1168,6 +1186,16 @@ export function initializeOperations({ operationsRepository, listPieceMoldOption
       return openProjectForm(data.engineeringProjects.find((item) => item.id === id));
     }
     if (action === "edit-position") return openPositionForm(data.positions.find((item) => item.id === id));
+    if (action === "complete-production-step") {
+      if (!confirm("Confirmar a conclusão desta etapa de produção?")) return;
+      try {
+        const response = await operationsRepository.completeProductionStep({ stepId: id });
+        toast(response?.production?.unitStatus === "pronta" ? "Peça pronta." : "Etapa concluída.");
+        await refreshData(true);
+        window.dispatchEvent(new CustomEvent("prelux:operations:changed", { detail: { kind: "production", id } }));
+      } catch (error) { showStatus(error.message || "Não foi possível concluir a etapa.", true); }
+      return;
+    }
     if (action === "reset-position-form") {
       const position = data.positions.find((item) => item.id === id);
       if (!position || !confirm(`Desmontar a forma montada em ${position.code}?`)) return;

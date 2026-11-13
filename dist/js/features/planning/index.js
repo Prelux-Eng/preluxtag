@@ -308,7 +308,7 @@ export function initializePlanning({ planningRepository, operationsRepository, n
       const orderId = unitOrder(value);
       const order = orderById(orderId);
       const isCasting = event.kind === "casting";
-      const statusClass = value.status === "in_progress" ? "in-progress" : value.status === "done" ? "done" : "";
+      const statusClass = value.status === "in_progress" ? "in-progress" : ["done", "pronta"].includes(value.status) ? "done" : "";
       const className = event.kind === "preparation" ? "preparation-event" : event.kind === "casting" ? "casting-event" : event.kind === "curing" ? "curing-event" : "finish-event";
       const title = `${phaseEventLabel(event)} · ${formatDateBR(date)}${value.forecast_kind ? " · previsão sem reserva gravada" : ""}${event.kind === "curing" ? " · cura não ocupa posição" : ""}`;
       const label = !useLegacyScheduleView() ? phaseEventLabel(event) : `${formatOrder(order)} · ${value.piece_code || "produção"} · ${Number(value.planned_quantity)} un.`;

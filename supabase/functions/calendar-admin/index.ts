@@ -158,7 +158,7 @@ async function readPlanningData(db: ReturnType<typeof createAdminClient>, organi
     db.from("production_orders")
       .select("id, order_id, order_item_id, unit_sequence, planned_cast_date, planned_cure_start_date, planned_cure_end_date, planned_finish_date, planned_end_date, forecast_end_date, curing_days, production_minutes_snapshot, status")
       .eq("organization_id", organizationId)
-      .in("status", ["planned", "in_progress", "done"])
+      .in("status", ["planned", "in_progress", "done", "pronta"])
       .lte("planned_cast_date", endDate)
       .gte("planned_end_date", startDate)
       .order("planned_cast_date")
@@ -198,7 +198,7 @@ async function readPlanningData(db: ReturnType<typeof createAdminClient>, organi
       ? db.from("production_schedules").select("order_id").eq("organization_id", organizationId).in("order_id", orderIds).in("status", ["in_progress", "done"]).limit(10000)
       : Promise.resolve({ data: [], error: null }),
     orderIds.length
-      ? db.from("production_orders").select("order_id").eq("organization_id", organizationId).in("order_id", orderIds).in("status", ["in_progress", "done", "scrapped"]).limit(10000)
+      ? db.from("production_orders").select("order_id").eq("organization_id", organizationId).in("order_id", orderIds).in("status", ["in_progress", "done", "pronta", "scrapped"]).limit(10000)
       : Promise.resolve({ data: [], error: null }),
   ]);
   if (clientsResult.error) throw clientsResult.error;

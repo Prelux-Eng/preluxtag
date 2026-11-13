@@ -94,7 +94,7 @@ function registrationMockDb(positions) {
 }
 
 const draftRegistration = {
-  order: { id: "order-new", order_number: "", client_id: null, start_date: "2026-01-05", requested_due_date: "2026-04-05", status: "orcamento", created_at: "2026-01-01T00:00:00Z", is_active: true },
+  order: { id: "order-new", order_number: "", client_id: null, start_date: "2026-01-05", requested_due_date: "2026-04-05", status: "aprovado", created_at: "2026-01-01T00:00:00Z", is_active: true },
   item: { id: "item-new", order_id: "order-new", piece_type_id: "piece-new", quantity: 1, production_minutes_snapshot: 30, sequence: 1 },
   piece: { id: "piece-new", organization_id: "org-1", code: "V-01", name: "Viga", piece_kind: "viga", production_minutes_per_unit: 30 },
   requiredMoldCodes: ["LEITO_25", "LATERAL_40"],
