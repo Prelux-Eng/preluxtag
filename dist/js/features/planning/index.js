@@ -21,6 +21,7 @@ export function initializePlanning({ planningRepository, operationsRepository, n
     selectedQuoteIds: new Set(),
     simulationError: "",
     scenarioDirty: false,
+    confirmingScenario: false,
     simulationVersion: 0,
     positions: [],
     capacityByPositions: [],
@@ -502,12 +503,17 @@ export function initializePlanning({ planningRepository, operationsRepository, n
     ).join("") : '<span class="scenario-empty">Nenhum orçamento disponível para simular.</span>';
     const result = $('planningScenarioResult');
     const connection = $('planningConnectionState');
+    const confirmButton = $('planningConfirmBtn');
+    confirmButton.disabled = state.confirmingScenario || state.scenarioDirty || Boolean(state.simulationError) || !state.scenario?.orderCount;
+    confirmButton.textContent = state.selectedQuoteIds.size
+      ? "Aprovar orçamentos e confirmar fila"
+      : "Confirmar fila aprovada";
     connection.innerHTML = state.scenarioDirty
       ? '<span class="dot" style="background:#d58a1e"></span><span>Seleção alterada; atualize a simulação para ver a nova previsão.</span>'
       : state.simulationError
         ? `<span class="dot" style="background:#d58a1e"></span><span>Previsão indisponível: ${escapeHtml(state.simulationError)}</span>`
         : state.scenario
-          ? '<span class="dot" style="background:var(--green)"></span><span>Previsão calculada, sem gravação de reservas.</span>'
+          ? '<span class="dot" style="background:var(--green)"></span><span>Prévia calculada no servidor; confirme para gravar a fila e reservar posições.</span>'
           : '<span class="dot"></span><span>Calendário carregado. Selecione um orçamento para simular.</span>';
     if (state.simulationError) {
       result.innerHTML = `<p class="scenario-error">${escapeHtml(state.simulationError)}</p>`;
@@ -522,6 +528,10 @@ export function initializePlanning({ planningRepository, operationsRepository, n
       result.innerHTML = '<p class="scenario-empty">A fila ainda não tem previsão calculada. Selecione um orçamento ou aprove um pedido.</p>';
       return;
     }
+    if (!scenario.orderCount) {
+      result.innerHTML = '<p class="scenario-empty">Não há pedidos aprovados nem orçamentos selecionados para confirmar.</p>';
+      return;
+    }
     const cards = (scenario.orders || []).map((order) => {
       const outcome = order.totalPlannedQuantity !== order.totalRequestedQuantity
         ? `${order.totalPlannedQuantity} de ${order.totalRequestedQuantity} unidades com data`
@@ -534,13 +544,13 @@ export function initializePlanning({ planningRepository, operationsRepository, n
     const bottleneck = scenario.bottleneck
       ? `Maior carga: ${scenario.bottleneck.positionCode}, ${scenario.bottleneck.occupiedDays} dia(s) ocupados (${scenario.bottleneck.preparationDays} de preparação e ${scenario.bottleneck.castingDays} de concretagem).`
       : "Sem posição ocupada no cenário.";
-    result.innerHTML = `<p class="scenario-caption">${scenario.orderCount} pedido(s) · ${scenario.totalUnits} unidade(s) · ${escapeHtml(bottleneck)} A simulação não grava reservas.</p><div class="scenario-orders">${cards}</div>`;
+    result.innerHTML = `<p class="scenario-caption">${scenario.orderCount} pedido(s) · ${scenario.totalUnits} unidade(s) com posição prevista · ${escapeHtml(bottleneck)} Unidades sem vaga permanecem aguardando posição.</p><div class="scenario-orders">${cards}</div>`;
   }
 
   async function simulateSelectedOrders() {
     const version = ++state.simulationVersion;
     const selectedIds = [...state.selectedQuoteIds];
-    const approved = state.orders.some((order) => order.status === "aprovado" && !state.startedOrderIds.includes(order.id));
+    const approved = state.orders.some((order) => ["aprovado", "em_producao", "atrasado"].includes(order.status) && !state.startedOrderIds.includes(order.id));
     state.scenario = null;
     state.scenarioUnits = null;
     state.simulationError = "";
@@ -554,6 +564,28 @@ export function initializePlanning({ planningRepository, operationsRepository, n
     } catch (error) {
       if (version !== state.simulationVersion) return;
       state.simulationError = error.message || "Não foi possível calcular a simulação.";
+    }
+  }
+
+  async function confirmProductionScenario() {
+    if (!state.scenario || state.scenarioDirty || state.simulationError || !state.scenario.orderCount) return;
+    const button = $('planningConfirmBtn');
+    state.confirmingScenario = true;
+    button.disabled = true;
+    button.textContent = "Confirmando fila…";
+    try {
+      const response = await planningRepository.confirmProductionPlan([...state.selectedQuoteIds]);
+      const result = response.result || {};
+      state.selectedQuoteIds.clear();
+      showToast(`Fila confirmada: ${Number(result.scheduledUnitCount || 0)} unidade(s) reservada(s), ${Number(result.waitingUnitCount || 0)} aguardando posição.`);
+      await refreshPlanning();
+    } catch (error) {
+      state.simulationError = error.message || "Não foi possível confirmar a fila.";
+      showToast(state.simulationError);
+      renderCalendar();
+    } finally {
+      state.confirmingScenario = false;
+      renderScenario();
     }
   }
 
@@ -958,7 +990,7 @@ export function initializePlanning({ planningRepository, operationsRepository, n
       await simulateSelectedOrders();
       renderCalendar();
       connection.innerHTML = state.scenario
-        ? '<span class="dot" style="background:var(--green)"></span><span>Previsão calculada: preparação, concretagem, cura e acabamento. Sem gravação de reservas.</span>'
+        ? '<span class="dot" style="background:var(--green)"></span><span>Prévia calculada: preparação, concretagem, cura e acabamento; confirme para gravar a fila.</span>'
         : state.simulationError
           ? `<span class="dot" style="background:#d58a1e"></span><span>Calendário carregado; previsão indisponível: ${escapeHtml(state.simulationError)}</span>`
           : '<span class="dot" style="background:var(--green)"></span><span>Calendário carregado. Selecione um orçamento para simular.</span>';
@@ -1156,6 +1188,7 @@ export function initializePlanning({ planningRepository, operationsRepository, n
     button.disabled = false;
     button.textContent = "Atualizar simulação";
   });
+  $('planningConfirmBtn').addEventListener("click", confirmProductionScenario);
   $('planningScenarioQuotes').addEventListener("change", (event) => {
     if (!event.target.matches('input[type="checkbox"]')) return;
     if (event.target.checked) state.selectedQuoteIds.add(event.target.value);

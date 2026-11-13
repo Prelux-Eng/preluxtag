@@ -71,6 +71,99 @@ function addMinutes(instant, minutes) {
   return new Date(Date.parse(instant) + minutes * 60_000).toISOString();
 }
 
+function capacityForDate(calendarDays, date) {
+  const day = calendarDays.find((entry) => entry.date === date);
+  const capacity = Number(day?.capacity_minutes ?? day?.capacityMinutes ?? 0);
+  if (!day || !(day.is_working ?? day.isWorking) || !Number.isInteger(capacity) || capacity <= 0) {
+    fail(`A data ${date} não tem capacidade de produção no calendário.`);
+  }
+  return capacity;
+}
+
+/** Gera as etapas diárias e reserva a posição somente até o fim da concretagem. */
+export function buildDailyProductionSteps({
+  castDate,
+  finishDate,
+  preparationDates = [],
+  calendarDays = [],
+  curingDays = 2,
+  timeZone = "America/Sao_Paulo",
+  castStartTime = "08:00",
+} = {}) {
+  if (!DATE_RE.test(castDate || "") || !DATE_RE.test(finishDate || "")) {
+    fail("Informe datas válidas para concretagem e acabamento.");
+  }
+  const cureDays = Number(curingDays);
+  if (!Number.isInteger(cureDays) || cureDays < 1 || cureDays > 365) {
+    fail("A cura precisa ter de 1 a 365 dias corridos.");
+  }
+  const prepDates = [...preparationDates];
+  if (prepDates.length && prepDates.length !== 5) {
+    fail("A preparação da forma precisa ocupar cinco dias úteis.");
+  }
+  for (const date of prepDates) capacityForDate(calendarDays, date);
+  const castCapacity = capacityForDate(calendarDays, castDate);
+  const finishCapacity = capacityForDate(calendarDays, finishDate);
+  const castingStartAt = zonedDateTimeToUtc(castDate, castStartTime, timeZone);
+  const castingEndAt = addMinutes(castingStartAt, castCapacity);
+  const curingEndAt = addMinutes(castingEndAt, cureDays * 24 * 60);
+  const finishingStartAt = zonedDateTimeToUtc(finishDate, castStartTime, timeZone);
+  const finishingEndAt = addMinutes(finishingStartAt, finishCapacity);
+  const steps = [];
+
+  if (prepDates.length) {
+    const startDate = prepDates[0];
+    const endDate = prepDates.at(-1);
+    const endCapacity = capacityForDate(calendarDays, endDate);
+    const preparationStartAt = zonedDateTimeToUtc(startDate, castStartTime, timeZone);
+    const preparationEndAt = addMinutes(zonedDateTimeToUtc(endDate, castStartTime, timeZone), endCapacity);
+    if (preparationEndAt > castingStartAt) fail("A preparação precisa terminar antes da concretagem.");
+    steps.push({
+      stepKind: "preparacao",
+      sequence: steps.length + 1,
+      durationMinutes: null,
+      plannedStartAt: preparationStartAt,
+      plannedEndAt: preparationEndAt,
+      status: "planned",
+    });
+  }
+
+  steps.push(
+    {
+      stepKind: "concretagem",
+      sequence: steps.length + 1,
+      durationMinutes: castCapacity,
+      plannedStartAt: castingStartAt,
+      plannedEndAt: castingEndAt,
+      status: "planned",
+    },
+    {
+      stepKind: "cura",
+      sequence: steps.length + 2,
+      durationMinutes: cureDays * 24 * 60,
+      plannedStartAt: castingEndAt,
+      plannedEndAt: curingEndAt,
+      status: "planned",
+    },
+    {
+      stepKind: "acabamento",
+      sequence: steps.length + 3,
+      durationMinutes: finishCapacity,
+      plannedStartAt: finishingStartAt,
+      plannedEndAt: finishingEndAt,
+      status: "planned",
+    },
+  );
+
+  return {
+    occupiedFromAt: steps[0].stepKind === "preparacao" ? steps[0].plannedStartAt : castingStartAt,
+    occupiedUntilAt: castingEndAt,
+    cureStartDate: dateInTimeZone(castingEndAt, timeZone),
+    cureEndDate: dateInTimeZone(curingEndAt, timeZone),
+    steps,
+  };
+}
+
 /** Cria horários exatos e o intervalo em que a posição fica reservada. */
 export function buildProductionPhases({
   castDate,

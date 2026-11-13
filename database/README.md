@@ -22,8 +22,11 @@ Em uma instalação nova, aplique os arquivos em ordem:
 13. `013_process_stage_timing.sql`
 14. `014_order_approval_timestamp.sql`
 15. `supabase/migrations/20261112173505_stage4_order_item_plate_support.sql`
+16. `supabase/migrations/20261112184304_stage5_transactional_factory_plan.sql`
+17. `supabase/migrations/20261113115042_stage5_form_state_and_closed_orders.sql`
+18. `supabase/migrations/20261113123225_stage5_ignore_cancelled_form_history.sql`
 
-O Supabase ativo já contém as migrations 001–015. A 012 atualiza a regra de
+O Supabase ativo contém a estrutura descrita até a migration 018. A 012 atualiza a regra de
 alocação das posições; a 013 ajusta a carga legada de concretagem. A 014
 registra a ordem de aprovação para a simulação. Os arquivos ficam em `database/` e não são executados
 automaticamente pelo `supabase db push`.
@@ -32,6 +35,32 @@ A Etapa 4 foi gerada pelo Supabase CLI no diretório padrão
 `supabase/migrations/`. Ela atualiza apenas a RPC existente de inclusão de
 itens: placa não exige molde e orçamento não conserva reservas. Aplique-a após
 as migrations 001–014 ao recriar o schema.
+
+## Etapa 5 — confirmação do Planejamento
+
+A Etapa 5 adiciona uma revisão otimista do cenário e uma RPC transacional. A
+Edge Function recalcula a fila no servidor; a confirmação aprova os orçamentos
+selecionados e grava a fila no mesmo commit. Se os dados mudarem depois da
+prévia, a revisão rejeita a confirmação e a tela deve simular novamente.
+
+Somente reservas ainda planejadas de pedidos sem produção iniciada são
+substituídas. Produção iniciada, concluída ou refugadas e suas etapas são
+preservadas. Uma posição fica ocupada durante os cinco dias úteis de preparação,
+quando necessária, e durante a concretagem de um dia útil; a cura de dois dias
+corridos ocorre fora da posição. Quantidades sem vaga continuam aguardando.
+
+A migration corretiva guarda `allocations.mold_catalog_codes` como retrato da
+forma usada. A última concretagem concluída mantém essa forma pronta para
+reuso na posição; **Desmontar forma** encerra esse estado quando não há unidade
+reservada. Trocar a posição para bancada de placa também encerra o reuso.
+Pedidos com início antigo começam a programação física no dia atual da unidade,
+sem alterar a data original usada no prazo. Reconstruir a fila preserva as
+datas de pedidos encerrados.
+
+`factory_plan_revisions` tem RLS habilitado e sem políticas públicas. A leitura
+da revisão e a RPC `commit_factory_simulation` são exclusivas do `service_role`,
+usado nas Edge Functions. A rota antiga `commit-order-plan` não grava mais
+programações.
 
 ## Moldes e posições
 
@@ -60,9 +89,10 @@ moldes continua separado do catálogo de medidas.
 ## Produção e planejamento
 
 `production_orders` representa cada unidade do item. `production_order_steps`
-guarda etapas e horários exatos; `allocations` reserva a posição desde a
-concretagem até o fim da cura. A validação no banco confere se o item tem os
-moldes adequados ao seu tipo e impede intervalos sobrepostos na mesma posição.
+guarda etapas e horários exatos; `allocations` reserva a posição desde o início
+da preparação (se necessária) até o fim da concretagem. A cura ocorre fora da
+posição. A validação no banco confere os moldes, impede concretagens duplicadas
+no mesmo dia e bloqueia intervalos sobrepostos.
 
 O planejador anterior lê concretagem e cura de `calculation_constants` (120
 minutos e 12 horas no banco ativo). A migration 013 passou a preencher as colunas
@@ -71,9 +101,9 @@ Etapa 2 usa 1 dia útil de concretagem, 2 dias corridos de cura e 1 dia útil de
 acabamento sem converter o turno em minutos. Capacidade diária continua em
 `calendar_settings`.
 
-Pedidos em orçamento são entradas da simulação sem gravação de reserva. Os
-itens e tipos de peça continuam salvos; apenas pedidos aprovados e ativos entram
-na fila de reservas.
+Pedidos em orçamento são entradas da simulação sem gravação de reserva. Na
+confirmação, os orçamentos selecionados são aprovados junto com a fila recalculada.
+Uma quantidade sem vaga pode continuar aguardando posição.
 
 `orders.work_id` é opcional. Quando há obra, triggers existentes sincronizam o
 cliente e a data de início; sem obra, esses dados são informados no pedido.
