@@ -23,7 +23,11 @@
 .operations-flow-heading,.operations-section-heading{display:flex;align-items:center;justify-content:space-between;gap:14px}
 .operations-flow-heading h3,.operations-section-heading h3{margin:0;color:var(--ink);font-size:14px}
 .operations-flow-heading p,.operations-section-heading p{margin:5px 0 0;color:var(--muted);font-size:11px;line-height:1.45}
-.operations-flow{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px;margin-top:13px}
+.operations-flow{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:9px;margin-top:13px}
+.labels-section .generated-order-row td{background:#f4f8fb;color:#145f95;font-weight:600}
+.labels-section .generated-order-row .row-actions{display:inline-flex;margin-left:12px;flex-wrap:wrap}
+.labels-section .table .muted{display:block;margin-top:3px;color:var(--muted);font-size:11px;font-weight:500}
+.labels-section .toolbar{margin-top:26px}
 .operations-flow button{position:relative;min-height:42px;border:1px solid #d8e3eb;border-radius:9px;background:#fff;color:#536575;font-size:11px;font-weight:800;text-align:left;padding:10px 12px;cursor:pointer}
 .operations-flow button[aria-pressed="true"]{border-color:#8fc1e4;background:#edf7ff;color:#145f95;box-shadow:0 0 0 2px #edf7ff}
 .operations-flow button:hover{border-color:#9dbbd1}

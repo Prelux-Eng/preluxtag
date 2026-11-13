@@ -179,7 +179,7 @@ flowchart LR
 
 ### ETIQUETAS
 
-A tela de etiquetas continua independente do banco: cria PNG, ZIP e impressão e guarda o histórico no **localStorage** do navegador. Ainda não busca pedido/item automaticamente nem grava os lotes de etiquetas no Supabase.
+A etapa **Etiquetas** fica dentro de Pedidos. Quando todas as unidades de um pedido ficam prontas, uma trigger grava uma etiqueta por unidade em `production_labels`. ID, cliente e observações são retratos dos dados do pedido e da peça. A tela lê esses registros do Supabase e permite prévia, PNG, ZIP e impressão. O editor de etiquetas avulsas mantém seu histórico no **localStorage** do navegador. As caixas de liberação/reparo/bloqueio do modelo impresso continuam para conferência manual.
 
 ## Contrato entre interface, Edge Functions e banco
 

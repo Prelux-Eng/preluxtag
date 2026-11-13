@@ -8,17 +8,12 @@ export function initializeNavigation() {
   const tabs = [...document.querySelectorAll('.nav [role="tab"][data-view]')];
   const panels = {
     pedidos: document.getElementById("operationsView"),
-    etiquetas: document.getElementById("etiquetasView"),
     planejamento: document.getElementById("planningView"),
   };
   const pageDetails = {
     pedidos: {
       title: "Pedidos",
-      description: "Pedido → Engenharia → Projeto → Produzir",
-    },
-    etiquetas: {
-      title: "Etiquetas",
-      description: "Identificação e rastreabilidade de peças pré-moldadas",
+      description: "Pedido → Engenharia → Projeto → Produzir → Etiquetas",
     },
     planejamento: {
       title: "Planejamento",

@@ -949,7 +949,7 @@ export function initializePlanning({ planningRepository, operationsRepository, n
     if (!config.supabaseUrl || !config.supabaseAnonKey) {
       stateContainer.className = "calendar-placeholder";
       stateContainer.innerHTML = '<div><strong>Calendário visual preparado</strong><p>Configure o acesso ao backend para carregar dias úteis, pedidos e programações.</p></div>';
-      connection.innerHTML = '<span class="dot"></span><span>Backend ainda não configurado. O emissor de etiquetas funciona localmente.</span>';
+      connection.innerHTML = '<span class="dot"></span><span>Backend ainda não configurado. O editor de etiquetas avulsas funciona localmente.</span>';
       return;
     }
     const range = visibleBounds();
@@ -1175,7 +1175,10 @@ export function initializePlanning({ planningRepository, operationsRepository, n
   $('planningAnchor').addEventListener("change", refreshPlanning);
   $('planningPrevious').addEventListener("click", () => changePeriod(-1));
   $('planningNextPeriod').addEventListener("click", () => changePeriod(1));
-  $('planningNextBtn').addEventListener("click", () => navigate("etiquetas"));
+  $('planningNextBtn').addEventListener("click", () => {
+    navigate("pedidos");
+    window.dispatchEvent(new CustomEvent("prelux:labels:select"));
+  });
   $('planningActivityBtn').addEventListener("click", () => openCalendarActivity());
   $('planningSettingsBtn').addEventListener("click", openCalendarSettings);
   $('planningOrderBtn').addEventListener("click", () => $('planningScenario').scrollIntoView({ behavior: "smooth", block: "start" }));

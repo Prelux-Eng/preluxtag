@@ -9,7 +9,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <link rel="manifest" href="manifest.webmanifest" />
-  <link rel="stylesheet" href="css/operations.css?v=6" />
+  <link rel="stylesheet" href="css/operations.css?v=7" />
   <link rel="stylesheet" href="css/app.css?v=4" />
   <link rel="apple-touch-icon" href="icons/icon-192.png" />
   <title>PRELUX · Pedidos</title>
@@ -21,14 +21,14 @@
       <nav class="nav" role="tablist" aria-orientation="vertical" aria-label="Áreas do PRELUX">
         <button class="active" type="button" role="tab" id="tabPedidos" aria-controls="operationsView" aria-selected="true" tabindex="0" data-view="pedidos"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 5h16v14H4z"/><path d="M8 9h8M8 13h5M17 13v5M14.5 15.5h5"/></svg>PEDIDOS</button>
         <button type="button" role="tab" id="tabPlanejamento" aria-controls="planningView" aria-selected="false" tabindex="-1" data-view="planejamento"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M8 2v4M16 2v4M3 9h18M8 13h3M13 13h3M8 17h3"/></svg>PLANEJAMENTO</button>
-        <button type="button" role="tab" id="tabEtiquetas" aria-controls="etiquetasView" aria-selected="false" tabindex="-1" data-view="etiquetas"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 4h16v16H4z"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>ETIQUETAS</button>
       </nav>
       <div class="side-note">Fluxo PRELUX: pedido, engenharia, projeto, produção e rastreabilidade.</div>
     </aside>
     <main>
-      <header class="topbar"><div><h1 id="pageTitle">Pedidos</h1><p id="pageDescription">Pedido → Engenharia → Projeto → Produzir</p></div><div class="pill"><span class="dot"></span> Acesso sem login</div></header>
-      <section class="content" id="etiquetasView" role="tabpanel" aria-labelledby="tabEtiquetas">
-        <div class="toolbar"><div><h2>Nova etiqueta</h2><p>Preencha os dados e gere o PNG no padrão PRELUX.</p></div><div class="actions"><button class="btn ghost" id="clearBtn">Limpar formulário</button><button class="btn primary" id="saveBtn">Salvar peça</button></div></div>
+      <header class="topbar"><div><h1 id="pageTitle">Pedidos</h1><p id="pageDescription">Pedido → Engenharia → Projeto → Produzir → Etiquetas</p></div><div class="pill"><span class="dot"></span> Acesso sem login</div></header>
+      <section class="labels-section" id="etiquetasView" aria-label="Etiquetas dos pedidos" hidden>
+        <section class="card records-card" id="generatedLabelsCard"><div class="card-head"><div><h3>Etiquetas dos pedidos concluídos</h3><small id="generatedLabelCount">Carregando etiquetas do banco…</small></div></div><div class="table-wrap"><table class="table"><thead><tr><th>Pedido / etiqueta</th><th>Peça</th><th>Cliente</th><th>Ações</th></tr></thead><tbody id="generatedLabelsBody"><tr><td colspan="4" class="empty">As etiquetas surgem aqui após a conclusão de todas as unidades do pedido.</td></tr></tbody></table></div></section>
+        <div class="toolbar"><div><h2>Etiqueta avulsa</h2><p>O editor manual continua disponível para peças fora do fluxo automático.</p></div><div class="actions"><button class="btn ghost" id="clearBtn">Limpar formulário</button><button class="btn primary" id="saveBtn">Salvar peça</button></div></div>
         <div class="grid">
           <section class="card" id="editorCard"><div class="card-head"><h3>Dados da peça</h3><small>Campos obrigatórios marcados com *</small></div><form class="form" id="pieceForm">
             <div class="field"><label for="pieceId">ID da peça / tipo <span>*</span></label><input class="input" id="pieceId" required placeholder="Ex.: PILAR" autocomplete="off" /></div>
@@ -40,10 +40,10 @@
           </form></section>
           <section class="card preview-card"><div class="preview-top"><h3>Pré-visualização</h3><span id="previewMeta">Etiqueta 1 de 1 · PNG · 1536 × 1024 px</span></div><div class="canvas-wrap"><canvas id="labelCanvas" width="1536" height="1024"></canvas></div><div class="preview-actions"><button class="btn primary" id="downloadBtn">Baixar PNG atual</button><button class="btn" id="downloadAllBtn">Baixar lote (ZIP)</button><button class="btn" id="printBtn">Imprimir lote</button></div></section>
         </div>
-        <section class="card records-card" id="historyCard"><div class="card-head"><div><h3>Peças cadastradas</h3><small id="recordCount">0 registros salvos neste navegador</small></div><div class="record-tools"><input class="search" id="search" placeholder="Pesquisar ID ou cliente" /></div></div><div class="table-wrap"><table class="table"><thead><tr><th>ID / sequência</th><th>Quantidade</th><th>Cliente</th><th>Observações</th><th>Ações</th></tr></thead><tbody id="recordsBody"></tbody></table></div></section>
+        <section class="card records-card" id="historyCard"><div class="card-head"><div><h3>Etiquetas avulsas</h3><small id="recordCount">0 registros salvos neste navegador</small></div><div class="record-tools"><input class="search" id="search" placeholder="Pesquisar ID ou cliente" /></div></div><div class="table-wrap"><table class="table"><thead><tr><th>ID / sequência</th><th>Quantidade</th><th>Cliente</th><th>Observações</th><th>Ações</th></tr></thead><tbody id="recordsBody"></tbody></table></div></section>
       </section>
       <section class="content planning-view" id="planningView" role="tabpanel" aria-labelledby="tabPlanejamento" hidden>
-        <div class="toolbar"><div><h2>Planejamento da produção</h2><p>Acompanhe a fila aprovada e simule orçamentos nas quatro posições. A cura ocorre fora delas.</p></div><div class="actions"><button class="btn" id="planningRefreshBtn" type="button">Atualizar calendário</button><button class="btn primary" id="planningNextBtn" type="button">Ir para etiquetas</button></div></div>
+        <div class="toolbar"><div><h2>Planejamento da produção</h2><p>Acompanhe a fila aprovada e simule orçamentos nas quatro posições. A cura ocorre fora delas.</p></div><div class="actions"><button class="btn" id="planningRefreshBtn" type="button">Atualizar calendário</button><button class="btn primary" id="planningNextBtn" type="button">Etiquetas dos pedidos</button></div></div>
         <div class="metric-grid">
           <div class="card metric-card"><small>Pedidos ativos</small><strong id="planningOrdersKpi">0</strong><span>pedidos com status aberto</span></div>
           <div class="card metric-card"><small>Ocupação das posições</small><strong id="planningOccupancyKpi">0%</strong><span>preparação + concretagem ÷ vagas úteis</span></div>
@@ -157,6 +157,6 @@
     };
   </script>
   <!-- A composição e a ordem das áreas ficam centralizadas no ponto de entrada. -->
-  <script type="module" src="js/main.js?v=4"></script>
+  <script type="module" src="js/main.js?v=5"></script>
 </body>
 </html>
