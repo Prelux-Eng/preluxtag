@@ -25,8 +25,10 @@ Em uma instalação nova, aplique os arquivos em ordem:
 16. `supabase/migrations/20261112184304_stage5_transactional_factory_plan.sql`
 17. `supabase/migrations/20261113115042_stage5_form_state_and_closed_orders.sql`
 18. `supabase/migrations/20261113123225_stage5_ignore_cancelled_form_history.sql`
+19. `supabase/migrations/20261113165527_order_completed_piece_ready.sql`
+20. `supabase/migrations/20261113170020_ready_unit_protection.sql`
 
-O Supabase ativo contém a estrutura descrita até a migration 018. A 012 atualiza a regra de
+O Supabase ativo contém a estrutura descrita até a migration 020. A 012 atualiza a regra de
 alocação das posições; a 013 ajusta a carga legada de concretagem. A 014
 registra a ordem de aprovação para a simulação. Os arquivos ficam em `database/` e não são executados
 automaticamente pelo `supabase db push`.
@@ -61,6 +63,19 @@ datas de pedidos encerrados.
 da revisão e a RPC `commit_factory_simulation` são exclusivas do `service_role`,
 usado nas Edge Functions. A rota antiga `commit-order-plan` não grava mais
 programações.
+
+## Peça pronta e pedido concluído
+
+Na tela **Pedidos → Produzir**, o operador confirma as etapas de cada unidade na
+sequência planejada. A função `complete_production_step` grava a conclusão da
+etapa e libera a posição depois da concretagem. Uma unidade passa a **Pronta**
+quando preparação (se houver), concretagem, cura e acabamento estão concluídos.
+O pedido passa automaticamente a **Concluído** quando cada item tem exatamente
+sua quantidade solicitada de unidades prontas. Um pedido vazio não pode ser
+concluído. As duas mudanças ocorrem na mesma transação; o banco também impede
+marcar diretamente uma unidade como pronta ou um pedido como concluído antes
+dessas condições. Unidades prontas continuam protegidas contra replanejamento
+e exclusão do item.
 
 ## Moldes e posições
 

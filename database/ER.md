@@ -84,7 +84,7 @@ O cadastro de placa usa a nova RPC `save_plate_type(p_org_id, p_record)` com `co
 ## Exclusões, status e cálculos
 
 - As relações pertencentes ao pedido/projeto usam cascata para que itens dependentes não sobrevivam ao pedido; vínculo de cliente em obra/pedido continua protegido por `RESTRICT`; `orders.work_id` continua `SET NULL`.
-- O enum legado continua contendo `concluido`, mas o fluxo e novos valores usam apenas orçamento, aprovado, em produção, entregue, atrasado e cancelado. O `CHECK NOT VALID` preserva pedidos históricos concluídos; um pedido legado precisa receber um status vigente para ser editado. Para bloqueios de catálogo, esses pedidos históricos são tratados como encerrados.
+- O pedido recebe `concluido` automaticamente quando todas as quantidades dos itens estão cobertas por unidades `production_orders` com status `pronta`. Cada unidade fica pronta depois da conclusão de suas etapas de preparação (quando necessária), concretagem, cura e acabamento. Pedidos concluídos permanecem encerrados para replanejamento e alterações de catálogo.
 - A preparação de forma é calculada com cinco datas úteis inclusivas a partir de `calendar_days`. É necessário gerar o calendário antes de programar a preparação.
 - Para braço, pilar e viga, a migration não altera as funções atuais de volume e peso: volume segue X×Y×Z e densidade fixa de 2,5 t/m³. A constante de densidade fica registrada, mas editar esse registro não muda o cálculo legado. Para placa, o peso confirmado é X×Y×Z com densidade fixa de 2,5 t/m³; X×Y é a área e Z é a espessura.
 - A fila diária usa um turno de concretagem, dois dias corridos de cura e um turno de acabamento; inspeção e liberação continuam fora dessa previsão até a engenharia definir suas durações.

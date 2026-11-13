@@ -47,7 +47,7 @@ async function fixedReservations({ db, organizationId, startedOrderIds, position
     .select("id, order_id")
     .eq("organization_id", organizationId)
     .in("order_id", startedOrderIds)
-    .in("status", ["planned", "in_progress", "done", "scrapped"])
+    .in("status", ["planned", "in_progress", "done", "pronta", "scrapped"])
     .limit(10000), "Não foi possível ler unidades em execução") : [];
   const unitIds = units.map((unit) => unit.id);
   const fields = "id, production_order_id, mold_position_id, scheduled_date, occupied_from_at, occupied_until_at, mold_catalog_codes, status";
@@ -166,7 +166,7 @@ export async function simulateProductionOrders({ db, organizationId, input = {},
       .in("production_order_id", unitIds).in("status", ["in_progress", "done"]).limit(10000),
   ]) : [{ data: [], error: null }, { data: [], error: null }];
   const startedUnitIds = new Set([
-    ...productionUnits.filter((unit) => ["in_progress", "done", "scrapped"].includes(unit.status)).map((unit) => unit.id),
+    ...productionUnits.filter((unit) => ["in_progress", "done", "pronta", "scrapped"].includes(unit.status)).map((unit) => unit.id),
     ...checked(startedStepsResult, "Não foi possível verificar etapas iniciadas").map((step) => step.production_order_id),
     ...checked(startedAllocationsResult, "Não foi possível verificar posições ocupadas").map((allocation) => allocation.production_order_id),
   ]);
