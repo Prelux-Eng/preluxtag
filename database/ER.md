@@ -1,6 +1,6 @@
 # Modelo PRELUX / Fábio II
 
-O diagrama mantém os nomes das tabelas Supabase atuais (`mold_*` no banco; “forma” na interface). As tabelas de projeto, constantes e etapas são propostas da migration `009_fabio2_foundation.sql`, ainda não aplicada ao projeto Supabase ativo.
+O diagrama mantém os nomes das tabelas Supabase atuais (`mold_*` no banco; “forma” na interface). As tabelas de projeto, etapas e etiquetas já fazem parte do projeto Supabase ativo.
 
 ```mermaid
 erDiagram
@@ -17,6 +17,7 @@ erDiagram
   ORGANIZATIONS ||--o{ CALCULATION_CONSTANTS : configures
   ORGANIZATIONS ||--o{ ENGINEERING_PROJECTS : owns
   ORGANIZATIONS ||--o{ PRODUCTION_ORDER_STEPS : owns
+  ORGANIZATIONS ||--o{ PRODUCTION_LABELS : owns
 
   CLIENTS ||--o{ WORKS : client
   CLIENTS ||--o{ ORDERS : client
@@ -52,6 +53,8 @@ erDiagram
   ORDER_ITEMS ||--o{ PRODUCTION_ORDERS : produces_units
   PRODUCTION_ORDERS ||--o{ PRODUCTION_ORDER_STEPS : stages
   PRODUCTION_ORDERS ||--o{ ALLOCATIONS : scheduled_unit
+  PRODUCTION_ORDERS ||--o| PRODUCTION_LABELS : printed_unit
+  ORDERS ||--o{ PRODUCTION_LABELS : completed_order
   MOLD_POSITIONS ||--o{ ALLOCATIONS : assigned_position
 ```
 
@@ -59,7 +62,7 @@ erDiagram
 
 - Uma obra pode ter vários pedidos; um pedido pode não ter obra ou se vincular a uma. Quando há obra, trigger existente herda cliente e data de início. Sem obra, esses campos continuam manuais.
 - Um pedido contém itens de catálogo (`order_items → piece_types`). O projeto de engenharia é opcional até a análise e, quando criado, há no máximo um por pedido. Ao salvar o projeto, as seções devem distribuir exatamente a quantidade pedida de cada item.
-- `piece_types.piece_kind` preserva `braco`, `pilar` e `viga`; a migration 009 adiciona `placa`. Braço usa a forma fixa identificada pelas dimensões X × Z; pilar/viga usam LEITO para X, LATERAL para Z e Y como comprimento; placa não usa forma.
+- `piece_types.piece_kind` contém `braco`, `pilar`, `viga` e `placa`. Braço usa a forma fixa identificada pelas dimensões X × Z; pilar/viga usam LEITO para X, LATERAL para Z e Y como comprimento; placa não usa forma.
 - `mold_catalog` continua sendo o catálogo global de medidas LEITO, LATERAL e BRAÇO. Seu `code` e `mold_type` são chaves estáveis; rótulo de medida e ordem de exibição podem ser editados, com bloqueio durante uso ativo e registro em `audit_logs`.
 - `piece_type_molds` persiste a seleção compatível para um tipo de peça. `piece_mold_combinations` é uma view sem persistência: lista os braços fixos e o produto cartesiano de LEITO × LATERAL para pilar e viga.
 - `mold_positions` representa os quatro espaços físicos P01–P04. Para braço, pilar e viga, o pedido determina os moldes e o planejador associa o item à posição livre. A forma da última concretagem concluída permanece montada até troca ou desmontagem; `form_reset_at` marca a desmontagem. A exceção é a bancada plana, reservada para placa.
@@ -85,6 +88,7 @@ O cadastro de placa usa a nova RPC `save_plate_type(p_org_id, p_record)` com `co
 
 - As relações pertencentes ao pedido/projeto usam cascata para que itens dependentes não sobrevivam ao pedido; vínculo de cliente em obra/pedido continua protegido por `RESTRICT`; `orders.work_id` continua `SET NULL`.
 - O pedido recebe `concluido` automaticamente quando todas as quantidades dos itens estão cobertas por unidades `production_orders` com status `pronta`. Cada unidade fica pronta depois da conclusão de suas etapas de preparação (quando necessária), concretagem, cura e acabamento. Pedidos concluídos permanecem encerrados para replanejamento e alterações de catálogo.
+- `production_labels` guarda exatamente uma etiqueta por `production_orders.id` quando o pedido é concluído. O ID, o cliente e o texto impresso são um retrato do pedido no momento da conclusão; RLS impede acesso direto pelo navegador.
 - A preparação de forma é calculada com cinco datas úteis inclusivas a partir de `calendar_days`. É necessário gerar o calendário antes de programar a preparação.
 - Para braço, pilar e viga, a migration não altera as funções atuais de volume e peso: volume segue X×Y×Z e densidade fixa de 2,5 t/m³. A constante de densidade fica registrada, mas editar esse registro não muda o cálculo legado. Para placa, o peso confirmado é X×Y×Z com densidade fixa de 2,5 t/m³; X×Y é a área e Z é a espessura.
 - A fila diária usa um turno de concretagem, dois dias corridos de cura e um turno de acabamento; inspeção e liberação continuam fora dessa previsão até a engenharia definir suas durações.

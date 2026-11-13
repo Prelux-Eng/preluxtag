@@ -1,7 +1,7 @@
 # Arquitetura do PRELUX
 
 O PRELUX é um monólito modular leve: uma PWA estática, sem framework e sem
-login na primeira etapa. A interface tem três áreas de acesso. Os dados e as
+login na primeira etapa. A interface tem duas áreas de acesso. Os dados e as
 regras existentes no Supabase são reaproveitados.
 
 ## Dois fluxos relacionados
@@ -9,20 +9,20 @@ regras existentes no Supabase são reaproveitados.
 O trabalho do pedido percorre estas etapas:
 
 ```text
-PEDIDO → ENGENHARIA → PROJETO → PRODUZIR
+PEDIDO → ENGENHARIA → PROJETO → PRODUZIR → ETIQUETAS
 ```
 
 As áreas do site acompanham a passagem dos dados:
 
 ```text
-PEDIDOS → PLANEJAMENTO → ETIQUETAS
+PEDIDOS ↔ PLANEJAMENTO
 ```
 
 **PEDIDOS** é a entrada do trabalho. Dentro dela ficam pedido, engenharia,
 projeto e o subtópico **Cadastro**: obras, peças, catálogo de formas e posições.
 **PLANEJAMENTO** apresenta o sequenciamento e os períodos calculados a partir dos
-pedidos, respeitando calendário e capacidade. **ETIQUETAS** identifica as peças
-para produção e expedição.
+pedidos, respeitando calendário e capacidade. **ETIQUETAS** é a última etapa de
+Pedidos e identifica cada unidade após o pedido ser concluído.
 
 ## Caminho dos dados
 
@@ -38,7 +38,7 @@ flowchart LR
   API[Cliente HTTP]
   EDGE[Supabase Edge Functions]
   DB[(Supabase PostgreSQL)]
-  LOCAL[(localStorage atual das etiquetas)]
+  LOCAL[(localStorage de etiquetas avulsas)]
 
   MAIN --> ORDERS
   MAIN --> PLAN
@@ -50,6 +50,7 @@ flowchart LR
   REPOS --> API
   API --> EDGE
   EDGE --> DB
+  LABEL --> REPOS
   LABEL --> LOCAL
   ORDERS --> PLAN
   PLAN --> LABEL
@@ -59,15 +60,15 @@ flowchart LR
 
 | Caminho | Responsabilidade |
 | --- | --- |
-| `dist/index.html` | Estrutura das três áreas e pontos de montagem das telas. |
+| `dist/index.html` | Estrutura das duas áreas e pontos de montagem das telas. |
 | `dist/js/main.js` | Composição e inicialização das áreas; abre PEDIDOS ao iniciar. |
 | `dist/js/core/api.js` | Envia chamadas HTTP para Edge Functions e normaliza erros. |
-| `dist/js/core/navigation.js` | Alterna PEDIDOS, PLANEJAMENTO e ETIQUETAS. |
+| `dist/js/core/navigation.js` | Alterna PEDIDOS e PLANEJAMENTO. |
 | `dist/js/domain/mold-compatibility.js` | Lista braço fixo e combinações LEITO × LATERAL para pilar/viga. |
 | `dist/js/repositories/` | Contratos de leitura e gravação para pedidos/operações e planejamento. |
 | `dist/js/features/operations/index.js` | PEDIDOS, passos de engenharia/projeto e subtópico Cadastro. |
 | `dist/js/features/planning/index.js` | Calendário, capacidade, atividades e planejamento de pedidos. |
-| `dist/js/features/labels/index.js` | Formulário atual, prévia, histórico local, PNG, ZIP e impressão. |
+| `dist/js/features/labels/index.js` | Lista etiquetas de pedidos no Supabase, mantém editor avulso local, prévia, PNG, ZIP e impressão. |
 | `supabase/functions/` | Edge Functions e módulos compartilhados do backend. |
 | `database/` | Scripts SQL incrementais e diagrama do schema. |
 
@@ -76,8 +77,8 @@ flowchart LR
 1. O navegador carrega `main.js` como módulo ES.
 2. `main.js` inicia navegação, etiquetas, planejamento e pedidos.
 3. A tela abre em PEDIDOS e carrega os dados pela Edge Function.
-4. O fluxo Pedido → Engenharia → Projeto → Produzir é apresentado dentro de
-   PEDIDOS. Produzir leva à área PLANEJAMENTO.
+4. O fluxo Pedido → Engenharia → Projeto → Produzir → Etiquetas é apresentado
+   dentro de PEDIDOS. A conclusão de todas as unidades gera as etiquetas no banco.
 5. As telas usam repositórios para chamar o cliente HTTP; não consultam tabelas
    diretamente pelo navegador.
 
@@ -104,10 +105,12 @@ continuam pendentes de definição pela engenharia.
 
 ### ETIQUETAS
 
-Desenha a etiqueta em canvas de 1536 × 1024 pixels e permite baixar PNG, ZIP ou
-imprimir. Hoje o formulário ainda é manual e o histórico fica no `localStorage`
-do navegador. A integração automática com pedido, item e planejamento ainda
-precisa ser construída.
+Ao concluir todas as unidades do pedido, a trigger salva um retrato por unidade
+em `production_labels`. A etapa dentro de PEDIDOS lê esses registros pela Edge
+Function, desenha o modelo existente em canvas de 1536 × 1024 pixels e permite
+baixar PNG, ZIP ou imprimir por pedido. O editor avulso continua manual e seu
+histórico fica no `localStorage` do navegador. A caixa **LIBERADA** da etiqueta
+continua para conferência manual, separada do status **Pronta** da unidade.
 
 ## Acesso sem login na primeira etapa
 
@@ -121,8 +124,8 @@ implementa identidade individual de usuários.
 
 - O schema e os dados do Supabase devem ser reaproveitados; publicar a interface
   não aplica SQL nem publica Edge Functions.
-- `database/009_fabio2_foundation.sql` é um rascunho local da Etapa 5 e precisa
-  de revisão/aprovação antes de ser aplicado ao banco ativo.
+- As migrations até `20261113171705_order_production_labels.sql` estão aplicadas
+  no Supabase ativo. Uma instalação nova deve seguir a ordem de `database/README.md`.
 - A placa usa os campos existentes `dimension_x_cm`, `dimension_y_cm` e
   `dimension_z_cm`, exibidos como largura, altura e espessura. O cálculo
   automático atual de volume e peso permanece inalterado.

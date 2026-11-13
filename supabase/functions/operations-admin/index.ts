@@ -190,7 +190,7 @@ async function readOperationsData(db: any, organizationId: string) {
 
   // Consultas opcionais da Etapa 5. Um banco sem a migration 009 continua
   // servindo as telas legadas, mas a resposta informa que o novo fluxo não está ativo.
-  const [projectsResult, sectionsResult, sectionItemsResult, stepsResult, constantsResult, productionOrdersResult] = await Promise.all([
+  const [projectsResult, sectionsResult, sectionItemsResult, stepsResult, constantsResult, productionOrdersResult, labelsResult] = await Promise.all([
     db.from("engineering_projects").select("id, order_id, created_at, updated_at")
       .eq("organization_id", organizationId).limit(1000),
     db.from("project_sections").select("id, project_id, section_name, sort_order, created_at, updated_at")
@@ -203,9 +203,12 @@ async function readOperationsData(db: any, organizationId: string) {
       .eq("organization_id", organizationId).order("constant_key"),
     db.from("production_orders").select("id, order_id, order_item_id, unit_sequence, status")
       .eq("organization_id", organizationId).limit(20000),
+    db.from("production_labels").select("production_order_id, order_id, label_code, order_number, piece_code, piece_name, client_name, observations, generated_at")
+      .eq("organization_id", organizationId).order("generated_at", { ascending: false }).limit(20000),
   ]);
   const fabio2Results = [projectsResult, sectionsResult, sectionItemsResult, stepsResult, constantsResult, productionOrdersResult];
   const fabio2Available = fabio2Results.every((result) => !result.error);
+  if (labelsResult.error) throwDbError(labelsResult.error, "Não foi possível carregar as etiquetas dos pedidos.");
 
   const clients = clientsResult.data || [];
   const works = worksResult.data || [];
@@ -313,6 +316,7 @@ async function readOperationsData(db: any, organizationId: string) {
       return { ...unit, piece_code: piece?.code || "", piece_name: piece?.name || "",
         steps: (productionStepsByUnit.get(unit.id) || []).sort((a, b) => a.sequence - b.sequence) };
     }) : [],
+    productionLabels: labelsResult.data || [],
     calculationConstants: fabio2Available ? constantsResult.data || [] : [],
   };
 }

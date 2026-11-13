@@ -27,8 +27,9 @@ Em uma instalação nova, aplique os arquivos em ordem:
 18. `supabase/migrations/20261113123225_stage5_ignore_cancelled_form_history.sql`
 19. `supabase/migrations/20261113165527_order_completed_piece_ready.sql`
 20. `supabase/migrations/20261113170020_ready_unit_protection.sql`
+21. `supabase/migrations/20261113171705_order_production_labels.sql`
 
-O Supabase ativo contém a estrutura descrita até a migration 020. A 012 atualiza a regra de
+O Supabase ativo contém a estrutura descrita até a migration 021. A 012 atualiza a regra de
 alocação das posições; a 013 ajusta a carga legada de concretagem. A 014
 registra a ordem de aprovação para a simulação. Os arquivos ficam em `database/` e não são executados
 automaticamente pelo `supabase db push`.
@@ -76,6 +77,14 @@ concluído. As duas mudanças ocorrem na mesma transação; o banco também impe
 marcar diretamente uma unidade como pronta ou um pedido como concluído antes
 dessas condições. Unidades prontas continuam protegidas contra replanejamento
 e exclusão do item.
+
+Ao concluir o pedido, a trigger cria uma linha de `production_labels` para cada
+unidade pronta. `production_order_id` é a chave única: atualizar o pedido de
+novo não duplica etiquetas. ID, cliente e observações impressas ficam salvos
+como retrato do pedido e da peça no momento da conclusão. A tabela tem RLS
+ativa, sem acesso direto para `anon` ou `authenticated`; a Edge Function lê os
+registros com `service_role`. As caixas de liberação/reparo/bloqueio do modelo
+impresso permanecem para conferência manual.
 
 ## Moldes e posições
 

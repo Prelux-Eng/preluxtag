@@ -15,7 +15,7 @@ import { planningRepository } from "./repositories/planning-repository.js";
 
 const navigation = initializeNavigation();
 
-initializeLabels();
+initializeLabels({ operationsRepository });
 initializePlanning({
   planningRepository,
   operationsRepository,
@@ -34,6 +34,6 @@ navigation.open("pedidos");
 // O service worker é registrado em um só lugar para controlar a atualização PWA.
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("./sw.js?v=25").catch(() => {});
+    navigator.serviceWorker.register("./sw.js?v=26").catch(() => {});
   });
 }
