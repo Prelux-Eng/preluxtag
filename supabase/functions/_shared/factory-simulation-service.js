@@ -65,7 +65,14 @@ async function fixedReservations({ db, organizationId, startedOrderIds, position
     .eq("status", "done")
     .gte("scheduled_date", today)
     .limit(10000), "Não foi possível ler concretagens concluídas");
-  const allocations = [...new Map([...startedAllocations, ...completedToday]
+  const withdrawnCasts = checked(await db.from("withdrawn_unit_form_events")
+    .select("source_allocation_id, mold_position_id, scheduled_date, occupied_from_at, occupied_until_at, mold_catalog_codes")
+    .eq("organization_id", organizationId)
+    .eq("casting_completed", true)
+    .gte("scheduled_date", today)
+    .limit(10000), "Não foi possível ler concretagens retiradas do pedido")
+    .map((event) => ({ ...event, id: event.source_allocation_id, status: "done" }));
+  const allocations = [...new Map([...startedAllocations, ...completedToday, ...withdrawnCasts]
     .map((allocation) => [allocation.id, allocation])).values()];
   const codeById = new Map(positions.map((position) => [position.id, position.code]));
   return allocations.map((allocation) => {

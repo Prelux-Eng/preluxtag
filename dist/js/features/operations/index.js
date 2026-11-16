@@ -238,7 +238,7 @@ export function initializeOperations({ operationsRepository, listPieceMoldOption
   }
 
   function actionButton(action, id, label) {
-    const danger = action === "delete-record" ? " ops-delete-button" : "";
+    const danger = ["delete-record", "withdraw-unit"].includes(action) ? " ops-delete-button" : "";
     return `<button class="icon-btn${danger}" type="button" data-ops-action="${action}" data-id="${escapeHtml(id)}">${label}</button>`;
   }
 
@@ -403,11 +403,12 @@ export function initializeOperations({ operationsRepository, listPieceMoldOption
   function renderProduction(filter) {
     const orders = new Map(state.data.orders.map((order) => [order.id, order]));
     const units = (state.data.productionUnits || []).filter((unit) => {
+      if (unit.status === "cancelled") return false;
       const order = orders.get(unit.order_id);
       return `${order?.order_number || ""} ${unit.piece_code} ${unit.piece_name} ${unit.status}`
         .toLocaleLowerCase().includes(filter);
     });
-    $("operationsTable").innerHTML = tableHeader("Produzir", "Conclua cada etapa da unidade. A peça fica Pronta após todas as etapas; o pedido fica Concluído quando todas as quantidades estiverem prontas.", "Pesquisar pedido ou peça", ["Pedido", "Peça produzida", "Etapas", "Status da peça", "Ação"]);
+    $("operationsTable").innerHTML = tableHeader("Produzir", "Conclua cada etapa da unidade. Apagar uma unidade planejada ou em produção reduz a quantidade do pedido e preserva o histórico executado.", "Pesquisar pedido ou peça", ["Pedido", "Peça produzida", "Etapas", "Status da peça", "Ação"]);
     $("operationsRows").innerHTML = units.length ? units.map((unit) => {
       const order = orders.get(unit.order_id);
       const next = (unit.steps || []).find((step) => step.status !== "done");
@@ -416,7 +417,7 @@ export function initializeOperations({ operationsRepository, listPieceMoldOption
       return `<tr><td>${escapeHtml(order?.order_number || "Pedido")}<span class="muted">${badge(order?.status)}</span></td>
         <td>${escapeHtml(unit.piece_code || unit.piece_name || "Peça")} · unidade ${Number(unit.unit_sequence)}</td>
         <td>${steps || "Etapas não cadastradas"}</td><td>${badge(unit.status)}</td>
-        <td><div class="row-actions">${canFinish ? actionButton("complete-production-step", next.id, `Concluir ${escapeHtml(next.step_kind)}`) : unit.status === "pronta" ? "Peça pronta" : "Aguardando etapa"}</div></td></tr>`;
+        <td><div class="row-actions">${canFinish ? actionButton("complete-production-step", next.id, `Concluir ${escapeHtml(next.step_kind)}`) : unit.status === "pronta" ? "Peça pronta" : "Aguardando etapa"}${["planned", "in_progress"].includes(unit.status) ? actionButton("withdraw-unit", unit.id, "Apagar") : ""}</div></td></tr>`;
     }).join("") : `<tr><td colspan="5" class="empty">Nenhuma unidade programada. Confirme um pedido no Planejamento para iniciar a produção.</td></tr>`;
     $("operationsSearch").addEventListener("input", (event) => { state.query = event.target.value; renderTable(state.query); });
   }
@@ -1224,6 +1225,46 @@ export function initializeOperations({ operationsRepository, listPieceMoldOption
           window.dispatchEvent(new CustomEvent("prelux:labels:open", { detail: { orderId: response.production.orderId, data: state.data } }));
         }
       } catch (error) { showStatus(error.message || "Não foi possível concluir a etapa.", true); }
+      return;
+    }
+    if (action === "withdraw-unit") {
+      const unit = (data.productionUnits || []).find((item) => item.id === id);
+      const order = data.orders.find((item) => item.id === unit?.order_id);
+      const orderItem = order?.items.find((item) => item.id === unit?.order_item_id);
+      if (!unit || !orderItem || !["planned", "in_progress"].includes(unit.status)) return;
+      const project = (data.engineeringProjects || []).find((item) => item.order_id === unit.order_id);
+      const sections = (project?.sections || []).filter((section) =>
+        (section.items || []).some((item) => item.order_item_id === unit.order_item_id && item.quantity > 0));
+      let sectionId = sections[0]?.id || null;
+      if (orderItem.quantity > 1 && sections.length > 1) {
+        const options = sections.map((section, index) => `${index + 1}. ${section.section_name}`).join("\n");
+        const selected = prompt(`Em qual seção do projeto a quantidade deve diminuir?\n${options}`, "1");
+        if (selected === null) return;
+        const index = Number(selected) - 1;
+        if (!Number.isInteger(index) || index < 0 || index >= sections.length) {
+          showStatus("Selecione o número de uma seção válida.", true);
+          return;
+        }
+        sectionId = sections[index].id;
+      }
+      const piece = unit.piece_code || unit.piece_name || "Peça";
+      const effect = orderItem.quantity === 1
+        ? "Este é o último exemplar. O item também será retirado do pedido; seus dados e etapas ficarão na auditoria."
+        : `A quantidade do item diminuirá de ${orderItem.quantity} para ${orderItem.quantity - 1}. As etapas já realizadas continuarão registradas para rastreabilidade.`;
+      const message = `Apagar ${piece} · unidade ${unit.unit_sequence} do pedido ${order.order_number || "sem número"}?\n\n${effect}`;
+      if (!confirm(message)) return;
+      button.disabled = true;
+      try {
+        const response = await operationsRepository.withdrawProductionUnit({ unitId: id, sectionId });
+        await refreshData(true);
+        window.dispatchEvent(new CustomEvent("prelux:operations:changed", { detail: { kind: "production", id, action: "withdraw" } }));
+        toast(response?.planning?.warning || (response?.withdrawal?.orderStatus === "concluido"
+          ? "Unidade retirada. Pedido concluído e etiquetas geradas."
+          : "Unidade retirada do pedido."));
+      } catch (error) {
+        button.disabled = false;
+        showStatus(error.message || "Não foi possível apagar a unidade.", true);
+      }
       return;
     }
     if (action === "reset-position-form") {

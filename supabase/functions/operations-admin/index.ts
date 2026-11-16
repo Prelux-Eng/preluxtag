@@ -746,6 +746,20 @@ async function handler(request: Request) {
       return json({ ok: true, production: data });
     }
 
+    if (action === "withdraw_production_unit") {
+      const unitId = textValue(input.unitId, "a unidade", 80, true);
+      const sectionId = textValue(input.sectionId, "a seção", 80);
+      const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (!uuid.test(unitId) || (sectionId && !uuid.test(sectionId))) throw badRequest("Identificador de unidade ou seção inválido.");
+      const { data, error } = await db.rpc("withdraw_production_unit", {
+        p_org_id: organizationId, p_unit_id: unitId, p_section_id: sectionId || null,
+      });
+      if (error?.code === "P0002") throw badRequest(String(error.message), 404);
+      if (error) throwDbError(error, "Não foi possível apagar a unidade.");
+      const planning = await replanAfterPositionChange(db, organizationId, "A unidade foi retirada do pedido");
+      return json({ ok: true, withdrawal: data, planning });
+    }
+
     if (action === "calculate_preparation_end") {
       const moldId = textValue(input.moldId, "a forma", 80, true);
       const startDate = dateValue(input.startDate, "início da preparação")!;

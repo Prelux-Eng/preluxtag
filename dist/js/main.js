@@ -34,6 +34,6 @@ navigation.open("pedidos");
 // O service worker é registrado em um só lugar para controlar a atualização PWA.
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("./sw.js?v=27").catch(() => {});
+    navigator.serviceWorker.register("./sw.js?v=28").catch(() => {});
   });
 }

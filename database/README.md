@@ -29,8 +29,11 @@ Em uma instalação nova, aplique os arquivos em ordem:
 20. `supabase/migrations/20261113170020_ready_unit_protection.sql`
 21. `supabase/migrations/20261113171705_order_production_labels.sql`
 22. `supabase/migrations/20261116172838_delete_operation_records.sql`
+23. `supabase/migrations/20261116180117_withdraw_production_unit.sql`
+24. `supabase/migrations/20261116180240_fix_withdraw_production_unit_uuid.sql`
+25. `supabase/migrations/20261116180601_preserve_withdrawn_cast_reservations.sql`
 
-O Supabase ativo contém a estrutura descrita até a migration 022. A 012 atualiza a regra de
+O Supabase ativo contém a estrutura descrita até a migration 025. A 012 atualiza a regra de
 alocação das posições; a 013 ajusta a carga legada de concretagem. A 014
 registra a ordem de aprovação para a simulação. Os arquivos ficam em `database/` e não são executados
 automaticamente pelo `supabase db push`.
@@ -38,6 +41,12 @@ automaticamente pelo `supabase db push`.
 A 022 permite apagar pedidos sem produção iniciada, peças do catálogo ainda
 não usadas e formas sem preparação ou alocação registrada. A exclusão é
 atômica, registrada em auditoria e protegida por dependências do histórico.
+As migrations 023–024 permitem retirar uma unidade planejada ou em produção,
+reduzem a quantidade do item e guardam as etapas executadas. A última unidade
+remove o item e registra seu estado completo em auditoria; um evento independente
+preserva a forma montada na posição.
+A 025 mantém a ocupação do dia de concretagem na fila após retirar a última
+unidade, impedindo que a posição seja oferecida novamente naquele período.
 
 A Etapa 4 foi gerada pelo Supabase CLI no diretório padrão
 `supabase/migrations/`. Ela atualiza apenas a RPC existente de inclusão de
