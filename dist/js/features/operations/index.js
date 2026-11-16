@@ -1278,7 +1278,9 @@ export function initializeOperations({ operationsRepository, listPieceMoldOption
         const response = await operationsRepository.deleteOperationRecord(target.kind, id);
         await refreshData(true);
         window.dispatchEvent(new CustomEvent("prelux:operations:changed", { detail: { kind: target.kind, id, action: "delete" } }));
-        toast(response?.planning?.warning || `${target.label === "pedido" ? "Pedido" : target.label === "forma" ? "Forma" : "Peça do catálogo"} apagado${target.label === "pedido" ? "" : "a"}.`);
+        const successMessage = target.kind === "order" ? "Pedido apagado."
+          : target.kind === "mold" ? "Forma apagada." : "Peça do catálogo apagada.";
+        toast(response?.planning?.warning || successMessage);
       } catch (error) {
         button.disabled = false;
         showStatus(error.message || `Não foi possível apagar ${target.label}.`, true);
