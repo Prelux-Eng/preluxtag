@@ -28,11 +28,16 @@ Em uma instalação nova, aplique os arquivos em ordem:
 19. `supabase/migrations/20261113165527_order_completed_piece_ready.sql`
 20. `supabase/migrations/20261113170020_ready_unit_protection.sql`
 21. `supabase/migrations/20261113171705_order_production_labels.sql`
+22. `supabase/migrations/20261116172838_delete_operation_records.sql`
 
-O Supabase ativo contém a estrutura descrita até a migration 021. A 012 atualiza a regra de
+O Supabase ativo contém a estrutura descrita até a migration 022. A 012 atualiza a regra de
 alocação das posições; a 013 ajusta a carga legada de concretagem. A 014
 registra a ordem de aprovação para a simulação. Os arquivos ficam em `database/` e não são executados
 automaticamente pelo `supabase db push`.
+
+A 022 permite apagar pedidos sem produção iniciada, peças do catálogo ainda
+não usadas e formas sem preparação ou alocação registrada. A exclusão é
+atômica, registrada em auditoria e protegida por dependências do histórico.
 
 A Etapa 4 foi gerada pelo Supabase CLI no diretório padrão
 `supabase/migrations/`. Ela atualiza apenas a RPC existente de inclusão de

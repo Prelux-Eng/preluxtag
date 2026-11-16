@@ -50,6 +50,9 @@
 .operations-table .muted{display:block;margin-top:3px;color:var(--muted);font-size:10px;font-weight:500}
 .operations-table .row-actions{flex-wrap:wrap}
 .operations-table .icon-btn{white-space:nowrap}
+.operations-table .ops-delete-button{border-color:#efc4c8;color:#9a2e36}
+.operations-table .ops-delete-button:hover{background:#fff3f4;border-color:#d88890}
+.operations-table .ops-delete-button:disabled{opacity:.5;cursor:wait}
 .ops-badge{display:inline-flex;align-items:center;border-radius:999px;padding:5px 8px;background:#edf4fa;color:#42617a;font-size:10px;font-weight:800;white-space:nowrap}
 .ops-badge.good{background:#e6f8f1;color:#08754f}
 .ops-badge.warn{background:#fff3df;color:#a25a00}
