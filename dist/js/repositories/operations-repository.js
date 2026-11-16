@@ -24,6 +24,7 @@ export const operationsRepository = Object.freeze({
   saveMoldPosition: (input) => operation("save_position", input),
   resetPositionForm: (input) => operation("reset_position_form", input),
   completeProductionStep: (input) => operation("complete_production_step", input),
+  withdrawProductionUnit: (input) => operation("withdraw_production_unit", input),
   saveMoldPreparation: (input) => operation("save_preparation", input),
   calculateMoldPreparationEnd: (input) => operation("calculate_preparation_end", input),
   saveResourceAllocation: (input) => operation("save_allocation", input),

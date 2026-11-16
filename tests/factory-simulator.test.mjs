@@ -242,7 +242,7 @@ test("regras do cenário ficam explícitas na resposta", () => {
   assert.equal(FACTORY_RULES.maximumCalendarDays, 90);
 });
 
-test("API de simulação lê pedidos aprovados e orçamento selecionado sem gravar no banco", async () => {
+test("API de simulação não grava e respeita concretagem de unidade retirada", async () => {
   const tables = {
     orders: [
       { id: "approved", order_number: "PED-0001", status: "aprovado", start_date: "2026-01-05", requested_due_date: "2026-04-05", approved_at: "2026-01-02T08:00:00Z", created_at: "2026-01-01T08:00:00Z", organization_id: "org", is_active: true },
@@ -258,6 +258,7 @@ test("API de simulação lê pedidos aprovados e orçamento selecionado sem grav
     organizations: [{ id: "org", timezone: "America/Sao_Paulo" }],
     production_orders: [],
     allocations: [],
+    withdrawn_unit_form_events: [],
     order_items: ["approved", "quoted", "unselected"].map((id) => ({
       id: "item-" + id, order_id: id, piece_type_id: "piece-viga",
       quantity: 1, sequence: 1, organization_id: "org",
@@ -309,4 +310,20 @@ test("API de simulação lê pedidos aprovados e orçamento selecionado sem grav
     ["approved", "2026-01-05"], ["quoted", "2026-01-06"],
   ]);
   assert.equal(result.selectedOrderIds[0], "quoted");
+
+  // A última unidade foi retirada do pedido, mas sua concretagem já ocupou P01.
+  tables.withdrawn_unit_form_events.push({
+    organization_id: "org", source_allocation_id: "removed-cast", casting_completed: true,
+    mold_position_id: "P01", scheduled_date: "2026-01-05",
+    occupied_from_at: "2026-01-05T11:00:00.000Z", occupied_until_at: "2026-01-05T19:00:00.000Z",
+    mold_catalog_codes: ["LEITO_20", "LATERAL_25"],
+  });
+  const withRemovedCast = await simulateProductionOrders({
+    db, organizationId: "org", input: { orderIds: ["quoted"] },
+    now: new Date("2026-01-05T12:00:00.000Z"),
+  });
+  assert.deepEqual(withRemovedCast.orders.map((entry) => [entry.orderId, entry.units[0].castDate]), [
+    ["approved", "2026-01-06"], ["quoted", "2026-01-07"],
+  ]);
+  assert.equal(writes, 0);
 });
