@@ -18,6 +18,7 @@ const MOLD_STATUSES = new Set(["ativo", "manutencao", "bloqueado", "retirado"]);
 const POSITION_STATUSES = new Set(["disponivel", "em_preparacao", "em_producao", "em_manutencao"]);
 const PREPARATION_STATUSES = new Set(["planejada", "em_andamento", "aguardando_aprovacao", "aprovada", "reprovada", "cancelada"]);
 const ALLOCATION_STATUSES = new Set(["planned", "in_progress", "done", "cancelled"]);
+const DELETE_KINDS = new Set(["order", "piece_type", "mold"]);
 
 function badRequest(message: string, status = 400) {
   return Object.assign(new Error(message), { status });
@@ -808,6 +809,23 @@ async function handler(request: Request) {
       const { data, error } = await db.from("resource_allocations").upsert(record).select("id, resource_kind, mold_id, resource_name, order_item_id, start_date, end_date, status, conflict_reason, conflict_responsible, observations, created_at, updated_at").single();
       if (error) throwDbError(error, "Não foi possível salvar a alocação do recurso.");
       return json({ ok: true, allocation: data });
+    }
+
+    if (action === "delete_record") {
+      const kind = enumValue(input.kind, DELETE_KINDS, "", "Tipo de registro");
+      const id = textValue(input.id, "o registro", 80, true);
+      if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
+        throw badRequest("Identificador de registro inválido.");
+      }
+      const { data, error } = await db.rpc("delete_operation_record", {
+        p_org_id: organizationId, p_kind: kind, p_id: id,
+      });
+      if (error?.code === "P0002") throw badRequest(String(error.message), 404);
+      if (error) throwDbError(error, "Não foi possível apagar o registro.");
+      const planning = kind === "order" && data?.hadPlan
+        ? await replanAfterPositionChange(db, organizationId, "O pedido foi apagado")
+        : null;
+      return json({ ok: true, deleted: data, planning });
     }
 
     if (action === "archive") {

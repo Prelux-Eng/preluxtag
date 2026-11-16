@@ -37,6 +37,7 @@ alterações; não reaplique os scripts nele. As migrations da Etapa 5 são:
 - `20261113165527_order_completed_piece_ready.sql`
 - `20261113170020_ready_unit_protection.sql`
 - `20261113171705_order_production_labels.sql`
+- `20261116172838_delete_operation_records.sql`
 
 As Edge Functions hospedadas recebem `SUPABASE_URL` e
 `SUPABASE_SERVICE_ROLE_KEY` no servidor. Configure
@@ -62,6 +63,7 @@ Todos recebem `POST` com JSON e aceitam `OPTIONS` para CORS.
 | `operations-admin`, `bootstrap` | `{ action: "bootstrap" }` | Lê obras, pedidos, peças, formas, posições e etiquetas geradas |
 | `operations-admin`, `reset_position_form` | `{ action: "reset_position_form", code: "P01" }` | Desmonta a forma quando não há unidade reservada |
 | `operations-admin`, `complete_production_step` | `{ action: "complete_production_step", stepId: "uuid" }` | Conclui a etapa; marca a unidade Pronta e o pedido Concluído quando todas as unidades terminam |
+| `operations-admin`, `delete_record` | `{ action: "delete_record", kind: "order" \| "piece_type" \| "mold", id: "uuid" }` | Apaga somente cadastro sem histórico protegido; registra auditoria e refaz o plano quando necessário |
 | `calendar-admin`, `planning_data` | Período | Lê a programação e os ajustes do calendário |
 | `rebuild-calendar` | Período | Regenera os dias do calendário quando necessário |
 

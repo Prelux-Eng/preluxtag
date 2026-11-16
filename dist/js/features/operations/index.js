@@ -238,7 +238,8 @@ export function initializeOperations({ operationsRepository, listPieceMoldOption
   }
 
   function actionButton(action, id, label) {
-    return `<button class="icon-btn" type="button" data-ops-action="${action}" data-id="${escapeHtml(id)}">${label}</button>`;
+    const danger = action === "delete-record" ? " ops-delete-button" : "";
+    return `<button class="icon-btn${danger}" type="button" data-ops-action="${action}" data-id="${escapeHtml(id)}">${label}</button>`;
   }
 
   function formatNumber(value, digits = 2) {
@@ -327,7 +328,7 @@ export function initializeOperations({ operationsRepository, listPieceMoldOption
         <td>${escapeHtml(order.work_name || "Sem obra")}<span class="muted">${escapeHtml(order.client_name || "—")}</span></td>
         <td>${order.items.map((item) => `${escapeHtml(item.piece_code || item.piece_name)} × ${Number(item.quantity)}`).join("<br>") || "—"}</td>
         <td>${dateBR(order.start_date)}</td><td>${dateBR(order.requested_due_date)}</td><td>${badge(order.status)}${order.waitingForPosition ? '<span class="muted">Aguardando posicao</span>' : ""}</td>
-        <td><div class="row-actions">${order.hasResourceAllocation ? '<span class="ops-badge warn" title="Os itens são preservados para manter o histórico das alocações.">Alocação registrada</span>' : actionButton("edit", order.id, "Editar")}${labeledOrders.has(order.id) ? actionButton("open-order-labels", order.id, "Etiquetas") : ""}</div></td>
+        <td><div class="row-actions">${order.hasResourceAllocation ? '<span class="ops-badge warn" title="Os itens são preservados para manter o histórico das alocações.">Alocação registrada</span>' : actionButton("edit", order.id, "Editar")}${labeledOrders.has(order.id) ? actionButton("open-order-labels", order.id, "Etiquetas") : ""}${actionButton("delete-record", order.id, "Apagar")}</div></td>
       </tr>`).join("") : `<tr><td colspan="7" class="empty">Nenhum pedido encontrado.</td></tr>`;
     } else if (state.tab === "engineering") {
       $("operationsTable").innerHTML = tableHeader("Engenharia", "Confira os itens recebidos e a forma selecionada ou as opções disponíveis. Esta consulta não cria dados nem altera o pedido.", "Pesquisar pedido, cliente ou peça", ["Pedido", "Itens recebidos", "Forma selecionada / opções", "Ações"]);
@@ -386,7 +387,7 @@ export function initializeOperations({ operationsRepository, listPieceMoldOption
         ${pieceMetricsLabel(piece)}
         <td>Concretagem, cura e acabamento<span class="muted">preparação da forma quando necessária</span></td>
         <td>${pieceMoldSummary(piece)}</td>
-        <td><div class="row-actions">${actionButton("edit", piece.id, "Editar")}${actionButton("archive", piece.id, "Arquivar")}</div></td>
+        <td><div class="row-actions">${actionButton("edit", piece.id, "Editar")}${actionButton("archive", piece.id, "Arquivar")}${actionButton("delete-record", piece.id, "Apagar")}</div></td>
       </tr>`).join("") : `<tr><td colspan="7" class="empty">Nenhuma peça encontrada.</td></tr>`;
     } else {
       if (state.tab === "positions") {
@@ -434,7 +435,7 @@ export function initializeOperations({ operationsRepository, listPieceMoldOption
       <td>${mold.cycle_minutes_per_unit == null ? "Não informado" : `${Number(mold.cycle_minutes_per_unit)} min/un.`}<span class="muted">preparação: ${preparationDurationLabel}</span></td>
       <td>${(mold.piece_type_ids || []).map((id) => escapeHtml(pieceById.get(id) || "")).filter(Boolean).join(", ") || "—"}</td>
       <td>${badge(mold.status)}</td>
-      <td><div class="row-actions">${actionButton("edit", mold.id, "Editar")}${actionButton("prepare", mold.id, "Preparar")}${actionButton("allocate", mold.id, "Alocar")}${mold.status !== "retirado" ? actionButton("archive", mold.id, "Retirar") : ""}</div></td>
+      <td><div class="row-actions">${actionButton("edit", mold.id, "Editar")}${actionButton("prepare", mold.id, "Preparar")}${actionButton("allocate", mold.id, "Alocar")}${mold.status !== "retirado" ? actionButton("archive", mold.id, "Retirar") : ""}${actionButton("delete-record", mold.id, "Apagar")}</div></td>
     </tr>`).join("") : `<tr><td colspan="6" class="empty">Nenhuma forma cadastrada. As formas existentes podem ser incluídas sem importar códigos presumidos.</td></tr>`;
     const preparationRows = data.preparations.map((prep) => `<tr>
       <td>${escapeHtml(moldById.get(prep.mold_id) || "Forma")}</td><td>${dateBR(prep.start_date)} – ${dateBR(prep.end_date)}</td>
@@ -1259,6 +1260,29 @@ export function initializeOperations({ operationsRepository, listPieceMoldOption
         toast("Alocação cancelada.");
         await refreshData(true);
       } catch (error) { showStatus(error.message || "Não foi possível cancelar a alocação.", true); }
+      return;
+    }
+    if (action === "delete-record") {
+      const target = state.tab === "orders"
+        ? { kind: "order", record: data.orders.find((item) => item.id === id), label: "pedido", name: (item) => item.order_number, detail: "Os itens e o planejamento ainda não iniciado também serão apagados." }
+        : state.tab === "pieces"
+          ? { kind: "piece_type", record: data.pieceTypes.find((item) => item.id === id), label: "peça do catálogo", name: (item) => item.code, detail: "As associações com formas também serão apagadas." }
+          : state.tab === "molds"
+            ? { kind: "mold", record: data.molds.find((item) => item.id === id), label: "forma", name: (item) => item.code, detail: "As associações com peças também serão apagadas." }
+            : null;
+      if (!target?.record) return;
+      const name = target.name(target.record) || target.record.name || id;
+      if (!confirm(`Apagar definitivamente ${target.label} ${name}?\n\n${target.detail}\n\nRegistros com histórico de produção ou uso serão protegidos.`)) return;
+      button.disabled = true;
+      try {
+        const response = await operationsRepository.deleteOperationRecord(target.kind, id);
+        await refreshData(true);
+        window.dispatchEvent(new CustomEvent("prelux:operations:changed", { detail: { kind: target.kind, id, action: "delete" } }));
+        toast(response?.planning?.warning || `${target.label === "pedido" ? "Pedido" : target.label === "forma" ? "Forma" : "Peça do catálogo"} apagado${target.label === "pedido" ? "" : "a"}.`);
+      } catch (error) {
+        button.disabled = false;
+        showStatus(error.message || `Não foi possível apagar ${target.label}.`, true);
+      }
       return;
     }
     if (action === "archive") {

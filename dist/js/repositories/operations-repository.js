@@ -28,4 +28,5 @@ export const operationsRepository = Object.freeze({
   calculateMoldPreparationEnd: (input) => operation("calculate_preparation_end", input),
   saveResourceAllocation: (input) => operation("save_allocation", input),
   archiveOperationRecord: (kind, id) => operation("archive", { kind, id }),
+  deleteOperationRecord: (kind, id) => operation("delete_record", { kind, id }),
 });
