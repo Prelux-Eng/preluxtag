@@ -831,9 +831,11 @@ async function handler(request: Request) {
       if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
         throw badRequest("Identificador de registro inválido.");
       }
-      const { data, error } = await db.rpc("delete_operation_record", {
-        p_org_id: organizationId, p_kind: kind, p_id: id,
-      });
+      const rpcName = kind === "order" ? "delete_order_with_history" : "delete_operation_record";
+      const rpcArgs = kind === "order"
+        ? { p_org_id: organizationId, p_order_id: id }
+        : { p_org_id: organizationId, p_kind: kind, p_id: id };
+      const { data, error } = await db.rpc(rpcName, rpcArgs);
       if (error?.code === "P0002") throw badRequest(String(error.message), 404);
       if (error) throwDbError(error, "Não foi possível apagar o registro.");
       const planning = kind === "order" && data?.hadPlan

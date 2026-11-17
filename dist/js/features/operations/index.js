@@ -1305,7 +1305,7 @@ export function initializeOperations({ operationsRepository, listPieceMoldOption
     }
     if (action === "delete-record") {
       const target = state.tab === "orders"
-        ? { kind: "order", record: data.orders.find((item) => item.id === id), label: "pedido", name: (item) => item.order_number, detail: "Os itens e o planejamento ainda não iniciado também serão apagados." }
+        ? { kind: "order", record: data.orders.find((item) => item.id === id), label: "pedido", name: (item) => item.order_number, detail: "Itens, produção e etiquetas sairão das telas. Uma cópia do histórico ficará na auditoria, e as posições já usadas continuarão consideradas no planejamento." }
         : state.tab === "pieces"
           ? { kind: "piece_type", record: data.pieceTypes.find((item) => item.id === id), label: "peça do catálogo", name: (item) => item.code, detail: "As associações com formas também serão apagadas." }
           : state.tab === "molds"
@@ -1313,7 +1313,10 @@ export function initializeOperations({ operationsRepository, listPieceMoldOption
             : null;
       if (!target?.record) return;
       const name = target.name(target.record) || target.record.name || id;
-      if (!confirm(`Apagar definitivamente ${target.label} ${name}?\n\n${target.detail}\n\nRegistros com histórico de produção ou uso serão protegidos.`)) return;
+      const protection = target.kind === "order"
+        ? "A operação é definitiva nas telas do sistema. O histórico será preservado na auditoria."
+        : "Registros com histórico de produção ou uso serão protegidos.";
+      if (!confirm(`Apagar definitivamente ${target.label} ${name}?\n\n${target.detail}\n\n${protection}`)) return;
       button.disabled = true;
       try {
         const response = await operationsRepository.deleteOperationRecord(target.kind, id);

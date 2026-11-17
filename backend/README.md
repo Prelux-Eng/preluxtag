@@ -41,6 +41,7 @@ alterações; não reaplique os scripts nele. As migrations da Etapa 5 são:
 - `20261116180117_withdraw_production_unit.sql`
 - `20261116180240_fix_withdraw_production_unit_uuid.sql`
 - `20261116180601_preserve_withdrawn_cast_reservations.sql`
+- `20261117123206_delete_order_with_history.sql`
 
 As Edge Functions hospedadas recebem `SUPABASE_URL` e
 `SUPABASE_SERVICE_ROLE_KEY` no servidor. Configure
