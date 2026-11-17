@@ -32,15 +32,18 @@ Em uma instalação nova, aplique os arquivos em ordem:
 23. `supabase/migrations/20261116180117_withdraw_production_unit.sql`
 24. `supabase/migrations/20261116180240_fix_withdraw_production_unit_uuid.sql`
 25. `supabase/migrations/20261116180601_preserve_withdrawn_cast_reservations.sql`
+26. `supabase/migrations/20261117123206_delete_order_with_history.sql`
 
-O Supabase ativo contém a estrutura descrita até a migration 025. A 012 atualiza a regra de
+O Supabase ativo contém a estrutura descrita até a migration 026. A 012 atualiza a regra de
 alocação das posições; a 013 ajusta a carga legada de concretagem. A 014
 registra a ordem de aprovação para a simulação. Os arquivos ficam em `database/` e não são executados
 automaticamente pelo `supabase db push`.
 
-A 022 permite apagar pedidos sem produção iniciada, peças do catálogo ainda
-não usadas e formas sem preparação ou alocação registrada. A exclusão é
-atômica, registrada em auditoria e protegida por dependências do histórico.
+A 022 introduz a exclusão de cadastros sem dependências históricas. A 026
+permite apagar pedidos em qualquer etapa: itens, produção, etiquetas e demais
+vínculos são guardados em auditoria; as posições já usadas permanecem no
+histórico do Planejamento. Peças de catálogo usadas e formas com preparação ou
+alocação seguem protegidas.
 As migrations 023–024 permitem retirar uma unidade planejada ou em produção,
 reduzem a quantidade do item e guardam as etapas executadas. A última unidade
 remove o item e registra seu estado completo em auditoria; um evento independente
