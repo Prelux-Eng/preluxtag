@@ -533,13 +533,19 @@ export function initializePlanning({ planningRepository, operationsRepository, n
       return;
     }
     const cards = (scenario.orders || []).map((order) => {
+      const maximumDays = Number(order.engineeringParameters?.maximumOrderCalendarDays) || 90;
+      const quantityWithinLimit = order.maximumQuantityWithinLimit ?? order.maximumQuantityWithin90Days;
       const outcome = order.totalPlannedQuantity !== order.totalRequestedQuantity
         ? `${order.totalPlannedQuantity} de ${order.totalRequestedQuantity} unidades com data`
-        : order.overLimitDays ? `${order.overLimitDays} dia(s) além dos 90 dias`
+        : order.overLimitDays ? `${order.overLimitDays} dia(s) além dos ${maximumDays} dias`
           : order.requestedDelayDays ? `${order.requestedDelayDays} dia(s) além do prazo solicitado`
             : "Dentro do prazo";
-      const issues = (order.conflicts || []).map((issue) => issue.message).slice(0, 2).join(" ");
-      return `<article class="scenario-order ${order.feasible ? "feasible" : "infeasible"}"><div><strong>${escapeHtml(order.orderNumber || "Pedido")}</strong><span>${order.status === "orcamento" ? "Orçamento · hipótese" : "Fila aprovada · previsão"}</span></div><div><strong>${escapeHtml(order.forecastEndDate ? formatDateBR(order.forecastEndDate) : "Sem data")}</strong><span>Fim do último acabamento</span></div><div><strong>${escapeHtml(outcome)}</strong><span>Limite ${formatDateBR(order.maximumDueDate)} · ${order.maximumQuantityWithin90Days}/${order.totalRequestedQuantity} un. cabem</span></div>${issues ? `<small>${escapeHtml(issues)}</small>` : ""}</article>`;
+      const conflicts = (order.conflicts || []).map((issue) => issue.message).slice(0, 2);
+      const adjustments = (order.externalAdjustments || []).map((adjustment) =>
+        `Ajuste em ${formatDateBR(adjustment.occurredOn)}: ${adjustment.reason} (${adjustment.impactDays > 0 ? "+" : ""}${adjustment.impactDays} dia(s)).`
+      );
+      const issues = [...conflicts, ...adjustments].join(" ");
+      return `<article class="scenario-order ${order.feasible ? "feasible" : "infeasible"}"><div><strong>${escapeHtml(order.orderNumber || "Pedido")}</strong><span>${order.status === "orcamento" ? "Orçamento · hipótese" : "Fila aprovada · previsão"}</span></div><div><strong>${escapeHtml(order.forecastEndDate ? formatDateBR(order.forecastEndDate) : "Sem data")}</strong><span>Fim do último acabamento</span></div><div><strong>${escapeHtml(outcome)}</strong><span>Limite ${formatDateBR(order.maximumDueDate)} · ${quantityWithinLimit}/${order.totalRequestedQuantity} un. cabem em ${maximumDays} dias</span></div>${issues ? `<small>${escapeHtml(issues)}</small>` : ""}</article>`;
     }).join("");
     const bottleneck = scenario.bottleneck
       ? `Maior carga: ${scenario.bottleneck.positionCode}, ${scenario.bottleneck.occupiedDays} dia(s) ocupados (${scenario.bottleneck.preparationDays} de preparação e ${scenario.bottleneck.castingDays} de concretagem).`

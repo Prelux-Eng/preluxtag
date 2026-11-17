@@ -9,6 +9,7 @@ import { findWorkingDayCompletionDate } from "../_shared/order-planning.js";
 import { reconcileFactoryPlan } from "../_shared/factory-plan-service.js";
 import { calculatePieceMetrics } from "../_shared/piece-metrics.js";
 import { calculatePlateMetrics } from "../_shared/plate-metrics.js";
+import { getCurrentEngineeringParameters } from "../_shared/engineering-service.js";
 import { addOrderPieceItem, createOrderHeader, createOrderPieceRegistration } from "../_shared/registration-service.js";
 import { createAdminClient } from "../_shared/supabaseClient.js";
 
@@ -204,7 +205,7 @@ async function readOperationsData(db: any, organizationId: string) {
       .eq("organization_id", organizationId).order("constant_key"),
     db.from("production_orders").select("id, order_id, order_item_id, unit_sequence, status")
       .eq("organization_id", organizationId).limit(20000),
-    db.from("production_labels").select("production_order_id, order_id, label_code, order_number, piece_code, piece_name, client_name, observations, generated_at")
+    db.from("production_labels").select("production_order_id, order_id, label_code, order_number, piece_code, piece_name, client_name, observations, version_number, generated_at")
       .eq("organization_id", organizationId).order("generated_at", { ascending: false }).limit(20000),
   ]);
   const fabio2Results = [projectsResult, sectionsResult, sectionItemsResult, stepsResult, constantsResult, productionOrdersResult];
@@ -380,6 +381,36 @@ async function handler(request: Request) {
     const organizationId = config.organizationId;
 
     if (action === "bootstrap") return json({ ok: true, ...(await readOperationsData(db, organizationId)) });
+
+    if (action === "record_production_label_prints") {
+      const idempotencyKey = textValue(input.idempotencyKey, "a chave da solicitação", 36, true);
+      const actorLabel = textValue(input.printedBy, "o nome de quem está solicitando a impressão", 120, true);
+      if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(idempotencyKey)) {
+        throw badRequest("Chave da solicitação inválida.");
+      }
+      if (!Array.isArray(input.labels) || input.labels.length < 1 || input.labels.length > 5000) {
+        throw badRequest("Informe entre 1 e 5.000 etiquetas para registrar.");
+      }
+      const labels = input.labels.map((row: any) => {
+        const productionOrderId = textValue(row?.productionOrderId, "o identificador da unidade", 36, true);
+        const versionNumber = integerValue(row?.versionNumber, "a versão da etiqueta", 1);
+        if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(productionOrderId)) {
+          throw badRequest("Identificador de unidade inválido.");
+        }
+        return { productionOrderId, versionNumber };
+      });
+      if (new Set(labels.map((row: any) => row.productionOrderId)).size !== labels.length) {
+        throw badRequest("A lista contém a mesma unidade mais de uma vez.");
+      }
+      const { data, error } = await db.rpc("record_production_label_prints", {
+        p_org_id: organizationId,
+        p_labels: labels,
+        p_idempotency_key: idempotencyKey,
+        p_actor_label: actorLabel,
+      });
+      if (error) throwDbError(error, "Não foi possível registrar a solicitação de impressão.");
+      return json({ ok: true, printRequest: data });
+    }
 
     if (action === "create_order_piece_registration") {
       return json({ ok: true, ...(await createOrderPieceRegistration(db, organizationId, input)) });
@@ -586,10 +617,11 @@ async function handler(request: Request) {
         y: input.y ?? input.dimensionY ?? input.dimension_y_cm,
         z: input.z ?? input.dimensionZ ?? input.dimension_z_cm,
       };
+      const { parameterVersion, parameters } = await getCurrentEngineeringParameters(db, organizationId);
       const metrics = input.pieceKind === "placa"
-        ? calculatePlateMetrics(dimensions)
-        : calculatePieceMetrics(dimensions);
-      return json({ ok: true, metrics });
+        ? calculatePlateMetrics({ ...dimensions, concreteDensityKgM3: parameters.concreteDensityKgM3 })
+        : calculatePieceMetrics({ ...dimensions, concreteDensityKgM3: parameters.concreteDensityKgM3 });
+      return json({ ok: true, parameterVersion, metrics });
     }
 
     if (action === "save_delay_adjustment") {
@@ -620,7 +652,13 @@ async function handler(request: Request) {
       if (dimensionXcm === null || dimensionYcm === null || dimensionZcm === null || dimensionXcm <= 0 || dimensionYcm <= 0 || dimensionZcm <= 0) {
         throw badRequest("Informe dimensões X, Y e Z maiores que zero, em centímetros.");
       }
-      calculatePieceMetrics({ x: dimensionXcm, y: dimensionYcm, z: dimensionZcm });
+      const { parameters } = await getCurrentEngineeringParameters(db, organizationId);
+      calculatePieceMetrics({
+        x: dimensionXcm,
+        y: dimensionYcm,
+        z: dimensionZcm,
+        concreteDensityKgM3: parameters.concreteDensityKgM3,
+      });
       const castingMinutes = await castingMinutesForLegacyFields(db, organizationId);
       const record = {
         id: textValue(input.id, "o identificador", 80) || null,
@@ -662,7 +700,13 @@ async function handler(request: Request) {
       if (dimensionXcm === null || dimensionYcm === null || dimensionZcm === null || dimensionXcm <= 0 || dimensionYcm <= 0 || dimensionZcm <= 0) {
         throw badRequest("Informe X, Y e espessura Z maiores que zero, em centímetros.");
       }
-      calculatePlateMetrics({ x: dimensionXcm, y: dimensionYcm, z: dimensionZcm });
+      const { parameters } = await getCurrentEngineeringParameters(db, organizationId);
+      calculatePlateMetrics({
+        x: dimensionXcm,
+        y: dimensionYcm,
+        z: dimensionZcm,
+        concreteDensityKgM3: parameters.concreteDensityKgM3,
+      });
       const castingMinutes = await castingMinutesForLegacyFields(db, organizationId);
       const record = {
         id: textValue(input.id, "o identificador", 80) || null,

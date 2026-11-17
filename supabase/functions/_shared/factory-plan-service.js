@@ -1,5 +1,7 @@
 import { FactorySimulationError, simulateProductionOrders } from "./factory-simulation-service.js";
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
 function selectedQuoteIds(value) {
   if (value == null) return [];
   if (!Array.isArray(value) || value.length > 30 || value.some((id) => typeof id !== "string" || !id.trim())) {
@@ -8,6 +10,33 @@ function selectedQuoteIds(value) {
   const ids = [...new Set(value.map((id) => id.trim()))];
   if (ids.length !== value.length) throw new FactorySimulationError("Não repita orçamentos na confirmação.", 400);
   return ids;
+}
+
+/** Representação estável para detectar o uso da mesma chave em outra ação. */
+export function confirmationRequestFingerprint(orderIds) {
+  return JSON.stringify({
+    action: "confirm_factory_plan",
+    orderIds: [...orderIds].sort(),
+  });
+}
+
+async function savedConfirmation({ db, organizationId, idempotencyKey, requestFingerprint }) {
+  const { data, error } = await db.from("factory_plan_confirmation_receipts")
+    .select("request_fingerprint, response")
+    .eq("organization_id", organizationId)
+    .eq("idempotency_key", idempotencyKey)
+    .maybeSingle();
+  if (error) {
+    throw new FactorySimulationError("Não foi possível consultar a confirmação anterior.", 500);
+  }
+  if (!data) return null;
+  if (data.request_fingerprint !== requestFingerprint) {
+    throw new FactorySimulationError("Esta chave de confirmação já foi usada com outra solicitação.", 409);
+  }
+  if (!data.response || typeof data.response !== "object" || !data.response.scenario || !data.response.result) {
+    throw new FactorySimulationError("O recibo da confirmação está incompleto; procure o suporte.", 500);
+  }
+  return { ...data.response, replayed: true };
 }
 
 function persistencePayload(scenario) {
@@ -56,8 +85,20 @@ function persistencePayload(scenario) {
   return { orders, calendarDays };
 }
 
-async function commitScenario({ db, organizationId, selectedQuoteIds: requestedQuotes, allowEmpty }) {
+async function commitScenario({
+  db,
+  organizationId,
+  selectedQuoteIds: requestedQuotes,
+  allowEmpty,
+  idempotencyKey = null,
+}) {
   const quoteIds = selectedQuoteIds(requestedQuotes);
+  const requestFingerprint = idempotencyKey ? confirmationRequestFingerprint(quoteIds) : null;
+  if (idempotencyKey) {
+    const previous = await savedConfirmation({ db, organizationId, idempotencyKey, requestFingerprint });
+    if (previous) return previous;
+  }
+
   const scenario = await simulateProductionOrders({
     db,
     organizationId,
@@ -75,13 +116,23 @@ async function commitScenario({ db, organizationId, selectedQuoteIds: requestedQ
   }
 
   const { orders, calendarDays } = persistencePayload(scenario);
-  const { data, error } = await db.rpc("commit_factory_simulation", {
+  const { commitContext: _internalContext, ...publicScenario } = scenario;
+  const rpcName = idempotencyKey
+    ? "commit_factory_simulation_idempotent"
+    : "commit_factory_simulation";
+  const rpcParameters = {
     p_org_id: organizationId,
     p_expected_revision: scenario.commitContext.sourceRevision,
     p_approve_order_ids: quoteIds,
     p_plans: orders,
     p_calendar_days: calendarDays,
-  });
+  };
+  if (idempotencyKey) {
+    rpcParameters.p_idempotency_key = idempotencyKey;
+    rpcParameters.p_request_fingerprint = requestFingerprint;
+    rpcParameters.p_scenario = publicScenario;
+  }
+  const { data, error } = await db.rpc(rpcName, rpcParameters);
   if (error) {
     if (error.code === "40001") {
       throw new FactorySimulationError("Os dados mudaram enquanto a fila era confirmada. Atualize e tente novamente.", 409);
@@ -90,8 +141,8 @@ async function commitScenario({ db, organizationId, selectedQuoteIds: requestedQ
     throw new FactorySimulationError(error.message || "Não foi possível confirmar o Planejamento.", status);
   }
 
-  const { commitContext: _internalContext, ...publicScenario } = scenario;
-  return { scenario: publicScenario, result: data };
+  if (idempotencyKey) return data;
+  return { scenario: publicScenario, result: data, replayed: false };
 }
 
 /** Recalcula e persiste a fila aprovada sem aprovar orçamentos. */
@@ -100,6 +151,15 @@ export function reconcileFactoryPlan({ db, organizationId }) {
 }
 
 /** Recalcula a fila e aprova os orçamentos selecionados no mesmo commit. */
-export function confirmFactoryPlan({ db, organizationId, orderIds = [] }) {
-  return commitScenario({ db, organizationId, selectedQuoteIds: orderIds, allowEmpty: false });
+export function confirmFactoryPlan({ db, organizationId, orderIds = [], idempotencyKey }) {
+  if (typeof idempotencyKey !== "string" || !UUID_RE.test(idempotencyKey)) {
+    throw new FactorySimulationError("Envie uma chave UUID exclusiva para esta confirmação.", 400);
+  }
+  return commitScenario({
+    db,
+    organizationId,
+    selectedQuoteIds: orderIds,
+    allowEmpty: false,
+    idempotencyKey,
+  });
 }

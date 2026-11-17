@@ -12,6 +12,7 @@ export const operationsRepository = Object.freeze({
   calculatePieceMetrics: (input) => operation("calculate_piece_metrics", input),
   saveDelayAdjustment: (input) => operation("save_delay_adjustment", input),
   getOperationsData: () => operation("bootstrap"),
+  recordProductionLabelPrints: (input) => operation("record_production_label_prints", input),
   saveWork: (input) => operation("save_work", input),
   saveOrder: (input) => operation("save_order", input),
   createOrderHeader: (input) => operation("create_order_header", input),

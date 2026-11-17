@@ -10,11 +10,11 @@ Site publicado: [PRELUX Etiquetas](https://prelux-emissor-etiquetas.glaubertmira
 - `database/` — scripts SQL incrementais e diagrama do schema.
 - `supabase/functions/` — Edge Functions e módulos compartilhados do backend.
 - `backend/` — configuração e documentação operacional do Supabase.
-- `tests/` — testes existentes do planejador puro.
+- `tests/` — testes dos domínios puros de Projeto, Engenharia e planejamento.
 - `package.json` — comandos Node.js do projeto.
 - `docs/ARCHITECTURE.md` — mapa da arquitetura, responsabilidades e fluxo dos dados.
 
-O código do navegador começa em `dist/js/main.js`. A navegação tem duas áreas: **PEDIDOS** e **PLANEJAMENTO**. PEDIDOS contém **Pedido → Engenharia → Projeto → Produzir → Etiquetas** e o subtópico **Cadastro** (obras, peças, formas e posições). Ao concluir todas as unidades do pedido, o banco gera uma etiqueta para cada peça. O editor de etiquetas avulsas continua disponível dentro de Pedidos, com histórico local. Para entender o caminho entre navegador, Edge Functions e banco, consulte [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
+O código do navegador começa em `dist/js/main.js`. A navegação tem duas áreas: **PEDIDOS** e **PLANEJAMENTO**. PEDIDOS contém **Pedido → Engenharia → Projeto → Produzir → Etiquetas** e o subtópico **Cadastro** (obras, peças, formas e posições). Ao concluir todas as unidades do pedido, o banco gera uma etiqueta para cada peça. As etiquetas de produção têm versões de conteúdo e registro das solicitações de PNG, ZIP e impressão; o responsável é autodeclarado porque o sistema continua sem login. O editor de etiquetas avulsas continua disponível dentro de Pedidos, com histórico local. Para entender o caminho entre navegador, Edge Functions e banco, consulte [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 
 Este repositório contém código e scripts de schema; não contém exportação de registros de produção. Os arquivos de ambiente reais, chaves e credenciais não devem ser versionados.
 
@@ -38,12 +38,16 @@ Se o comando `npm` não estiver disponível, execute `node scripts/serve.mjs`. D
 
 Consulte [`database/README.md`](database/README.md) para a ordem das migrações e [`backend/README.md`](backend/README.md) para publicação das Edge Functions.
 Para decisões e pendências da Etapa 5, consulte [`docs/FABIO_II_ETAPA5_REVISAO.md`](docs/FABIO_II_ETAPA5_REVISAO.md).
+O inventário da nova reestruturação está em [`docs/ETAPA1_INVENTARIO_REESTRUTURACAO.md`](docs/ETAPA1_INVENTARIO_REESTRUTURACAO.md), e a implementação local da Engenharia está em [`docs/ETAPA2_ENGENHARIA.md`](docs/ETAPA2_ENGENHARIA.md).
 O fluxo de simulação e confirmação da fila está em [`docs/ETAPA5_CONFIRMACAO_PLANO.md`](docs/ETAPA5_CONFIRMACAO_PLANO.md).
 O motor de simulação da Etapa 2 e sua API somente de leitura estão documentados em [`docs/ETAPA2_MOTOR_SIMULACAO.md`](docs/ETAPA2_MOTOR_SIMULACAO.md).
 O calendário de previsão da Etapa 3 está documentado em [`docs/ETAPA3_CALENDARIO.md`](docs/ETAPA3_CALENDARIO.md).
+O domínio Projeto e a integração local dos parâmetros versionados de Engenharia estão em [`docs/ETAPA3_PROJETO.md`](docs/ETAPA3_PROJETO.md).
+A simulação sem gravação e a confirmação idempotente estão em [`docs/ETAPA4_SIMULACAO_CONFIRMADA.md`](docs/ETAPA4_SIMULACAO_CONFIRMADA.md).
+O fechamento da Etapa 5, incluindo o versionamento das etiquetas e o registro de reimpressões, está em [`docs/ETAPA5_ETIQUETAS.md`](docs/ETAPA5_ETIQUETAS.md).
 
 - Em uma instalação nova, aplique os scripts `database/001` a `database/014` na ordem descrita.
-- O projeto Supabase em uso contém a estrutura até a migration 026. As posições são espaços físicos que recebem os moldes exigidos por cada pedido.
+- O projeto Supabase em uso contém a estrutura até a migration 029. As posições são espaços físicos que recebem os moldes exigidos por cada pedido.
 - Pedidos com obra herdam cliente e início; sem obra, os dados são informados no pedido. BRAÇO usa X × Z; Pilar e Viga usam LEITO para X e LATERAL para Z, com Y como comprimento.
 - Volume e peso seguem calculados pela lógica existente no site.
 - As migrations `database/009_fabio2_foundation.sql` a `database/014_order_approval_timestamp.sql` fazem parte do schema ativo do Supabase.

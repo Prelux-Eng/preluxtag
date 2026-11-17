@@ -42,6 +42,9 @@ alterações; não reaplique os scripts nele. As migrations da Etapa 5 são:
 - `20261116180240_fix_withdraw_production_unit_uuid.sql`
 - `20261116180601_preserve_withdrawn_cast_reservations.sql`
 - `20261117123206_delete_order_with_history.sql`
+- `20261117144307_engineering_parameter_versions.sql`
+- `20261117144318_idempotent_plan_confirmation.sql`
+- `20261117144324_label_versions_and_print_audit.sql`
 
 As Edge Functions hospedadas recebem `SUPABASE_URL` e
 `SUPABASE_SERVICE_ROLE_KEY` no servidor. Configure
@@ -51,7 +54,7 @@ Mantenha a validação JWT das funções ativa; o Site envia a chave pública no
 cabeçalho.
 
 Funções da interface atual: `operations-admin`, `calendar-admin`,
-`simulate-production` e `confirm-production-plan`. As rotas
+`simulate-production`, `confirm-production-plan` e `engineering-admin`. As rotas
 `plan-order` e `commit-order-plan` são legadas; a segunda responde HTTP 410
 e não grava programação. Atualize schema e funções antes de publicar o HTML
 que usa o novo contrato.
@@ -76,6 +79,8 @@ As ações de cadastro de `operations-admin` estão implementadas em
 [`supabase/functions/operations-admin/index.ts`](../supabase/functions/operations-admin/index.ts).
 O contrato da fila está em
 [`docs/ETAPA5_CONFIRMACAO_PLANO.md`](../docs/ETAPA5_CONFIRMACAO_PLANO.md).
+O versionamento e a auditoria das etiquetas estão em
+[`docs/ETAPA5_ETIQUETAS.md`](../docs/ETAPA5_ETIQUETAS.md).
 
 ## Verificação
 

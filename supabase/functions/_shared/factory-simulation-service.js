@@ -6,8 +6,9 @@
  * não são reprogramadas; suas alocações permanecem como capacidade ocupada.
  */
 import { buildCalendarDays } from "./calendar.js";
-import { addDays, PlannerError } from "./planner.js";
-import { simulateFactory } from "./factory-simulator.js";
+import { addDays } from "./planner.js";
+import { validateEngineeringParameters } from "./engineering-domain.js";
+import { simulateProject } from "./project-domain.js";
 import { buildDailyProductionSteps } from "./production-phases.js";
 
 export class FactorySimulationError extends Error {
@@ -21,6 +22,23 @@ export class FactorySimulationError extends Error {
 function checked(result, message) {
   if (result.error) throw new FactorySimulationError(`${message}: ${result.error.message}`, 500);
   return result.data ?? [];
+}
+
+function engineeringVersionFromRow(row) {
+  return {
+    id: row.id,
+    version: Number(row.version_number),
+    parameters: validateEngineeringParameters({
+      preparationWorkdays: row.preparation_workdays,
+      castingWorkdays: row.casting_workdays,
+      curingCalendarDays: row.curing_calendar_days,
+      finishingWorkdays: row.finishing_workdays,
+      maxCastingsPerWorkday: row.max_castings_per_workday,
+      maximumOrderCalendarDays: row.maximum_order_calendar_days,
+      castingStartTime: String(row.casting_start_time).slice(0, 5),
+      concreteDensityKgM3: row.concrete_density_kg_m3,
+    }),
+  };
 }
 
 function localDate(instant, timeZone) {
@@ -107,9 +125,9 @@ export async function simulateProductionOrders({ db, organizationId, input = {},
     throw new FactorySimulationError("A versão do Planejamento não foi inicializada.", 500);
   }
 
-  const [ordersResult, positionsResult, settingsResult, rulesResult, orgResult, constantsResult, formsResult] = await Promise.all([
+  const [ordersResult, positionsResult, settingsResult, rulesResult, orgResult, formsResult] = await Promise.all([
     db.from("orders")
-      .select("id, order_number, status, start_date, requested_due_date, approved_at, created_at, is_active")
+      .select("id, order_number, status, start_date, requested_due_date, approved_at, created_at, is_active, engineering_parameter_version_id")
       .eq("organization_id", organizationId).eq("is_active", true)
       .in("status", ["orcamento", "aprovado", "em_producao", "atrasado"])
       .limit(1000),
@@ -123,8 +141,6 @@ export async function simulateProductionOrders({ db, organizationId, input = {},
       .select("weekday, is_working, capacity_minutes")
       .eq("organization_id", organizationId),
     db.from("organizations").select("timezone").eq("id", organizationId).maybeSingle(),
-    db.from("calculation_constants").select("constant_key, numeric_value, unit")
-      .eq("organization_id", organizationId).eq("constant_key", "casting_start_hour").maybeSingle(),
     db.rpc("factory_installed_form_by_position", { p_org_id: organizationId }),
   ]);
   const allOrders = checked(ordersResult, "Não foi possível ler os pedidos");
@@ -140,12 +156,6 @@ export async function simulateProductionOrders({ db, organizationId, input = {},
   const settingsRow = checked(settingsResult, "Não foi possível ler o calendário");
   const settings = Array.isArray(settingsRow) ? { default_capacity_minutes: 480 } : settingsRow;
   const rules = checked(rulesResult, "Não foi possível ler os dias úteis");
-  const castingStart = checked(constantsResult, "Não foi possível ler o horário de concretagem");
-  const startMinutes = Math.round(Number(castingStart?.numeric_value ?? 8) * 60);
-  if (!Number.isInteger(startMinutes) || startMinutes < 0 || startMinutes >= 24 * 60) {
-    throw new FactorySimulationError("O horário de concretagem configurado é inválido.", 409);
-  }
-  const castStartTime = `${String(Math.floor(startMinutes / 60)).padStart(2, "0")}:${String(startMinutes % 60).padStart(2, "0")}`;
   const selected = new Set(requestedIds);
   if (requestedIds.some((id) => !allOrders.some((order) => order.id === id))) {
     throw new FactorySimulationError("Um pedido selecionado não existe ou está encerrado.", 404);
@@ -190,6 +200,41 @@ export async function simulateProductionOrders({ db, organizationId, input = {},
     throw new FactorySimulationError("Todos os pedidos da fila já iniciaram produção.", 409);
   }
   const orderIds = schedulableOrders.map((order) => order.id);
+  const referencedParameterVersionIds = [...new Set(schedulableOrders
+    .map((order) => order.engineering_parameter_version_id)
+    .filter(Boolean))];
+  const [parameterVersionsResult, currentParameterVersionResult] = await Promise.all([
+    referencedParameterVersionIds.length
+      ? db.from("engineering_parameter_versions")
+        .select("id, version_number, preparation_workdays, casting_workdays, curing_calendar_days, finishing_workdays, max_castings_per_workday, maximum_order_calendar_days, casting_start_time, concrete_density_kg_m3")
+        .eq("organization_id", organizationId)
+        .in("id", referencedParameterVersionIds)
+      : Promise.resolve({ data: [], error: null }),
+    db.from("engineering_parameter_versions")
+      .select("id, version_number, preparation_workdays, casting_workdays, curing_calendar_days, finishing_workdays, max_castings_per_workday, maximum_order_calendar_days, casting_start_time, concrete_density_kg_m3")
+      .eq("organization_id", organizationId)
+      .order("version_number", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+  ]);
+  const parameterVersions = checked(parameterVersionsResult, "Não foi possível ler as versões de Engenharia")
+    .map(engineeringVersionFromRow);
+  const currentParameterVersionRow = checked(currentParameterVersionResult, "Não foi possível ler a versão atual de Engenharia");
+  if (!currentParameterVersionRow) {
+    throw new FactorySimulationError("Os parâmetros de Engenharia ainda não foram inicializados.", 409);
+  }
+  const currentParameterVersion = engineeringVersionFromRow(currentParameterVersionRow);
+  const parametersById = new Map(parameterVersions.map((entry) => [entry.id, entry]));
+  const versionForOrder = new Map();
+  for (const order of schedulableOrders) {
+    const version = order.engineering_parameter_version_id
+      ? parametersById.get(order.engineering_parameter_version_id)
+      : currentParameterVersion;
+    if (!version) {
+      throw new FactorySimulationError(`A versão de Engenharia do pedido ${order.order_number} não existe para esta organização.`, 409);
+    }
+    versionForOrder.set(order.id, version);
+  }
   const today = localDate(now, timeZone);
   const dates = schedulableOrders.map((order) => order.start_date > today ? order.start_date : today).sort();
   const startDate = dates[0] || today;
@@ -206,8 +251,9 @@ export async function simulateProductionOrders({ db, organizationId, input = {},
       .eq("organization_id", organizationId).eq("is_active", true)
       .lte("start_date", endDate).gte("end_date", startDate),
     orderIds.length ? db.from("delay_adjustments")
-      .select("order_id, impact_days")
-      .eq("organization_id", organizationId).in("order_id", orderIds).limit(10000)
+      .select("order_id, reason, occurred_on, impact_days")
+      .eq("organization_id", organizationId).in("order_id", orderIds)
+      .order("occurred_on", { ascending: true }).limit(10000)
       : Promise.resolve({ data: [], error: null }),
     fixedReservations({ db, organizationId, startedOrderIds, positions, timeZone, today }),
   ]);
@@ -222,7 +268,7 @@ export async function simulateProductionOrders({ db, organizationId, input = {},
   const pieceIds = [...new Set(items.map((item) => item.piece_type_id))];
   const [piecesResult, moldsResult] = await Promise.all([
     pieceIds.length ? db.from("piece_types")
-      .select("id, piece_kind, dimension_x_cm, dimension_y_cm, dimension_z_cm, curing_days")
+      .select("id, piece_kind, dimension_x_cm, dimension_y_cm, dimension_z_cm")
       .eq("organization_id", organizationId).in("id", pieceIds)
       : Promise.resolve({ data: [], error: null }),
     pieceIds.length ? db.from("piece_type_molds")
@@ -245,7 +291,6 @@ export async function simulateProductionOrders({ db, organizationId, input = {},
     list.push({
       ...item,
       pieceKind: piece.piece_kind,
-      curingDays: piece.curing_days || 2,
       requiredMoldCodes: moldsByPiece.get(piece.id) || [],
       dimensionXcm: piece.dimension_x_cm,
       dimensionYcm: piece.dimension_y_cm,
@@ -253,13 +298,18 @@ export async function simulateProductionOrders({ db, organizationId, input = {},
     });
     itemsByOrder.set(item.order_id, list);
   }
-  const impactByOrder = new Map();
+  const adjustmentsByOrder = new Map();
   for (const adjustment of adjustments) {
-    impactByOrder.set(adjustment.order_id,
-      (impactByOrder.get(adjustment.order_id) || 0) + Number(adjustment.impact_days));
+    const list = adjustmentsByOrder.get(adjustment.order_id) || [];
+    list.push({
+      reason: adjustment.reason,
+      occurredOn: adjustment.occurred_on,
+      impactDays: Number(adjustment.impact_days),
+    });
+    adjustmentsByOrder.set(adjustment.order_id, list);
   }
   const calendarDays = buildCalendarDays({ startDate, endDate, settings, rules, exceptions });
-  const scenario = simulateFactory({
+  const scenario = simulateProject({
     calendarDays,
     positions,
     existingReservations: reservations,
@@ -267,16 +317,20 @@ export async function simulateProductionOrders({ db, organizationId, input = {},
     orders: schedulableOrders.filter((order) => orderIdsWithItems.has(order.id)).map((order) => ({
       ...order,
       items: itemsByOrder.get(order.id) || [],
-      adjustmentDays: impactByOrder.get(order.id) || 0,
+      delayAdjustments: adjustmentsByOrder.get(order.id) || [],
+      engineeringParameterVersionId: versionForOrder.get(order.id).id,
+      engineeringParameterVersion: versionForOrder.get(order.id).version,
+      engineeringParameters: versionForOrder.get(order.id).parameters,
     })),
   });
 
   const itemById = new Map(items.map((item) => [item.id, item]));
+  const orderPlanById = new Map(scenario.orders.map((entry) => [entry.orderId, entry]));
   for (const order of scenario.orders) {
     for (const unit of order.units) {
       const item = itemById.get(unit.itemId);
-      const piece = pieceById.get(item?.piece_type_id);
-      const curingDays = Number(piece?.curing_days || 2);
+      const orderPlan = orderPlanById.get(item?.order_id);
+      const curingDays = Number(unit.curingDays);
       const phases = buildDailyProductionSteps({
         castDate: unit.castDate,
         finishDate: unit.finishDate,
@@ -284,7 +338,8 @@ export async function simulateProductionOrders({ db, organizationId, input = {},
         calendarDays,
         curingDays,
         timeZone,
-        castStartTime,
+        castStartTime: unit.castingStartTime,
+        preparationWorkdays: orderPlan?.engineeringParameters.preparationWorkdays,
       });
       Object.assign(unit, {
         curingDays,
@@ -307,6 +362,6 @@ export async function simulateProductionOrders({ db, organizationId, input = {},
     selectedOrderIds: requestedIds,
     fixedStartedOrderCount: startedOrderIds.length,
     generatedAt: new Date().toISOString(),
-    commitContext: { sourceRevision, calendarDays, timeZone, castStartTime },
+    commitContext: { sourceRevision, calendarDays, timeZone },
   };
 }

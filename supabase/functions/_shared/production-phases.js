@@ -89,6 +89,7 @@ export function buildDailyProductionSteps({
   curingDays = 2,
   timeZone = "America/Sao_Paulo",
   castStartTime = "08:00",
+  preparationWorkdays = 5,
 } = {}) {
   if (!DATE_RE.test(castDate || "") || !DATE_RE.test(finishDate || "")) {
     fail("Informe datas válidas para concretagem e acabamento.");
@@ -98,8 +99,12 @@ export function buildDailyProductionSteps({
     fail("A cura precisa ter de 1 a 365 dias corridos.");
   }
   const prepDates = [...preparationDates];
-  if (prepDates.length && prepDates.length !== 5) {
-    fail("A preparação da forma precisa ocupar cinco dias úteis.");
+  const expectedPreparationDays = Number(preparationWorkdays);
+  if (!Number.isInteger(expectedPreparationDays) || expectedPreparationDays < 1) {
+    fail("A preparação precisa ter uma quantidade válida de dias úteis.");
+  }
+  if (prepDates.length && prepDates.length !== expectedPreparationDays) {
+    fail(`A preparação da forma precisa ocupar ${expectedPreparationDays} dias úteis.`);
   }
   for (const date of prepDates) capacityForDate(calendarDays, date);
   const castCapacity = capacityForDate(calendarDays, castDate);

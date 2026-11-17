@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { buildCalendarDays } from "../supabase/functions/_shared/calendar.js";
-import { FACTORY_RULES, simulateFactory } from "../supabase/functions/_shared/factory-simulator.js";
+import { FACTORY_RULES, simulateProject } from "../supabase/functions/_shared/project-domain.js";
 import { simulateProductionOrders } from "../supabase/functions/_shared/factory-simulation-service.js";
 
 function calendar(startDate = "2026-01-05", endDate = "2026-07-31", exceptions = []) {
@@ -52,7 +52,7 @@ const ready = {
 };
 
 test("pedido isolado: quatro posições prontas concretam quatro peças por dia útil", () => {
-  const result = simulateFactory({
+  const result = simulateProject({
     calendarDays: calendar(),
     positions: ["P01", "P02", "P03", "P04"].map((code) => position(code, ready)),
     orders: [order("PED-0001", 5)],
@@ -68,7 +68,7 @@ test("pedido isolado: quatro posições prontas concretam quatro peças por dia 
 });
 
 test("forma já pronta dispensa preparação; a cura libera a posição para a próxima concretagem", () => {
-  const result = simulateFactory({
+  const result = simulateProject({
     calendarDays: calendar(),
     positions: [position("P01", ready)],
     orders: [order("PED-0001", 2)],
@@ -83,7 +83,7 @@ test("forma já pronta dispensa preparação; a cura libera a posição para a p
 });
 
 test("forma não pronta ocupa a posição por cinco dias úteis antes da concretagem", () => {
-  const result = simulateFactory({
+  const result = simulateProject({
     calendarDays: calendar(),
     positions: [position("P01")],
     orders: [order("PED-0001")],
@@ -97,7 +97,7 @@ test("forma não pronta ocupa a posição por cinco dias úteis antes da concret
 });
 
 test("pedido antigo começa a programação hoje sem mudar o prazo contratual", () => {
-  const result = simulateFactory({
+  const result = simulateProject({
     calendarDays: calendar(),
     positions: [position("P01", ready)],
     orders: [order("PED-0001")],
@@ -109,14 +109,14 @@ test("pedido antigo começa a programação hoje sem mudar o prazo contratual", 
 });
 
 test("forma concluída dispensa preparação, mas desmontagem descarta o estado antigo", () => {
-  const mounted = simulateFactory({
+  const mounted = simulateProject({
     calendarDays: calendar(),
     positions: [position("P01", { installedMoldCatalogCodes: ["LEITO_20", "LATERAL_25"] })],
     orders: [order("PED-0001")],
   });
   assert.equal(mounted.orders[0].units[0].preparationStartDate, null);
 
-  const dismantled = simulateFactory({
+  const dismantled = simulateProject({
     calendarDays: calendar(),
     positions: [position("P01", {
       ...ready,
@@ -135,7 +135,7 @@ test("forma concluída dispensa preparação, mas desmontagem descarta o estado 
 });
 
 test("posição em produção volta à fila após a reserva e conserva a forma", () => {
-  const result = simulateFactory({
+  const result = simulateProject({
     calendarDays: calendar(),
     positions: [position("P01", { status: "em_producao" })],
     existingReservations: [{
@@ -151,7 +151,7 @@ test("posição em produção volta à fila após a reserva e conserva a forma",
 });
 
 test("prazo acima de 90 dias informa excesso e quantidade que cabe no limite", () => {
-  const result = simulateFactory({
+  const result = simulateProject({
     calendarDays: calendar(),
     positions: [position("P01", ready)],
     orders: [order("PED-0001", 70)],
@@ -167,7 +167,7 @@ test("prazo acima de 90 dias informa excesso e quantidade que cabe no limite", (
 });
 
 test("dois pedidos simultâneos disputam a mesma posição por ordem de aprovação", () => {
-  const result = simulateFactory({
+  const result = simulateProject({
     calendarDays: calendar(),
     positions: [position("P01", ready)],
     orders: [
@@ -183,6 +183,30 @@ test("dois pedidos simultâneos disputam a mesma posição por ordem de aprovaç
   assert.equal(result.orders[1].reservesCapacityOnConfirmation, false);
 });
 
+test("ajuste externo mantém a previsão-base e recalcula a data final com motivo rastreável", () => {
+  const result = simulateProject({
+    calendarDays: calendar(),
+    positions: [position("P01", ready)],
+    orders: [{
+      ...order("PED-AJUSTE"),
+      delayAdjustments: [{
+        reason: "Interrupção por manutenção elétrica",
+        occurredOn: "2026-01-06",
+        impactDays: 3,
+      }],
+    }],
+  });
+  const plan = result.orders[0];
+  assert.equal(plan.plannedEndDate, "2026-01-08");
+  assert.equal(plan.forecastEndDate, "2026-01-11");
+  assert.equal(plan.totalExternalAdjustmentDays, 3);
+  assert.deepEqual(plan.externalAdjustments, [{
+    reason: "Interrupção por manutenção elétrica",
+    occurredOn: "2026-01-06",
+    impactDays: 3,
+  }]);
+});
+
 test("pedido seguinte troca a forma e ocupa cinco dias úteis antes de concretar", () => {
   const next = order("PED-0002", 1, "aprovado", "2026-01-03T08:00:00Z");
   next.items = [{
@@ -192,7 +216,7 @@ test("pedido seguinte troca a forma e ocupa cinco dias úteis antes de concretar
     dimensionXcm: 30,
     dimensionZcm: 40,
   }];
-  const result = simulateFactory({
+  const result = simulateProject({
     calendarDays: calendar(),
     positions: [position("P01", ready)],
     orders: [next, order("PED-0001", 1, "aprovado", "2026-01-02T08:00:00Z")],
@@ -207,7 +231,7 @@ test("pedido seguinte troca a forma e ocupa cinco dias úteis antes de concretar
 });
 
 test("feriado não prolonga a cura em dias corridos, mas adia o acabamento", () => {
-  const result = simulateFactory({
+  const result = simulateProject({
     calendarDays: calendar("2026-01-05", "2026-01-20", [{
       id: "feriado", name: "Feriado", start_date: "2026-01-08", end_date: "2026-01-08",
       is_working: false, priority: 10,
@@ -225,7 +249,7 @@ test("placa usa a bancada plana sem moldes e preserva volume e peso pelas três 
     requiredMoldCodes: [], dimensionXcm: 100, dimensionYcm: 200, dimensionZcm: 10,
     quantity: 1,
   };
-  const result = simulateFactory({
+  const result = simulateProject({
     calendarDays: calendar(),
     positions: [position("P01", { configurationKind: "placa" })],
     orders: [{ ...order("PED-0001"), items: [placa] }],
@@ -237,15 +261,75 @@ test("placa usa a bancada plana sem moldes e preserva volume e peso pelas três 
 
 test("regras do cenário ficam explícitas na resposta", () => {
   assert.equal(FACTORY_RULES.preparationWorkingDays, 5);
+  assert.equal(FACTORY_RULES.castingWorkingDays, 1);
   assert.equal(FACTORY_RULES.curingCalendarDays, 2);
   assert.equal(FACTORY_RULES.finishingWorkingDays, 1);
+  assert.equal(FACTORY_RULES.maxCastingsPerWorkday, 4);
   assert.equal(FACTORY_RULES.maximumCalendarDays, 90);
+});
+
+test("Projeto aplica os parâmetros versionados de preparação, cura, capacidade, prazo e densidade", () => {
+  const engineeringParameters = {
+    preparationWorkdays: 3,
+    castingWorkdays: 1,
+    curingCalendarDays: 3,
+    finishingWorkdays: 1,
+    maxCastingsPerWorkday: 2,
+    maximumOrderCalendarDays: 30,
+    castingStartTime: "07:30",
+    concreteDensityKgM3: 3_000,
+  };
+  const result = simulateProject({
+    calendarDays: calendar(),
+    positions: ["P01", "P02", "P03", "P04"].map((code) => position(code, ready)),
+    orders: [{
+      ...order("PED-VERSAO", 5),
+      engineeringParameterVersionId: "version-2",
+      engineeringParameterVersion: 2,
+      engineeringParameters,
+    }],
+  });
+  const plan = result.orders[0];
+  assert.equal(plan.engineeringParameterVersionId, "version-2");
+  assert.equal(plan.maximumDueDate, "2026-02-04");
+  assert.equal(plan.totalWeightKg, 750);
+  assert.deepEqual(plan.units.map((unit) => unit.castDate), [
+    "2026-01-05", "2026-01-05", "2026-01-06", "2026-01-06", "2026-01-07",
+  ]);
+  assert.equal(plan.units[0].cureEndDate, "2026-01-08");
+  assert.equal(plan.units[0].finishDate, "2026-01-09");
+  assert.equal(plan.units[0].castingStartTime, "07:30");
+});
+
+test("preparação usa a duração da versão de Engenharia e explica a montagem necessária", () => {
+  const result = simulateProject({
+    calendarDays: calendar(),
+    positions: [position("P01")],
+    orders: [{
+      ...order("PED-PREPARACAO"),
+      engineeringParameters: {
+        preparationWorkdays: 3,
+        castingWorkdays: 1,
+        curingCalendarDays: 2,
+        finishingWorkdays: 1,
+        maxCastingsPerWorkday: 4,
+        maximumOrderCalendarDays: 90,
+        castingStartTime: "08:00",
+        concreteDensityKgM3: 2_500,
+      },
+    }],
+  });
+  const unit = result.orders[0].units[0];
+  assert.deepEqual(unit.preparationDates, ["2026-01-05", "2026-01-06", "2026-01-07"]);
+  assert.equal(unit.castDate, "2026-01-08");
+  assert.equal(unit.preparationRequired, true);
+  assert.match(unit.preparationReason, /não tinha/);
 });
 
 test("API de simulação não grava e respeita concretagem de unidade retirada", async () => {
   const tables = {
     orders: [
-      { id: "approved", order_number: "PED-0001", status: "aprovado", start_date: "2026-01-05", requested_due_date: "2026-04-05", approved_at: "2026-01-02T08:00:00Z", created_at: "2026-01-01T08:00:00Z", organization_id: "org", is_active: true },
+      { id: "approved", order_number: "PED-0001", status: "aprovado", start_date: "2026-01-05", requested_due_date: "2026-04-05", approved_at: "2026-01-02T08:00:00Z", created_at: "2026-01-01T08:00:00Z", organization_id: "org", is_active: true, engineering_parameter_version_id: "engineering-v1" },
       { id: "quoted", order_number: "PED-0002", status: "orcamento", start_date: "2026-01-05", requested_due_date: "2026-04-05", created_at: "2026-01-01T07:00:00Z", organization_id: "org", is_active: true },
       { id: "unselected", order_number: "PED-0003", status: "orcamento", start_date: "2026-01-05", requested_due_date: "2026-04-05", created_at: "2026-01-01T06:00:00Z", organization_id: "org", is_active: true },
     ],
@@ -272,8 +356,18 @@ test("API de simulação não grava e respeita concretagem de unidade retirada",
       { piece_type_id: "piece-viga", role: "lateral", catalog_code: "LATERAL_25", organization_id: "org" },
     ],
     calendar_exceptions: [],
-    delay_adjustments: [],
+    delay_adjustments: [{
+      organization_id: "org",
+      order_id: "approved",
+      reason: "Manutenção elétrica",
+      occurred_on: "2026-01-02",
+      impact_days: 2,
+    }],
     factory_plan_revisions: [{ organization_id: "org", revision: 1 }],
+    engineering_parameter_versions: [
+      { id: "engineering-v2", version_number: 2, preparation_workdays: 5, casting_workdays: 1, curing_calendar_days: 2, finishing_workdays: 1, max_castings_per_workday: 4, maximum_order_calendar_days: 90, casting_start_time: "08:00:00", concrete_density_kg_m3: 2500, organization_id: "org" },
+      { id: "engineering-v1", version_number: 1, preparation_workdays: 5, casting_workdays: 1, curing_calendar_days: 2, finishing_workdays: 1, max_castings_per_workday: 4, maximum_order_calendar_days: 90, casting_start_time: "07:30:00", concrete_density_kg_m3: 3000, organization_id: "org" },
+    ],
   };
   let writes = 0;
   class Query {
@@ -309,6 +403,14 @@ test("API de simulação não grava e respeita concretagem de unidade retirada",
   assert.deepEqual(result.orders.map((entry) => [entry.orderId, entry.units[0].castDate]), [
     ["approved", "2026-01-05"], ["quoted", "2026-01-06"],
   ]);
+  assert.deepEqual(result.orders.map((entry) => entry.engineeringParameterVersion), [1, 2]);
+  assert.deepEqual(result.orders.map((entry) => entry.totalWeightKg), [150, 125]);
+  assert.equal(result.orders[0].units[0].steps[0].plannedStartAt, "2026-01-05T10:30:00.000Z");
+  assert.deepEqual(result.orders[0].externalAdjustments, [{
+    reason: "Manutenção elétrica",
+    occurredOn: "2026-01-02",
+    impactDays: 2,
+  }]);
   assert.equal(result.selectedOrderIds[0], "quoted");
 
   // A última unidade foi retirada do pedido, mas sua concretagem já ocupou P01.
