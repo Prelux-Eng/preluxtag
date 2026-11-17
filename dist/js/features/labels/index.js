@@ -14,11 +14,31 @@ const $ = (id) => document.getElementById(id);
     let generatedLabels = [];
     let generatedOrderId = null;
     let printRecords = null;
+    const pendingPrintKey = 'prelux-label-print-requests-v1';
     const key = 'prelux-rastreabilidade-registros-v1';
     // Persistência local: o histórico de etiquetas fica no navegador atual.
     const getRecords = () => { try{return JSON.parse(localStorage.getItem(key)||'[]')}catch{return[]} };
     const setRecords = (items) => localStorage.setItem(key, JSON.stringify(items));
     const showToast = (msg) => { const t=$('toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(showToast.timer); showToast.timer=setTimeout(()=>t.classList.remove('show'),2600); };
+    async function recordGeneratedLabelPrints(records){
+      const printedBy=$('labelPrintActor').value.trim();
+      if(!printedBy){$('labelPrintActor').focus();throw new Error('Informe o responsável pela emissão ou reimpressão.');}
+      if(!operationsRepository?.recordProductionLabelPrints)throw new Error('O registro de impressões ainda não está disponível.');
+      const labels=records.map(record=>({productionOrderId:record.production_order_id,versionNumber:record.version_number||1}))
+        .sort((a,b)=>a.productionOrderId.localeCompare(b.productionOrderId));
+      const signature=JSON.stringify({printedBy,labels});
+      let pending={};
+      try{pending=JSON.parse(sessionStorage.getItem(pendingPrintKey)||'{}')}catch{}
+      const idempotencyKey=pending[signature]||crypto.randomUUID();
+      if(!pending[signature]){
+        pending[signature]=idempotencyKey;
+        const keys=Object.keys(pending);if(keys.length>20)delete pending[keys[0]];
+        try{sessionStorage.setItem(pendingPrintKey,JSON.stringify(pending))}catch{}
+      }
+      const result=await operationsRepository.recordProductionLabelPrints({printedBy,idempotencyKey,labels});
+      delete pending[signature];try{sessionStorage.setItem(pendingPrintKey,JSON.stringify(pending))}catch{}
+      return result;
+    }
     const getQuantity = () => Math.max(1,Math.min(100,Number.parseInt(fields.quantity.value,10)||1));
     const normalizeBase = (value) => String(value||'').trim().toUpperCase().replace(/\s+/g,'-');
     const labelId = (index=1) => { if(activeGenerated)return activeGenerated.label_code;const base=normalizeBase(fields.id.value); return base ? `${base}-${String(index).padStart(3,'0')}` : '—'; };
@@ -45,7 +65,7 @@ const $ = (id) => document.getElementById(id);
     template.onload=updatePreview; template.src='assets/PRE_RASTRE.png';
     async function ensureTemplate(){if(!template.complete||!template.naturalWidth)await template.decode();}
     ['input','change'].forEach(ev=>document.addEventListener(ev,e=>{if(e.target.closest('#pieceForm')){if(e.target===fields.quantity)previewIndex=1;if(e.target===fields.notes)updateNotesCounter();updatePreview();}}));
-    function setGeneratedMode(enabled){for(const field of Object.values(fields))field.readOnly=enabled;$('saveBtn').hidden=enabled;$('sampleBtn').hidden=enabled;$('pieceForm').querySelector('button[type="submit"]').hidden=enabled;}
+    function setGeneratedMode(enabled){for(const field of Object.values(fields))field.readOnly=enabled;$('saveBtn').hidden=enabled;$('sampleBtn').hidden=enabled;$('pieceForm').querySelector('button[type="submit"]').hidden=enabled;$('downloadAllBtn').hidden=enabled;$('printBtn').hidden=enabled;}
     function resetForm(){ activeGenerated=null;setGeneratedMode(false);$('pieceForm').reset(); fields.quantity.value=1; editingKey=null; $('saveBtn').textContent='Salvar peça'; previewIndex=1; updateNotesCounter(); updatePreview(); }
     // Atualiza a tabela de histórico a partir dos registros salvos localmente.
     function renderRecords(){ const q=$('search').value.toLowerCase().trim();const all=getRecords();const rows=all.filter(r=>`${recordBase(r)} ${recordRange(r)} ${r.client} ${r.notes}`.toLowerCase().includes(q));$('recordCount').textContent=`${all.length} registro${all.length===1?'':'s'} salvo${all.length===1?'':'s'} neste navegador`; $('recordsBody').innerHTML=rows.length?rows.map(r=>`<tr><td>${escapeHtml(recordRange(r))}</td><td>${recordQuantity(r)}</td><td>${escapeHtml(r.client||'—')}</td><td>${escapeHtml(r.notes||'—')}</td><td><div class="row-actions"><button class="icon-btn" data-action="load" data-key="${encodeURIComponent(recordKey(r))}">Editar</button><button class="icon-btn" data-action="png" data-key="${encodeURIComponent(recordKey(r))}">PNG</button><button class="icon-btn" data-action="delete" data-key="${encodeURIComponent(recordKey(r))}">Excluir</button></div></td></tr>`).join(''):`<tr><td colspan="5" class="empty">Nenhuma peça encontrada.</td></tr>`; }
@@ -59,7 +79,7 @@ const $ = (id) => document.getElementById(id);
         rows.sort((a,b)=>a.label_code.localeCompare(b.label_code,'pt-BR'));
         const order=escapeHtml(rows[0].order_number);
         return `<tr class="generated-order-row"><td colspan="4"><strong>${order}</strong> · ${rows.length} etiqueta${rows.length===1?'':'s'} <span class="row-actions"><button class="icon-btn" type="button" data-generated-action="zip-order" data-order-id="${escapeHtml(orderId)}">Baixar pedido (ZIP)</button><button class="icon-btn" type="button" data-generated-action="print-order" data-order-id="${escapeHtml(orderId)}">Imprimir pedido</button></span></td></tr>`+
-          rows.map(label=>`<tr><td><strong>${escapeHtml(label.label_code)}</strong><span class="muted">${order}</span></td><td>${escapeHtml(label.piece_code)} · ${escapeHtml(label.piece_name)}</td><td>${escapeHtml(label.client_name)}</td><td><div class="row-actions"><button class="icon-btn" type="button" data-generated-action="preview" data-label-id="${escapeHtml(label.production_order_id)}">Prévia</button><button class="icon-btn" type="button" data-generated-action="png" data-label-id="${escapeHtml(label.production_order_id)}">PNG</button></div></td></tr>`).join('');
+          rows.map(label=>`<tr><td><strong>${escapeHtml(label.label_code)}</strong><span class="muted">${order} · v${Number(label.version_number)||1}</span></td><td>${escapeHtml(label.piece_code)} · ${escapeHtml(label.piece_name)}</td><td>${escapeHtml(label.client_name)}</td><td><div class="row-actions"><button class="icon-btn" type="button" data-generated-action="preview" data-label-id="${escapeHtml(label.production_order_id)}">Prévia</button><button class="icon-btn" type="button" data-generated-action="png" data-label-id="${escapeHtml(label.production_order_id)}">PNG</button></div></td></tr>`).join('');
       }).join(''):`<tr><td colspan="4" class="empty">${generatedOrderId?'Nenhuma etiqueta deste pedido.':'As etiquetas surgem automaticamente quando todas as unidades do pedido ficam prontas.'}</td></tr>`;
     }
     function loadGeneratedLabel(label){
@@ -88,12 +108,12 @@ const $ = (id) => document.getElementById(id);
       const label=generatedLabels.find(row=>row.production_order_id===button.dataset.labelId);
       const orderRows=generatedLabels.filter(row=>row.order_id===button.dataset.orderId);
       if(action==='preview'&&label){loadGeneratedLabel(label);return;}
-      if(action==='png'&&label){loadGeneratedLabel(label);exportPng(label.label_code);return;}
+      if(action==='png'&&label){loadGeneratedLabel(label);exportPng(label.label_code,1,label);return;}
       if(!orderRows.length)return;
       if(action==='print-order'){openPrintModal(orderRows);return;}
       if(action==='zip-order'){
         button.disabled=true;const old=button.textContent;button.textContent='Gerando ZIP…';
-        try{const blob=await buildZip(orderRows);const link=document.createElement('a');link.download=`PRELUX_${normalizeBase(orderRows[0].order_number)}_ETIQUETAS.zip`;link.href=URL.createObjectURL(blob);link.click();setTimeout(()=>URL.revokeObjectURL(link.href),1000);showToast(`${orderRows.length} etiquetas do pedido geradas.`);}
+        try{const blob=await buildZip(orderRows);await recordGeneratedLabelPrints(orderRows);const link=document.createElement('a');link.download=`PRELUX_${normalizeBase(orderRows[0].order_number)}_ETIQUETAS.zip`;link.href=URL.createObjectURL(blob);link.click();setTimeout(()=>URL.revokeObjectURL(link.href),1000);showToast(`${orderRows.length} etiquetas do pedido geradas.`);}
         catch(error){showToast(error.message||'Não foi possível gerar o ZIP.');}
         finally{button.disabled=false;button.textContent=old;drawLabel();}
       }
@@ -101,7 +121,7 @@ const $ = (id) => document.getElementById(id);
     function findRecord(k){return getRecords().find(x=>recordKey(x)===k)}
     function loadRecord(k){ const r=findRecord(k);if(!r)return;activeGenerated=null;setGeneratedMode(false);fields.id.value=recordBase(r);fields.quantity.value=recordQuantity(r);fields.client.value=r.client||'';fields.notes.value=(r.notes||'').slice(0,500);updateNotesCounter();editingKey=recordKey(r);$('saveBtn').textContent='Atualizar peça';previewIndex=1;updatePreview();window.scrollTo({top:0,behavior:'smooth'}); }
     // Gera e baixa uma etiqueta PNG individual.
-    async function exportPng(recordName,index=previewIndex){try{await ensureTemplate();previewIndex=Math.max(1,Math.min(getQuantity(),index));drawLabel(labelId(previewIndex));const link=document.createElement('a');link.download=`PRELUX_${(recordName||labelId(previewIndex)||'etiqueta').replace(/[^a-z0-9_-]+/gi,'_')}.png`;link.href=canvas.toDataURL('image/png');link.click();drawLabel();showToast('Etiqueta PNG baixada.');}catch{showToast('Não foi possível carregar o modelo da etiqueta.');}}
+    async function exportPng(recordName,index=previewIndex,generatedRecord=null){try{await ensureTemplate();previewIndex=Math.max(1,Math.min(getQuantity(),index));drawLabel(labelId(previewIndex));const png=canvas.toDataURL('image/png');if(generatedRecord)await recordGeneratedLabelPrints([generatedRecord]);const link=document.createElement('a');link.download=`PRELUX_${(recordName||labelId(previewIndex)||'etiqueta').replace(/[^a-z0-9_-]+/gi,'_')}.png`;link.href=png;link.click();drawLabel();showToast('Etiqueta PNG baixada.');}catch(error){showToast(error.message||'Não foi possível carregar o modelo da etiqueta.');}}
     function concatBytes(parts){const total=parts.reduce((n,p)=>n+p.length,0);const out=new Uint8Array(total);let offset=0;for(const p of parts){out.set(p,offset);offset+=p.length}return out}
     // Rotinas para montar um arquivo ZIP sem dependências externas.
     const crcTable=(()=>{const t=[];for(let n=0;n<256;n++){let c=n;for(let k=0;k<8;k++)c=(c&1)?0xedb88320^(c>>>1):c>>>1;t[n]=c>>>0}return t})();
@@ -135,11 +155,11 @@ const $ = (id) => document.getElementById(id);
     function openPrintModal(records=null){printRecords=Array.isArray(records)?records:null;$('printModal').hidden=false;updatePrintSummary();}
     function closePrintModal(){ $('printModal').hidden=true; }
     // Monta as páginas de impressão e abre a janela de impressão do navegador.
-    async function generatePrint(){const c=getPrintConfig();if(!c.perSheet){showToast('A etiqueta não cabe nessa configuração.');return}const btn=$('confirmPrint'),old=btn.textContent;btn.disabled=true;btn.textContent='Montando impressão…';try{await ensureTemplate();const images=[];if(printRecords){for(const record of printRecords){drawLabel(record.label_code,record);images.push(canvas.toDataURL('image/png'));}}else{for(let i=1;i<=getQuantity();i++){drawLabel(labelId(i));images.push(canvas.toDataURL('image/png'));}}drawLabel();const pages=[];for(let start=0;start<images.length;start+=c.perSheet){const chunk=images.slice(start,start+c.perSheet);pages.push(`<div class="print-sheet">${chunk.map(src=>`<img src="${src}">`).join('')}</div>`)}const w=window.open('','_blank');if(!w){showToast('Permita pop-ups para gerar a impressão.');return}w.document.write(`<html><head><title>Impressão PRELUX — ${c.paper.name}</title><style>@page{size:${c.w}mm ${c.h}mm;margin:0}*{box-sizing:border-box}html,body{margin:0;padding:0}.print-sheet{width:${c.w}mm;height:${c.h}mm;padding:${c.margin}mm;display:grid;grid-template-columns:repeat(${c.cols},${c.label.w}mm);grid-auto-rows:${c.label.h}mm;gap:${c.gap}mm;align-content:start;page-break-after:always;overflow:hidden}.print-sheet:last-child{page-break-after:auto}.print-sheet img{display:block;width:${c.label.w}mm;height:${c.label.h}mm;object-fit:fill}</style></head><body>${pages.join('')}</body></html>`);w.document.close();w.onload=()=>{w.focus();w.print()};closePrintModal()}catch{showToast('Não foi possível montar a impressão.');}finally{btn.disabled=false;btn.textContent=old;drawLabel()}}
+    async function generatePrint(){const c=getPrintConfig();if(!c.perSheet){showToast('A etiqueta não cabe nessa configuração.');return}const btn=$('confirmPrint'),old=btn.textContent;btn.disabled=true;btn.textContent='Montando impressão…';let w=null;try{if(printRecords){w=window.open('','_blank');if(!w){showToast('Permita pop-ups para gerar a impressão.');return}}await ensureTemplate();const images=[];if(printRecords){for(const record of printRecords){drawLabel(record.label_code,record);images.push(canvas.toDataURL('image/png'));}}else{for(let i=1;i<=getQuantity();i++){drawLabel(labelId(i));images.push(canvas.toDataURL('image/png'));}}drawLabel();if(printRecords)await recordGeneratedLabelPrints(printRecords);const pages=[];for(let start=0;start<images.length;start+=c.perSheet){const chunk=images.slice(start,start+c.perSheet);pages.push(`<div class="print-sheet">${chunk.map(src=>`<img src="${src}">`).join('')}</div>`)}w ||= window.open('','_blank');if(!w){showToast('Permita pop-ups para gerar a impressão.');return}w.document.write(`<html><head><title>Impressão PRELUX — ${c.paper.name}</title><style>@page{size:${c.w}mm ${c.h}mm;margin:0}*{box-sizing:border-box}html,body{margin:0;padding:0}.print-sheet{width:${c.w}mm;height:${c.h}mm;padding:${c.margin}mm;display:grid;grid-template-columns:repeat(${c.cols},${c.label.w}mm);grid-auto-rows:${c.label.h}mm;gap:${c.gap}mm;align-content:start;page-break-after:always;overflow:hidden}.print-sheet:last-child{page-break-after:auto}.print-sheet img{display:block;width:${c.label.w}mm;height:${c.label.h}mm;object-fit:fill}</style></head><body>${pages.join('')}</body></html>`);w.document.close();w.onload=()=>{w.focus();w.print()};closePrintModal()}catch(error){w?.close();showToast(error.message||'Não foi possível montar a impressão.');}finally{btn.disabled=false;btn.textContent=old;drawLabel()}}
     // Eventos da tela: salvar, pesquisar, exportar, imprimir e editar registros.
     $('pieceForm').addEventListener('submit',e=>{e.preventDefault();if(activeGenerated)return;if(!fields.id.value.trim()||!fields.client.value.trim()){showToast('Preencha o ID da peça e o cliente.');return}const baseId=normalizeBase(fields.id.value),rec={key:editingKey||`${baseId}|${fields.client.value.trim()}`,baseId,quantity:getQuantity(),client:fields.client.value.trim(),notes:fields.notes.value.trim().slice(0,500),updatedAt:new Date().toISOString()};let items=getRecords();const pos=items.findIndex(x=>recordKey(x)===editingKey||(`${recordBase(x)}|${x.client||''}`===`${rec.baseId}|${rec.client}`));if(pos>=0)items[pos]=rec;else items.unshift(rec);setRecords(items);editingKey=rec.key;$('saveBtn').textContent='Atualizar peça';renderRecords();updatePreview();updateNotesCounter();showToast(pos>=0?'Peça atualizada.':'Peça salva no histórico.');});
     $('saveBtn').addEventListener('click',()=>{if(!activeGenerated)$('pieceForm').requestSubmit();});
-    $('downloadBtn').addEventListener('click',()=>exportPng(labelId(previewIndex),previewIndex));
+    $('downloadBtn').addEventListener('click',()=>exportPng(labelId(previewIndex),previewIndex,activeGenerated));
     $('downloadAllBtn').addEventListener('click',async()=>{const btn=$('downloadAllBtn'),old=btn.textContent;btn.disabled=true;btn.textContent='Gerando lote…';try{const zip=await buildZip();const a=document.createElement('a');a.download=`PRELUX_${normalizeBase(fields.id.value)||'ETIQUETAS'}_${getQuantity()}-PEÇAS.zip`;a.href=URL.createObjectURL(zip);a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);showToast(`${getQuantity()} PNGs gerados em um arquivo ZIP.`)}finally{btn.disabled=false;btn.textContent=old;drawLabel()}});
     $('printBtn').addEventListener('click',()=>openPrintModal());$('closePrintModal').addEventListener('click',closePrintModal);$('cancelPrint').addEventListener('click',closePrintModal);$('printModal').addEventListener('click',e=>{if(e.target.id==='printModal')closePrintModal()});$('confirmPrint').addEventListener('click',generatePrint);['labelSize','paperSize','paperOrientation','printMargin','printGap','customLabelW','customLabelH'].forEach(id=>$(id).addEventListener('input',updatePrintSummary));
     $('clearBtn').addEventListener('click',resetForm); $('sampleBtn').addEventListener('click',()=>{fields.id.value='PILAR';fields.quantity.value=3;fields.client.value='Obra Exemplo - PRELUX';fields.notes.value='Conferir armadura e acabamento antes do carregamento.';previewIndex=1;updateNotesCounter();updatePreview();});$('search').addEventListener('input',renderRecords);

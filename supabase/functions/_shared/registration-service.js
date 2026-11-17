@@ -5,6 +5,7 @@
  */
 import { reconcileFactoryPlan } from "./factory-plan-service.js";
 import { calculatePieceMetrics } from "./piece-metrics.js";
+import { getCurrentEngineeringParameters } from "./engineering-service.js";
 import { resolveRequestedDueDate } from "./registration-rules.js";
 import { registrationRepository } from "./registration-repository.js";
 
@@ -104,7 +105,11 @@ export async function createOrderPieceRegistration(db, organizationId, input) {
     y: positiveDecimal(input.dimensionYcm, "Comprimento Y"),
     z: positiveDecimal(input.dimensionZcm, "Dimensão Z"),
   };
-  const metrics = calculatePieceMetrics(dimensions);
+  const { parameters: engineeringParameters } = await getCurrentEngineeringParameters(db, organizationId);
+  const metrics = calculatePieceMetrics({
+    ...dimensions,
+    concreteDensityKgM3: engineeringParameters.concreteDensityKgM3,
+  });
 
   const castingMinutes = await castingMinutesForLegacyFields(db, organizationId);
   piece.production_minutes_per_unit = castingMinutes;
@@ -245,7 +250,11 @@ export async function addOrderPieceItem(db, organizationId, input) {
     y: positiveDecimal(input.dimensionYcm, pieceKind === "placa" ? "Altura Y" : "Comprimento Y"),
     z: positiveDecimal(input.dimensionZcm, pieceKind === "placa" ? "Espessura Z" : "Dimensão Z"),
   };
-  const metrics = calculatePieceMetrics(dimensions);
+  const { parameters: engineeringParameters } = await getCurrentEngineeringParameters(db, organizationId);
+  const metrics = calculatePieceMetrics({
+    ...dimensions,
+    concreteDensityKgM3: engineeringParameters.concreteDensityKgM3,
+  });
   const piece = {
     id: pieceId,
     organization_id: organizationId,

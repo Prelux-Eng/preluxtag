@@ -33,11 +33,21 @@ Em uma instalação nova, aplique os arquivos em ordem:
 24. `supabase/migrations/20261116180240_fix_withdraw_production_unit_uuid.sql`
 25. `supabase/migrations/20261116180601_preserve_withdrawn_cast_reservations.sql`
 26. `supabase/migrations/20261117123206_delete_order_with_history.sql`
+27. `supabase/migrations/20261117144307_engineering_parameter_versions.sql`
+28. `supabase/migrations/20261117144318_idempotent_plan_confirmation.sql`
+29. `supabase/migrations/20261117144324_label_versions_and_print_audit.sql`
 
-O Supabase ativo contém a estrutura descrita até a migration 026. A 012 atualiza a regra de
+O Supabase ativo contém a estrutura descrita até a migration 029. A 012 atualiza a regra de
 alocação das posições; a 013 ajusta a carga legada de concretagem. A 014
 registra a ordem de aprovação para a simulação. Os arquivos ficam em `database/` e não são executados
 automaticamente pelo `supabase db push`.
+
+As migrations 027 e 028 foram aplicadas ao Supabase ativo. A 027 cria a
+configuração versionada de Engenharia com os parâmetros aprovados e liga cada
+pedido aprovado à versão usada. A 028 grava recibos idempotentes somente nas
+confirmações explícitas do Planejamento; simulações continuam sem escrita.
+Os scripts `database/015` e `database/016` são cópias de leitura dessas
+migrations, cuja fonte aplicável fica em `supabase/migrations/`.
 
 A 022 introduz a exclusão de cadastros sem dependências históricas. A 026
 permite apagar pedidos em qualquer etapa: itens, produção, etiquetas e demais
@@ -103,6 +113,19 @@ ativa, sem acesso direto para `anon` ou `authenticated`; a Edge Function lê os
 registros com `service_role`. As caixas de liberação/reparo/bloqueio do modelo
 impresso permanecem para conferência manual.
 
+A migration 027 acrescenta `version_number` ao retrato atual e copia cada
+etiqueta existente como versão 1 em `production_label_versions`. Uma nova
+versão só é gravada quando `ensure_order_labels` encontra conteúdo diferente;
+repetições idênticas continuam idempotentes. Downloads PNG, ZIP e pedidos de
+impressão das etiquetas de produção passam pela Edge Function, que exige o nome
+autodeclarado do operador e grava um evento por unidade em
+`production_label_print_events`. A chave da solicitação evita eventos
+duplicados em uma repetição de rede. O evento registra o pedido de emissão e
+não confirma que uma impressora física concluiu o trabalho. O nome não é uma
+identidade autenticada: o sistema permanece sem login.
+Se um pedido for removido pela RPC de exclusão com auditoria, as versões e os
+eventos são incluídos no histórico arquivado antes de remover as unidades.
+
 ## Moldes e posições
 
 `mold_catalog` é o catálogo global de medidas BRAÇO, LEITO e LATERAL.
@@ -161,3 +184,9 @@ O identificador inicial da organização de PRELUX é
 `11111111-1111-4111-8111-111111111111`. Configure-o no servidor como
 `PRELUX_ORGANIZATION_ID`. A chave `SUPABASE_SERVICE_ROLE_KEY` nunca deve ser
 incluída no front-end nem em arquivos versionados.
+
+## Nova reestruturação · Etapa 2
+
+As migrations 027–029 já constam no histórico do Supabase ativo. Elas criam
+versões dos parâmetros de Engenharia, recibos idempotentes de confirmação e
+versionamento/auditoria das etiquetas, sem apagar registros operacionais.

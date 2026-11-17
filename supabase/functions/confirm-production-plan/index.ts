@@ -15,12 +15,13 @@ async function handler(request: Request) {
       throw new FactorySimulationError("Confirme explicitamente a fila antes de gravar as reservas.", 400);
     }
     const config = getServerConfig();
-    const { scenario, result } = await confirmFactoryPlan({
+    const confirmation = await confirmFactoryPlan({
       db: createAdminClient(config),
       organizationId: config.organizationId,
       orderIds: input.orderIds ?? [],
+      idempotencyKey: input.idempotencyKey,
     });
-    return json({ ok: true, result, scenario });
+    return json({ ok: true, ...confirmation });
   } catch (error) {
     if (error instanceof FactorySimulationError) {
       return json({ error: error.message }, error.status);
