@@ -19,18 +19,13 @@
 .planning-backlog-work strong{color:var(--ink)}
 .operations-toolbar{align-items:center}
 .operations-view .metric-grid{grid-template-columns:repeat(5,minmax(0,1fr))}
-.operations-flow-card{margin:0 0 18px;padding:16px 18px;border:1px solid #dce7ef;border-radius:12px;background:linear-gradient(135deg,#fff,#f6faff)}
-.operations-flow-heading,.operations-section-heading{display:flex;align-items:center;justify-content:space-between;gap:14px}
-.operations-flow-heading h3,.operations-section-heading h3{margin:0;color:var(--ink);font-size:14px}
-.operations-flow-heading p,.operations-section-heading p{margin:5px 0 0;color:var(--muted);font-size:11px;line-height:1.45}
-.operations-flow{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:9px;margin-top:13px}
+.operations-section-heading{display:flex;align-items:center;justify-content:space-between;gap:14px}
+.operations-section-heading h3{margin:0;color:var(--ink);font-size:14px}
+.operations-section-heading p{margin:5px 0 0;color:var(--muted);font-size:11px;line-height:1.45}
 .labels-section .generated-order-row td{background:#f4f8fb;color:#145f95;font-weight:600}
 .labels-section .generated-order-row .row-actions{display:inline-flex;margin-left:12px;flex-wrap:wrap}
 .labels-section .table .muted{display:block;margin-top:3px;color:var(--muted);font-size:11px;font-weight:500}
 .labels-section .toolbar{margin-top:26px}
-.operations-flow button{position:relative;min-height:42px;border:1px solid #d8e3eb;border-radius:9px;background:#fff;color:#536575;font-size:11px;font-weight:800;text-align:left;padding:10px 12px;cursor:pointer}
-.operations-flow button[aria-pressed="true"]{border-color:#8fc1e4;background:#edf7ff;color:#145f95;box-shadow:0 0 0 2px #edf7ff}
-.operations-flow button:hover{border-color:#9dbbd1}
 .operations-section-heading{padding:15px 18px 10px;background:#fff}
 .operations-section-heading[hidden],.operations-tabs[hidden]{display:none!important}
 .operations-status{margin:0 0 18px;padding:12px 14px;border:1px solid #d7e1ea;border-radius:10px;background:#fff;color:#536575;font-size:12px;line-height:1.5}
@@ -113,7 +108,6 @@
 .ops-modal-status.error{border-color:#efc4c8;background:#fff3f4;color:#9a2e36}
 @media(max-width:760px){
   .operations-view .metric-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
-  .operations-flow{grid-template-columns:repeat(2,minmax(0,1fr))}
   .operations-list-head{align-items:flex-start;flex-direction:column}
   .operations-list-head .search{width:100%}
   .operations-table{min-width:680px}
@@ -134,10 +128,7 @@
   .ops-modal-actions .btn{width:100%}
   .operations-tabs{padding:10px;gap:4px}
   .operations-tabs button{padding:8px 9px;font-size:11px}
-  .operations-flow-card{padding:13px}
-  .operations-flow{gap:6px}
-  .operations-flow button{padding:9px;font-size:10px}
-  .operations-flow-heading,.operations-section-heading{align-items:stretch;flex-direction:column}
+  .operations-section-heading{align-items:stretch;flex-direction:column}
   .ops-project-section-head{align-items:stretch;flex-direction:column}
   .ops-project-item-row{grid-template-columns:1fr 90px auto}
   .ops-registration-item{align-items:flex-start;flex-direction:column}

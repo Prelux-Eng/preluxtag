@@ -9,9 +9,9 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <link rel="manifest" href="manifest.webmanifest?v=4" />
-  <link rel="stylesheet" href="css/operations.css?v=9" />
+  <link rel="stylesheet" href="css/operations.css?v=10" />
   <link rel="stylesheet" href="css/app.css?v=5" />
-  <link rel="stylesheet" href="css/prelux-refresh.css?v=4" />
+  <link rel="stylesheet" href="css/prelux-refresh.css?v=5" />
   <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png?v=4" />
   <link rel="icon" type="image/png" sizes="64x64" href="icons/favicon-64.png?v=4" />
   <link rel="apple-touch-icon" href="icons/icon-192.png?v=4" />
@@ -21,8 +21,12 @@
   <div class="shell">
     <aside class="sidebar">
       <div class="brand"><img class="brand-logo" src="assets/logo-prelux-clara.png" width="318" height="170" alt="PRELUX Estruturas Premoldadas" /></div>
-      <nav class="nav" role="tablist" aria-orientation="vertical" aria-label="Áreas do PRELUX">
-        <button class="active" type="button" role="tab" id="tabPedidos" aria-controls="operationsView" aria-selected="true" tabindex="0" data-view="pedidos"><span class="nav-icon"><img src="assets/icone-engenharia-claro.png" alt="" aria-hidden="true" /></span><span>PEDIDOS</span></button>
+      <nav class="nav" role="tablist" aria-orientation="vertical" aria-label="Etapas e áreas do PRELUX">
+        <button class="active" type="button" role="tab" id="tabPedidos" aria-controls="operationsView" aria-selected="true" tabindex="0" data-view="pedidos"><span class="nav-icon"><img src="assets/icone-cadastro-claro.png" alt="" aria-hidden="true" /></span><span>PEDIDOS</span></button>
+        <button type="button" role="tab" id="tabEngenharia" aria-controls="operationsView" aria-selected="false" tabindex="-1" data-view="engenharia"><span class="nav-icon"><img src="assets/icone-engenharia-claro.png" alt="" aria-hidden="true" /></span><span>ENGENHARIA</span></button>
+        <button type="button" role="tab" id="tabProjeto" aria-controls="operationsView" aria-selected="false" tabindex="-1" data-view="projeto"><span class="nav-icon"><img src="assets/icone-planejamento-claro.png" alt="" aria-hidden="true" /></span><span>PROJETO</span></button>
+        <button type="button" role="tab" id="tabProduzir" aria-controls="operationsView" aria-selected="false" tabindex="-1" data-view="produzir"><span class="nav-icon"><img src="assets/icone-etiqueta-claro.png" alt="" aria-hidden="true" /></span><span>PRODUZIR</span></button>
+        <span class="nav-divider" aria-hidden="true"></span>
         <button type="button" role="tab" id="tabPlanejamento" aria-controls="planningView" aria-selected="false" tabindex="-1" data-view="planejamento"><span class="nav-icon"><img src="assets/icone-planejamento-claro.png" alt="" aria-hidden="true" /></span><span>PLANEJAMENTO</span></button>
         <button type="button" role="tab" id="tabEtiquetas" aria-controls="etiquetasView" aria-selected="false" tabindex="-1" data-view="etiquetas"><span class="nav-icon"><img src="assets/icone-etiqueta-claro.png" alt="" aria-hidden="true" /></span><span>ETIQUETAS</span></button>
       </nav>
@@ -161,6 +165,6 @@
     };
   </script>
   <!-- A composição e a ordem das áreas ficam centralizadas no ponto de entrada. -->
-  <script type="module" src="js/main.js?v=9"></script>
+  <script type="module" src="js/main.js?v=10"></script>
 </body>
 </html>
