@@ -1,12 +1,12 @@
 // Versão do shell do app; avance sempre que mudar HTML, CSS ou JavaScript.
-const CACHE_NAME = "prelux-emissor-etiquetas-v33";
+const CACHE_NAME = "prelux-emissor-etiquetas-v34";
 const APP_SHELL = [
   "./",
   "./index.html",
   "./css/app.css?v=5",
   "./css/operations.css?v=9",
-  "./css/prelux-refresh.css?v=3",
-  "./js/main.js?v=8",
+  "./css/prelux-refresh.css?v=4",
+  "./js/main.js?v=9",
   "./js/core/api.js",
   "./js/core/navigation.js",
   "./js/domain/mold-compatibility.js",
@@ -16,20 +16,20 @@ const APP_SHELL = [
   "./js/features/planning/index.js",
   "./js/features/planning/scenario-calendar.js",
   "./js/features/operations/index.js",
-  "./manifest.webmanifest?v=3",
-  "./assets/PRE_RASTRE.png",
+  "./manifest.webmanifest?v=4",
+  "./assets/PRE_RASTRE_sem_logo.png",
+  "./assets/logo-prelux-etiqueta.png",
   "./assets/logo-prelux.png",
   "./assets/logo-prelux-clara.png",
   "./assets/prelux-fabrica.png",
-  "./assets/icone-cadastro.png",
-  "./assets/icone-planejamento.png",
-  "./assets/icone-engenharia.png",
-  "./assets/icone-etiqueta.png",
-  "./icons/icon.svg",
+  "./assets/icone-cadastro-claro.png",
+  "./assets/icone-planejamento-claro.png",
+  "./assets/icone-engenharia-claro.png",
+  "./assets/icone-etiqueta-claro.png",
   "./icons/favicon-32.png",
   "./icons/favicon-64.png",
-  "./icons/icon-192.png?v=3",
-  "./icons/icon-512.png?v=3",
+  "./icons/icon-192.png?v=4",
+  "./icons/icon-512.png?v=4",
 ];
 
 self.addEventListener("install", (event) => {
