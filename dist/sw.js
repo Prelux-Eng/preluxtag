@@ -1,12 +1,12 @@
 // Versão do shell do app; avance sempre que mudar HTML, CSS ou JavaScript.
-const CACHE_NAME = "prelux-emissor-etiquetas-v31";
+const CACHE_NAME = "prelux-emissor-etiquetas-v32";
 const APP_SHELL = [
   "./",
   "./index.html",
   "./css/app.css?v=5",
   "./css/operations.css?v=9",
-  "./css/prelux-refresh.css?v=1",
-  "./js/main.js?v=6",
+  "./css/prelux-refresh.css?v=2",
+  "./js/main.js?v=7",
   "./js/core/api.js",
   "./js/core/navigation.js",
   "./js/domain/mold-compatibility.js",
@@ -16,15 +16,19 @@ const APP_SHELL = [
   "./js/features/planning/index.js",
   "./js/features/planning/scenario-calendar.js",
   "./js/features/operations/index.js",
-  "./manifest.webmanifest",
+  "./manifest.webmanifest?v=2",
   "./assets/PRE_RASTRE.png",
+  "./assets/logo-prelux.png",
   "./assets/prelux-fabrica.png",
   "./assets/icone-cadastro.png",
   "./assets/icone-planejamento.png",
   "./assets/icone-engenharia.png",
   "./assets/icone-etiqueta.png",
-  "./icons/icon-192.png",
-  "./icons/icon-512.png",
+  "./icons/icon.svg",
+  "./icons/favicon-32.png",
+  "./icons/favicon-64.png",
+  "./icons/icon-192.png?v=2",
+  "./icons/icon-512.png?v=2",
 ];
 
 self.addEventListener("install", (event) => {

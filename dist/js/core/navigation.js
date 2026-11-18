@@ -9,11 +9,7 @@ export function initializeNavigation() {
     planejamento: document.getElementById("planningView"),
     etiquetas: document.getElementById("etiquetasView"),
   };
-  const pageDetails = {
-    pedidos: { title: "Pedidos", description: "Pedido → Engenharia → Projeto → Produzir" },
-    planejamento: { title: "Planejamento", description: "Períodos, capacidade e sequência da produção" },
-    etiquetas: { title: "Etiquetas", description: "Identificação e rastreabilidade das peças" },
-  };
+  const pageTitles = { pedidos: "Pedidos", planejamento: "Planejamento", etiquetas: "Etiquetas" };
   const openEvents = {
     planejamento: "prelux:planning:open",
     pedidos: "prelux:operations:open",
@@ -30,10 +26,9 @@ export function initializeNavigation() {
       if (selected && focusTab) tab.focus();
     });
     Object.entries(panels).forEach(([name, panel]) => { panel.hidden = name !== view; });
-    const page = pageDetails[view];
-    document.getElementById("pageTitle").textContent = page.title;
-    document.getElementById("pageDescription").textContent = page.description;
-    document.title = "PRELUX · " + page.title;
+    const title = pageTitles[view];
+    document.getElementById("pageTitle").textContent = title;
+    document.title = "PRELUX · " + title;
     window.scrollTo({ top: 0, behavior: "smooth" });
     if (openEvents[view]) {
       const options = detail === undefined ? undefined : { detail };

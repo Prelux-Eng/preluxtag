@@ -14,10 +14,10 @@ export function initializeOperations({ operationsRepository, listPieceMoldOption
     ["positions", "Posições"],
   ];
   const flowStages = [
-    ["orders", "PEDIDO"],
-    ["engineering", "ENGENHARIA"],
-    ["projects", "PROJETO"],
-    ["produzir", "PRODUZIR"],
+    ["orders", "Pedido"],
+    ["engineering", "Engenharia"],
+    ["projects", "Projeto"],
+    ["produzir", "Produzir"],
   ];
 
   function escapeHtml(value) {
@@ -83,6 +83,7 @@ export function initializeOperations({ operationsRepository, listPieceMoldOption
     if (!element) return;
     element.textContent = message;
     element.classList.toggle("error", error);
+    element.hidden = !error && !/carregando|atualizando/i.test(message);
   }
 
   // Monta a estrutura da aba e registra os eventos delegados da interface.
@@ -91,29 +92,27 @@ export function initializeOperations({ operationsRepository, listPieceMoldOption
       <section class="operations-hero">
         <img class="operations-hero-art" src="assets/prelux-fabrica.png" alt="" aria-hidden="true" />
         <div class="operations-hero-copy">
-          <span class="hero-kicker">PRELUX · OPERAÇÃO INDUSTRIAL</span>
-          <h2>Da entrada do pedido à produção</h2>
-          <p>Registre as informações recebidas e acompanhe cada etapa até a fabricação das peças.</p>
+          <h2>Do pedido à produção</h2>
+          <p>Registre obra e peças; acompanhe engenharia, projeto e fabricação.</p>
           <div class="operations-hero-actions">
-            <button class="btn hero-catalog-button" id="operationsOpenCadastro" type="button"><span class="hero-catalog-icon"><img src="assets/icone-cadastro.png" alt="" aria-hidden="true" /></span><span>Catálogo e cadastros</span><span aria-hidden="true">↗</span></button>
-            <span class="hero-access-note"><i></i> Sistema operacional sem login</span>
+            <button class="btn primary" id="operationsNew" type="button">Novo pedido</button>
+            <button class="btn hero-catalog-button" id="operationsOpenCadastro" type="button"><img src="assets/icone-cadastro.png" alt="" aria-hidden="true" />Cadastro</button>
           </div>
         </div>
-        <span class="operations-hero-caption">ESTRUTURAS PRÉ-MOLDADAS · PRODUÇÃO RASTREÁVEL</span>
       </section>
       <div class="toolbar operations-toolbar">
-        <div><span class="section-kicker">VISÃO GERAL</span><h2>Resumo da operação</h2><p>Pedidos e cadastros conectados ao fluxo de produção.</p></div>
-        <div class="actions"><button class="btn" id="operationsRefresh" type="button">Atualizar dados</button><button class="btn primary" id="operationsNew" type="button">Novo pedido</button></div>
+        <h2>Indicadores</h2>
+        <button class="btn" id="operationsRefresh" type="button">Atualizar</button>
       </div>
       <div class="metric-grid">
-        <div class="card metric-card"><small>Obras ativas</small><strong id="operationsWorksMetric">—</strong><span>cadastros em andamento</span></div>
-        <div class="card metric-card"><small>Pedidos abertos</small><strong id="operationsOrdersMetric">—</strong><span>fora dos status concluídos, entregues ou cancelados</span></div>
-        <div class="card metric-card"><small>Tipos de peça</small><strong id="operationsPiecesMetric">—</strong><span>catálogo ativo</span></div>
-        <div class="card metric-card"><small>Formas disponíveis</small><strong id="operationsMoldsMetric">—</strong><span>formas ativas</span></div>
-        <div class="card metric-card"><small>Posições configuradas</small><strong id="operationsPositionsMetric">—</strong><span>de 4 posições físicas</span></div>
+        <div class="card metric-card"><small>Obras ativas</small><strong id="operationsWorksMetric">—</strong></div>
+        <div class="card metric-card"><small>Pedidos abertos</small><strong id="operationsOrdersMetric">—</strong></div>
+        <div class="card metric-card"><small>Tipos de peça</small><strong id="operationsPiecesMetric">—</strong></div>
+        <div class="card metric-card"><small>Formas disponíveis</small><strong id="operationsMoldsMetric">—</strong></div>
+        <div class="card metric-card"><small>Posições disponíveis</small><strong id="operationsPositionsMetric">—</strong></div>
       </div>
       <section class="operations-flow-card" aria-labelledby="operationsFlowTitle">
-        <div class="operations-flow-heading"><div><span class="section-kicker">FLUXO DO PEDIDO</span><h3 id="operationsFlowTitle">Acompanhe cada etapa</h3><p>Selecione uma etapa para revisar os registros correspondentes.</p></div></div>
+        <div class="operations-flow-heading"><h3 id="operationsFlowTitle">Etapas do pedido</h3></div>
         <nav class="operations-flow" id="operationsFlow" aria-label="Etapas do pedido"></nav>
       </section>
       <div class="operations-status" id="operationsStatus">Carregando cadastros.</div>
@@ -209,12 +208,9 @@ export function initializeOperations({ operationsRepository, listPieceMoldOption
 
   // Resumo, tabelas e indicadores: recebem dados normalizados do repositório.
   function renderTabs() {
-    $("operationsFlow").innerHTML = flowStages.map(([key, label], index) => {
-      const icon = key === "engineering"
-        ? '<span class="flow-step-art"><img src="assets/icone-engenharia.png" alt="" aria-hidden="true" /></span>'
-        : '<span class="flow-step-arrow" aria-hidden="true">→</span>';
-      return '<button type="button" class="flow-step" data-flow-stage="' + key + '" aria-pressed="' + (key === state.tab) + '"><span class="flow-step-index">0' + (index + 1) + '</span><span class="flow-step-label">' + label + '</span>' + icon + '</button>';
-    }).join("");
+    $("operationsFlow").innerHTML = flowStages.map(([key, label], index) =>
+      '<button type="button" data-flow-stage="' + key + '" aria-pressed="' + (key === state.tab) + '"><span class="flow-step-index">' + (index + 1) + '</span>' + label + '</button>'
+    ).join("");
     $("operationsTabs").innerHTML = cadastroTabs.map(([key, label]) =>
       `<button type="button" data-operations-tab="${key}" aria-pressed="${key === state.tab}">${label}</button>`
     ).join("");
