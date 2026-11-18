@@ -6,7 +6,7 @@
 export function initializeOperations({ operationsRepository, listPieceMoldOptions, navigate }) {
   const $ = (id) => document.getElementById(id);
   // Estado temporário da tela; os registros definitivos permanecem no Supabase.
-  const state = { data: null, tab: "orders", labelOrderId: null, cadastroOpen: false, loading: false, query: "", supportsStage4: false, supportsFabio2: false };
+  const state = { data: null, tab: "orders", cadastroOpen: false, loading: false, query: "", supportsStage4: false, supportsFabio2: false };
   const cadastroTabs = [
     ["works", "Obras"],
     ["pieces", "Peças"],
@@ -14,11 +14,10 @@ export function initializeOperations({ operationsRepository, listPieceMoldOption
     ["positions", "Posições"],
   ];
   const flowStages = [
-    ["orders", "1 · PEDIDO"],
-    ["engineering", "2 · ENGENHARIA"],
-    ["projects", "3 · PROJETO"],
-    ["produzir", "4 · PRODUZIR"],
-    ["labels", "5 · ETIQUETAS"],
+    ["orders", "PEDIDO"],
+    ["engineering", "ENGENHARIA"],
+    ["projects", "PROJETO"],
+    ["produzir", "PRODUZIR"],
   ];
 
   function escapeHtml(value) {
@@ -89,8 +88,21 @@ export function initializeOperations({ operationsRepository, listPieceMoldOption
   // Monta a estrutura da aba e registra os eventos delegados da interface.
   function shell() {
     $("operationsView").innerHTML = `
+      <section class="operations-hero">
+        <img class="operations-hero-art" src="assets/prelux-fabrica.png" alt="" aria-hidden="true" />
+        <div class="operations-hero-copy">
+          <span class="hero-kicker">PRELUX · OPERAÇÃO INDUSTRIAL</span>
+          <h2>Da entrada do pedido à produção</h2>
+          <p>Registre as informações recebidas e acompanhe cada etapa até a fabricação das peças.</p>
+          <div class="operations-hero-actions">
+            <button class="btn hero-catalog-button" id="operationsOpenCadastro" type="button"><span class="hero-catalog-icon"><img src="assets/icone-cadastro.png" alt="" aria-hidden="true" /></span><span>Catálogo e cadastros</span><span aria-hidden="true">↗</span></button>
+            <span class="hero-access-note"><i></i> Sistema operacional sem login</span>
+          </div>
+        </div>
+        <span class="operations-hero-caption">ESTRUTURAS PRÉ-MOLDADAS · PRODUÇÃO RASTREÁVEL</span>
+      </section>
       <div class="toolbar operations-toolbar">
-        <div><h2>Pedidos</h2><p>Entrada do pedido e acompanhamento pelas etapas de engenharia, projeto e produção.</p></div>
+        <div><span class="section-kicker">VISÃO GERAL</span><h2>Resumo da operação</h2><p>Pedidos e cadastros conectados ao fluxo de produção.</p></div>
         <div class="actions"><button class="btn" id="operationsRefresh" type="button">Atualizar dados</button><button class="btn primary" id="operationsNew" type="button">Novo pedido</button></div>
       </div>
       <div class="metric-grid">
@@ -101,7 +113,7 @@ export function initializeOperations({ operationsRepository, listPieceMoldOption
         <div class="card metric-card"><small>Posições configuradas</small><strong id="operationsPositionsMetric">—</strong><span>de 4 posições físicas</span></div>
       </div>
       <section class="operations-flow-card" aria-labelledby="operationsFlowTitle">
-        <div class="operations-flow-heading"><div><h3 id="operationsFlowTitle">Fluxo de negócio</h3><p>O pedido é a origem dos dados; a produção e as etiquetas consomem as etapas anteriores.</p></div><button class="btn" id="operationsOpenCadastro" type="button">Abrir Cadastro</button></div>
+        <div class="operations-flow-heading"><div><span class="section-kicker">FLUXO DO PEDIDO</span><h3 id="operationsFlowTitle">Acompanhe cada etapa</h3><p>Selecione uma etapa para revisar os registros correspondentes.</p></div></div>
         <nav class="operations-flow" id="operationsFlow" aria-label="Etapas do pedido"></nav>
       </section>
       <div class="operations-status" id="operationsStatus">Carregando cadastros.</div>
@@ -110,19 +122,12 @@ export function initializeOperations({ operationsRepository, listPieceMoldOption
         <nav class="operations-tabs" id="operationsTabs" aria-label="Cadastro dentro da área Pedidos" hidden></nav>
         <div id="operationsTable"></div>
       </section>
-      <div id="operationsLabelMount" hidden></div>
       <div class="modal-backdrop operations-modal" id="operationsModal" hidden>
         <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="operationsModalTitle">
           <div class="modal-head"><div><h3 id="operationsModalTitle">Novo cadastro</h3><p id="operationsModalSubtitle"></p></div><button class="close-btn" id="operationsModalClose" type="button" aria-label="Fechar">×</button></div>
           <form id="operationsForm"><div class="operations-modal-body" id="operationsModalBody"></div><div class="ops-modal-status" id="operationsModalStatus"></div><div class="ops-modal-actions"><button class="btn" id="operationsModalCancel" type="button">Cancelar</button><button class="btn primary" id="operationsModalSave" type="submit">Salvar cadastro</button></div></form>
         </div>
       </div>`;
-    // O emissor já existente passa a fazer parte de Pedidos, sem recriar o canvas.
-    const labelsView = $("etiquetasView");
-    if (labelsView) {
-      $("operationsLabelMount").append(labelsView);
-      labelsView.hidden = false;
-    }
     renderTabs();
     $("operationsRefresh").addEventListener("click", () => refreshData());
     $("operationsNew").addEventListener("click", () => openNew());
@@ -145,12 +150,10 @@ export function initializeOperations({ operationsRepository, listPieceMoldOption
       if (!button) return;
       const stage = button.dataset.flowStage;
       state.tab = stage;
-      if (stage === "labels") state.labelOrderId = null;
       state.cadastroOpen = false;
       state.query = "";
       renderTabs();
       renderTable();
-      if (stage === "labels") window.dispatchEvent(new CustomEvent("prelux:labels:open", { detail: { data: state.data } }));
     });
     $("operationsTabs").addEventListener("click", (event) => {
       const button = event.target.closest("button[data-operations-tab]");
@@ -206,19 +209,20 @@ export function initializeOperations({ operationsRepository, listPieceMoldOption
 
   // Resumo, tabelas e indicadores: recebem dados normalizados do repositório.
   function renderTabs() {
-    $("operationsFlow").innerHTML = flowStages.map(([key, label]) =>
-      `<button type="button" data-flow-stage="${key}" aria-pressed="${key === state.tab}">${label}</button>`
-    ).join("");
+    $("operationsFlow").innerHTML = flowStages.map(([key, label], index) => {
+      const icon = key === "engineering"
+        ? '<span class="flow-step-art"><img src="assets/icone-engenharia.png" alt="" aria-hidden="true" /></span>'
+        : '<span class="flow-step-arrow" aria-hidden="true">→</span>';
+      return '<button type="button" class="flow-step" data-flow-stage="' + key + '" aria-pressed="' + (key === state.tab) + '"><span class="flow-step-index">0' + (index + 1) + '</span><span class="flow-step-label">' + label + '</span>' + icon + '</button>';
+    }).join("");
     $("operationsTabs").innerHTML = cadastroTabs.map(([key, label]) =>
       `<button type="button" data-operations-tab="${key}" aria-pressed="${key === state.tab}">${label}</button>`
     ).join("");
     $("operationsCadastroHeading").hidden = !state.cadastroOpen;
     $("operationsTabs").hidden = !state.cadastroOpen;
-    const labels = { works: "Nova obra", orders: "Novo pedido", engineering: "Novo pedido", projects: "Novo projeto", produzir: "Produção", labels: "Etiquetas", pieces: "Nova peça", molds: "Nova forma", positions: "Gerenciar posições" };
-    $("operationsNew").textContent = labels[state.tab];
-    $("operationsNew").hidden = ["engineering", "produzir", "labels", "positions"].includes(state.tab);
-    $("operationsDataPanel").hidden = state.tab === "labels";
-    $("operationsLabelMount").hidden = state.tab !== "labels";
+    const labels = { works: "Nova obra", orders: "Novo pedido", engineering: "Novo pedido", projects: "Novo projeto", produzir: "Produção", pieces: "Nova peça", molds: "Nova forma", positions: "Gerenciar posições" };
+    $("operationsNew").textContent = labels[state.tab] || "Novo pedido";
+    $("operationsNew").hidden = ["engineering", "produzir", "positions"].includes(state.tab);
   }
 
   function metric(id, value) { $(id).textContent = String(value); }
@@ -307,7 +311,6 @@ export function initializeOperations({ operationsRepository, listPieceMoldOption
   function renderTable(query = state.query) {
     state.query = query;
     if (!state.data) return;
-    if (state.tab === "labels") return;
     const filter = query.toLocaleLowerCase().trim();
     const data = state.data;
     if (state.tab === "works") {
@@ -1203,11 +1206,7 @@ export function initializeOperations({ operationsRepository, listPieceMoldOption
     }
     if (action === "edit-position") return openPositionForm(data.positions.find((item) => item.id === id));
     if (action === "open-order-labels") {
-      state.tab = "labels";
-      state.labelOrderId = id;
-      state.cadastroOpen = false;
-      renderTabs();
-      window.dispatchEvent(new CustomEvent("prelux:labels:open", { detail: { orderId: id, data: state.data } }));
+      navigate("etiquetas", { detail: { orderId: id, data: state.data } });
       return;
     }
     if (action === "complete-production-step") {
@@ -1218,11 +1217,7 @@ export function initializeOperations({ operationsRepository, listPieceMoldOption
         await refreshData(true);
         window.dispatchEvent(new CustomEvent("prelux:operations:changed", { detail: { kind: "production", id } }));
         if (response?.production?.orderStatus === "concluido") {
-          state.tab = "labels";
-          state.labelOrderId = response.production.orderId;
-          state.cadastroOpen = false;
-          renderTabs();
-          window.dispatchEvent(new CustomEvent("prelux:labels:open", { detail: { orderId: response.production.orderId, data: state.data } }));
+          navigate("etiquetas", { detail: { orderId: response.production.orderId, data: state.data } });
         }
       } catch (error) { showStatus(error.message || "Não foi possível concluir a etapa.", true); }
       return;
@@ -1735,7 +1730,6 @@ export function initializeOperations({ operationsRepository, listPieceMoldOption
       renderMetrics();
       state.query = $("operationsSearch")?.value || state.query;
       renderTable(state.query);
-      if (state.tab === "labels") window.dispatchEvent(new CustomEvent("prelux:labels:open", { detail: { orderId: state.labelOrderId, data: state.data } }));
       showStatus(state.supportsStage4
         ? state.supportsFabio2
           ? "Pedidos, cadastro e projetos de engenharia conectados ao banco PRELUX."
@@ -1755,11 +1749,5 @@ export function initializeOperations({ operationsRepository, listPieceMoldOption
 
   shell();
   window.addEventListener("prelux:operations:open", () => refreshData());
-  window.addEventListener("prelux:labels:select", () => {
-    state.tab = "labels";
-    state.labelOrderId = null;
-    state.cadastroOpen = false;
-    renderTabs();
-    window.dispatchEvent(new CustomEvent("prelux:labels:open"));
-  });
+  window.addEventListener("prelux:labels:select", () => navigate("etiquetas"));
 }
