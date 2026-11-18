@@ -72,6 +72,7 @@ const $ = (id) => document.getElementById(id);
     function escapeHtml(v){return String(v).replace(/[&<>'"]/g,s=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[s]))}
     function renderGeneratedLabels(){
       const visible=generatedLabels.filter(label=>!generatedOrderId||label.order_id===generatedOrderId);
+      document.querySelector('.label-print-actor').hidden=visible.length===0;
       $('generatedLabelCount').textContent=`${visible.length} etiqueta${visible.length===1?'':'s'} gerada${visible.length===1?'':'s'} no banco`;
       const groups=new Map();
       for(const label of visible){const rows=groups.get(label.order_id)||[];rows.push(label);groups.set(label.order_id,rows);}
@@ -80,7 +81,7 @@ const $ = (id) => document.getElementById(id);
         const order=escapeHtml(rows[0].order_number);
         return `<tr class="generated-order-row"><td colspan="4"><strong>${order}</strong> · ${rows.length} etiqueta${rows.length===1?'':'s'} <span class="row-actions"><button class="icon-btn" type="button" data-generated-action="zip-order" data-order-id="${escapeHtml(orderId)}">Baixar pedido (ZIP)</button><button class="icon-btn" type="button" data-generated-action="print-order" data-order-id="${escapeHtml(orderId)}">Imprimir pedido</button></span></td></tr>`+
           rows.map(label=>`<tr><td><strong>${escapeHtml(label.label_code)}</strong><span class="muted">${order} · v${Number(label.version_number)||1}</span></td><td>${escapeHtml(label.piece_code)} · ${escapeHtml(label.piece_name)}</td><td>${escapeHtml(label.client_name)}</td><td><div class="row-actions"><button class="icon-btn" type="button" data-generated-action="preview" data-label-id="${escapeHtml(label.production_order_id)}">Prévia</button><button class="icon-btn" type="button" data-generated-action="png" data-label-id="${escapeHtml(label.production_order_id)}">PNG</button></div></td></tr>`).join('');
-      }).join(''):`<tr><td colspan="4" class="empty">${generatedOrderId?'Nenhuma etiqueta deste pedido.':'As etiquetas surgem automaticamente quando todas as unidades do pedido ficam prontas.'}</td></tr>`;
+      }).join(''):`<tr><td colspan="4" class="empty">${generatedOrderId?'Nenhuma etiqueta deste pedido.':'As etiquetas são geradas quando o pedido é aprovado e a produção começa.'}</td></tr>`;
     }
     function loadGeneratedLabel(label){
       activeGenerated=label;editingKey=null;fields.id.value=label.label_code;fields.quantity.value=1;
@@ -97,6 +98,7 @@ const $ = (id) => document.getElementById(id);
         if(activeGenerated&&!generatedLabels.some(label=>label.production_order_id===activeGenerated.production_order_id&&(!generatedOrderId||label.order_id===generatedOrderId)))resetForm();
         renderGeneratedLabels();
       }catch(error){
+        document.querySelector('.label-print-actor').hidden=true;
         $('generatedLabelCount').textContent='Não foi possível carregar as etiquetas.';
         $('generatedLabelsBody').innerHTML=`<tr><td colspan="4" class="empty">${escapeHtml(error.message||'Falha de conexão.')}</td></tr>`;
       }

@@ -8,19 +8,19 @@
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <link rel="manifest" href="manifest.webmanifest?v=2" />
+  <link rel="manifest" href="manifest.webmanifest?v=3" />
   <link rel="stylesheet" href="css/operations.css?v=9" />
   <link rel="stylesheet" href="css/app.css?v=5" />
-  <link rel="stylesheet" href="css/prelux-refresh.css?v=2" />
-  <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png?v=2" />
-  <link rel="icon" type="image/png" sizes="64x64" href="icons/favicon-64.png?v=2" />
-  <link rel="apple-touch-icon" href="icons/icon-192.png?v=2" />
+  <link rel="stylesheet" href="css/prelux-refresh.css?v=3" />
+  <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png?v=3" />
+  <link rel="icon" type="image/png" sizes="64x64" href="icons/favicon-64.png?v=3" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png?v=3" />
   <title>PRELUX · Pedidos</title>
 </head>
 <body>
   <div class="shell">
     <aside class="sidebar">
-      <div class="brand"><img class="brand-logo" src="assets/logo-prelux.png" width="318" height="170" alt="PRELUX Estruturas Premoldadas" /></div>
+      <div class="brand"><img class="brand-logo" src="assets/logo-prelux-clara.png" width="318" height="170" alt="PRELUX Estruturas Premoldadas" /></div>
       <nav class="nav" role="tablist" aria-orientation="vertical" aria-label="Áreas do PRELUX">
         <button class="active" type="button" role="tab" id="tabPedidos" aria-controls="operationsView" aria-selected="true" tabindex="0" data-view="pedidos"><span class="nav-icon"><img src="assets/icone-engenharia.png" alt="" aria-hidden="true" /></span><span>PEDIDOS</span></button>
         <button type="button" role="tab" id="tabPlanejamento" aria-controls="planningView" aria-selected="false" tabindex="-1" data-view="planejamento"><span class="nav-icon"><img src="assets/icone-planejamento.png" alt="" aria-hidden="true" /></span><span>PLANEJAMENTO</span></button>
@@ -31,7 +31,7 @@
       <header class="topbar"><h1 id="pageTitle">Pedidos</h1><div class="pill"><span class="dot"></span> Acesso sem login</div></header>
       <section class="labels-section" id="etiquetasView" role="tabpanel" aria-labelledby="tabEtiquetas" aria-label="Etiquetas dos pedidos" hidden>
 
-        <section class="card records-card" id="generatedLabelsCard"><div class="card-head"><div><h3>Etiquetas dos pedidos</h3><small id="generatedLabelCount">Carregando etiquetas do banco…</small></div></div><div class="field full label-print-actor"><label for="labelPrintActor">Responsável pela emissão ou reimpressão</label><input class="input" id="labelPrintActor" maxlength="120" autocomplete="name" placeholder="Informe seu nome antes de baixar ou imprimir etiquetas" /><small class="form-help">Como o sistema ainda não exige login, este nome é informado pelo operador. O registro confirma a solicitação, não que a impressora concluiu a impressão.</small></div><div class="table-wrap"><table class="table"><thead><tr><th>Pedido / etiqueta</th><th>Peça</th><th>Cliente</th><th>Ações</th></tr></thead><tbody id="generatedLabelsBody"><tr><td colspan="4" class="empty">Nenhuma etiqueta gerada para pedidos até agora.</td></tr></tbody></table></div></section>
+        <section class="card records-card" id="generatedLabelsCard"><div class="card-head"><div><h3>Etiquetas dos pedidos</h3><small id="generatedLabelCount">Carregando etiquetas do banco…</small></div></div><div class="field full label-print-actor" hidden><label for="labelPrintActor">Responsável pela emissão ou reimpressão</label><input class="input" id="labelPrintActor" maxlength="120" autocomplete="name" placeholder="Informe seu nome antes de baixar ou imprimir etiquetas" /><small class="form-help">Como o sistema ainda não exige login, este nome é informado pelo operador. O registro confirma a solicitação, não que a impressora concluiu a impressão.</small></div><div class="table-wrap"><table class="table"><thead><tr><th>Pedido / etiqueta</th><th>Peça</th><th>Cliente</th><th>Ações</th></tr></thead><tbody id="generatedLabelsBody"><tr><td colspan="4" class="empty">Nenhuma etiqueta gerada para pedidos até agora.</td></tr></tbody></table></div></section>
         <div class="toolbar"><div><h2>Etiqueta avulsa</h2><p>O editor manual continua disponível para peças fora do fluxo automático.</p></div><div class="actions"><button class="btn ghost" id="clearBtn">Limpar formulário</button><button class="btn primary" id="saveBtn">Salvar peça</button></div></div>
         <div class="grid">
           <section class="card" id="editorCard"><div class="card-head"><h3>Dados da peça</h3><small>Campos obrigatórios marcados com *</small></div><form class="form" id="pieceForm">
@@ -161,6 +161,6 @@
     };
   </script>
   <!-- A composição e a ordem das áreas ficam centralizadas no ponto de entrada. -->
-  <script type="module" src="js/main.js?v=7"></script>
+  <script type="module" src="js/main.js?v=8"></script>
 </body>
 </html>
