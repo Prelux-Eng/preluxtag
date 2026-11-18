@@ -75,14 +75,13 @@ body {
   height: 34px;
   flex: 0 0 34px;
   place-items: center;
-  border-radius: 6px;
-  background: #fff;
 }
 
 .nav-icon img {
-  width: 27px;
-  height: 27px;
+  width: 33px;
+  height: 33px;
   object-fit: contain;
+  filter: drop-shadow(0 0 1px rgba(166, 215, 245, .7));
 }
 
 .side-note,
@@ -240,11 +239,10 @@ main {
 }
 
 .hero-catalog-button img {
-  width: 22px;
-  height: 22px;
+  width: 25px;
+  height: 25px;
   object-fit: contain;
-  border-radius: 4px;
-  background: #fff;
+  filter: drop-shadow(0 0 1px rgba(166, 215, 245, .7));
 }
 
 .operations-toolbar {
@@ -454,8 +452,8 @@ textarea:focus-visible {
   }
 
   .nav-icon img {
-    width: 23px;
-    height: 23px;
+    width: 29px;
+    height: 29px;
   }
 
   .topbar {
@@ -529,8 +527,8 @@ textarea:focus-visible {
   }
 
   .nav-icon img {
-    width: 21px;
-    height: 21px;
+    width: 27px;
+    height: 27px;
   }
 
   .pill {

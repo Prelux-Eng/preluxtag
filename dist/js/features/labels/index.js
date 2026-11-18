@@ -7,6 +7,7 @@
 export function initializeLabels({ operationsRepository } = {}) {
 const $ = (id) => document.getElementById(id);
     const template = new Image();
+    const brandLogo = new Image();
     const canvas = $('labelCanvas'); const ctx = canvas.getContext('2d');
     const fields = { id:$('pieceId'), quantity:$('quantity'), client:$('client'), notes:$('notes') };
     let editingKey = null; let previewIndex = 1;
@@ -52,9 +53,13 @@ const $ = (id) => document.getElementById(id);
     function drawObservationText(text){ if(!text)return;const top=706,height=250,maxWidth=1400;let chosen=null;for(let size=36;size>=12;size--){ctx.font=`700 ${size}px Arial`;const lineHeight=Math.round(size*1.18),lines=makeLines(text.slice(0,500),maxWidth),maxLines=Math.floor(height/lineHeight);if(lines.length<=maxLines){chosen={size,lineHeight,lines};break}}if(!chosen){const size=12;ctx.font=`700 ${size}px Arial`;const lineHeight=15;let lines=makeLines(text.slice(0,500),maxWidth).slice(0,Math.floor(height/lineHeight));if(lines.length)lines[lines.length-1]=`${lines[lines.length-1].slice(0,-1)}…`;chosen={size,lineHeight,lines}}ctx.font=`700 ${chosen.size}px Arial`;ctx.fillStyle='#111';const total=chosen.lines.length*chosen.lineHeight;const firstY=top+(height-total)/2+chosen.lineHeight/2;chosen.lines.forEach((line,i)=>ctx.fillText(line,59,firstY+i*chosen.lineHeight)); }
     // Renderiza a etiqueta no canvas usando o modelo PNG e os campos preenchidos.
     function drawLabel(idOverride=null, record=null){
-      if(!template.complete||!template.naturalWidth)return;
+      if(!template.complete||!template.naturalWidth||!brandLogo.complete||!brandLogo.naturalWidth)return;
       const id=idOverride || (fields.id.value.trim()?labelId(previewIndex):'—'); const client=(record?.client_name || fields.client.value).trim()||'—'; const notes=(record?.observations ?? fields.notes.value).trim().slice(0,500);
-      ctx.clearRect(0,0,1536,1024);ctx.drawImage(template,0,0,1536,1024);ctx.fillStyle='#111';ctx.textBaseline='middle';
+      ctx.clearRect(0,0,1536,1024);
+      ctx.drawImage(template,0,0,1536,1024);
+      // A marca tem fundo transparente; o papel branco permanece no modelo da etiqueta.
+      ctx.drawImage(brandLogo,95,34,495,200);
+      ctx.fillStyle='#111';ctx.textBaseline='middle';
       ctx.font=`800 ${fitText(id,920,'800 {size}px Arial',37)}px Arial`;ctx.fillText(id,520,316);
       ctx.font=`800 ${fitText(client,920,'800 {size}px Arial',37)}px Arial`;ctx.fillText(client,520,424);
       // As caixas de status permanecem vazias para preenchimento manual na fábrica.
@@ -62,8 +67,9 @@ const $ = (id) => document.getElementById(id);
       $('previewMeta').textContent=`Etiqueta ${previewIndex} de ${getQuantity()} · PNG · 1536 × 1024 px`;
     }
     function updatePreview(){ previewIndex=Math.max(1,Math.min(getQuantity(),previewIndex)); drawLabel(); }
-    template.onload=updatePreview; template.src='assets/PRE_RASTRE.png';
-    async function ensureTemplate(){if(!template.complete||!template.naturalWidth)await template.decode();}
+    template.onload=updatePreview;brandLogo.onload=updatePreview;
+    template.src='assets/PRE_RASTRE_sem_logo.png';brandLogo.src='assets/logo-prelux-etiqueta.png';
+    async function ensureTemplate(){await Promise.all([template,brandLogo].map(image=>image.complete&&image.naturalWidth?Promise.resolve():image.decode()));}
     ['input','change'].forEach(ev=>document.addEventListener(ev,e=>{if(e.target.closest('#pieceForm')){if(e.target===fields.quantity)previewIndex=1;if(e.target===fields.notes)updateNotesCounter();updatePreview();}}));
     function setGeneratedMode(enabled){for(const field of Object.values(fields))field.readOnly=enabled;$('saveBtn').hidden=enabled;$('sampleBtn').hidden=enabled;$('pieceForm').querySelector('button[type="submit"]').hidden=enabled;$('downloadAllBtn').hidden=enabled;$('printBtn').hidden=enabled;}
     function resetForm(){ activeGenerated=null;setGeneratedMode(false);$('pieceForm').reset(); fields.quantity.value=1; editingKey=null; $('saveBtn').textContent='Salvar peça'; previewIndex=1; updateNotesCounter(); updatePreview(); }

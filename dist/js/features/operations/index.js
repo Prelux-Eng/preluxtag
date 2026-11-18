@@ -96,7 +96,7 @@ export function initializeOperations({ operationsRepository, listPieceMoldOption
           <p>Registre obra e peças; acompanhe engenharia, projeto e fabricação.</p>
           <div class="operations-hero-actions">
             <button class="btn primary" id="operationsNew" type="button">Novo pedido</button>
-            <button class="btn hero-catalog-button" id="operationsOpenCadastro" type="button"><img src="assets/icone-cadastro.png" alt="" aria-hidden="true" />Cadastro</button>
+            <button class="btn hero-catalog-button" id="operationsOpenCadastro" type="button"><img src="assets/icone-cadastro-claro.png" alt="" aria-hidden="true" />Cadastro</button>
           </div>
         </div>
       </section>
