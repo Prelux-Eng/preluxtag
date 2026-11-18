@@ -1,14 +1,14 @@
 /**
  * Planejamento linear PRELUX.
  *
- * A capacidade de concretagem é medida em posições ocupadas por dia útil.
- * O campo legado de minutos registra somente a carga de concretagem do dia.
- * A duração do processo vem das etapas: concretagem, cura e acabamento.
+ * A concretagem respeita a disponibilidade física das posições e a soma dos
+ * minutos de cada unidade contra a capacidade do calendário. Cura e acabamento
+ * continuam como etapas separadas do trabalho ativo de concretagem.
  * O módulo é puro para permitir os mesmos cálculos nas Edge Functions e nos
  * testes Node.js.
  */
 
-import { buildProductionPhases } from "./production-phases.js";
+import { buildDailyProductionSteps } from "./production-phases.js";
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 export const DEFAULT_POSITION_CODES = Object.freeze(["P01", "P02", "P03", "P04"]);
@@ -71,9 +71,13 @@ function integerValue(value, label, { minimum = 0, fallback = null } = {}) {
 }
 
 function normalizedCalendarDay(day) {
+  const rawCapacity = readField(day, "capacityMinutes", "capacity_minutes", null);
   return {
     date: normalizeDate(readField(day, "date", "date"), "dia do calendário"),
     isWorking: Boolean(readField(day, "isWorking", "is_working", false)),
+    capacityMinutes: rawCapacity == null
+      ? null
+      : integerValue(rawCapacity, "A capacidade diária em minutos", { minimum: 0 }),
   };
 }
 
@@ -99,8 +103,8 @@ function normalizedItem(item, index) {
   );
   const productionMinutesPerUnit = integerValue(
     readField(item, "productionMinutesSnapshot", "production_minutes_snapshot", 0),
-    "O tempo de produção registrado",
-    { minimum: 0, fallback: 0 },
+    "O tempo de concretagem por unidade",
+    { minimum: 1 },
   );
   const rawRequiredMoldCodes = readField(item, "requiredMoldCodes", "required_mold_codes", []);
   const requiredMoldCodes = Array.isArray(rawRequiredMoldCodes)
@@ -201,6 +205,8 @@ function reserveExistingCapacity({
   positions,
   occupiedByDate,
   intervalsByPosition,
+  minutesUsedByDate,
+  calendarByDate,
   startDate,
   castHorizonEnd,
   conflicts,
@@ -212,6 +218,13 @@ function reserveExistingCapacity({
       readField(allocation, "scheduledDate", "scheduled_date"),
       "data da alocação existente",
     );
+    if (date >= startDate && date <= castHorizonEnd) {
+      const dayCapacity = calendarByDate.get(date)?.capacityMinutes;
+      const rawMinutes = readField(allocation, "productionMinutesSnapshot", "production_minutes_snapshot", 0);
+      const reservedMinutes = integerValue(rawMinutes, "Minutos da alocação existente", { minimum: 0, fallback: 0 });
+      const minutes = reservedMinutes > 0 ? reservedMinutes : dayCapacity ?? 0;
+      minutesUsedByDate.set(date, (minutesUsedByDate.get(date) || 0) + minutes);
+    }
     const code = String(readField(allocation, "positionCode", "position_code", "")).trim();
     if (!positions.some((position) => position.code === code)) {
       conflicts.push({ type: "position", date, positionCode: code || null, message: `Alocação existente aponta para posição inválida em ${date}.` });
@@ -247,6 +260,11 @@ function reserveExistingCapacity({
       { minimum: 1 },
     );
     const codes = requestedCodes.length ? requestedCodes.slice(0, quantity) : [];
+    const rawMinutes = readField(schedule, "plannedMinutes", "planned_minutes", 0);
+    const plannedMinutes = integerValue(rawMinutes, "Minutos já programados", { minimum: 0, fallback: 0 });
+    const dayCapacity = calendarByDate.get(date)?.capacityMinutes;
+    const minutes = plannedMinutes > 0 ? plannedMinutes : dayCapacity ?? 0;
+    minutesUsedByDate.set(date, (minutesUsedByDate.get(date) || 0) + minutes);
     let reserved = 0;
 
     for (const code of codes) {
@@ -360,12 +378,15 @@ export function planOrder({
   }
   const occupiedByDate = new Map();
   const intervalsByPosition = new Map();
+  const minutesUsedByDate = new Map();
   reserveExistingCapacity({
     existingSchedules,
     existingAllocations,
     positions: positionList,
     occupiedByDate,
     intervalsByPosition,
+    minutesUsedByDate,
+    calendarByDate,
     startDate: effectiveStartDate,
     castHorizonEnd,
     conflicts,
@@ -376,6 +397,7 @@ export function planOrder({
     .map((day) => day.date);
   const units = [];
   const itemPlans = [];
+  const capacityBlockedItemIds = new Set();
 
   for (const item of normalizedItems) {
     const itemUnits = [];
@@ -383,25 +405,48 @@ export function planOrder({
 
     for (const castDate of workingDates) {
       if (itemUnits.length >= item.quantity) break;
+      const dayCapacity = calendarByDate.get(castDate)?.capacityMinutes;
+      const usedMinutes = minutesUsedByDate.get(castDate) || 0;
+      if (dayCapacity !== null && dayCapacity !== undefined
+        && usedMinutes + item.productionMinutesPerUnit > dayCapacity) {
+        capacityBlockedItemIds.add(item.itemId);
+        continue;
+      }
+      const cureEndDate = addDays(castDate, item.curingDays);
+      const finishDate = nextWorkingDateAfter(cureEndDate, calendarByDate, latestCalendarDate);
+      if (!finishDate) continue;
       const phases = productionTiming
-        ? buildProductionPhases({ castDate, ...productionTiming })
+        ? buildDailyProductionSteps({
+          castDate,
+          finishDate,
+          calendarDays,
+          productionMinutes: item.productionMinutesPerUnit,
+          curingDays: item.curingDays,
+          timeZone: productionTiming.timeZone,
+          castStartTime: productionTiming.castStartTime,
+        })
         : null;
-      // A cura ocupa a posição, mas não consome os minutos de trabalho do dia.
-      // Quando há etapas detalhadas, a carga diária vem da concretagem delas.
-      const castingMinutes = phases?.steps.find((step) => step.stepKind === "concretagem")?.durationMinutes
-        ?? item.productionMinutesPerUnit;
+      const cureStartDate = phases?.cureStartDate ?? addDays(castDate, 1);
       const occupied = occupiedByDate.get(castDate) || new Map();
       const freePositions = positionList.filter((position) =>
         !occupied.has(position.code) && positionCanProduce(position, item) &&
-        (!phases || !intervalOverlaps(intervalsByPosition, position.code, phases.occupiedFromAt, phases.occupiedUntilAt))
+        (!phases || !intervalOverlaps(
+          intervalsByPosition,
+          position.code,
+          phases.occupiedFromAt,
+          phases.occupiedUntilAt,
+        ))
       );
 
       for (const position of freePositions) {
         if (itemUnits.length >= item.quantity) break;
-        const cureStartDate = phases?.cureStartDate ?? addDays(castDate, 1);
-        const cureEndDate = phases?.cureEndDate ?? addDays(castDate, item.curingDays);
-        const finishDate = nextWorkingDateAfter(cureEndDate, calendarByDate, latestCalendarDate);
-        if (!finishDate) continue;
+        const currentUsedMinutes = minutesUsedByDate.get(castDate) || 0;
+        if (dayCapacity !== null && dayCapacity !== undefined
+          && currentUsedMinutes + item.productionMinutesPerUnit > dayCapacity) {
+          capacityBlockedItemIds.add(item.itemId);
+          break;
+        }
+        const castingMinutes = item.productionMinutesPerUnit;
 
         unitSequence += 1;
         const unit = {
@@ -430,6 +475,7 @@ export function planOrder({
           status: "planned",
           source: "current_order",
         }, conflicts);
+        minutesUsedByDate.set(castDate, (minutesUsedByDate.get(castDate) || 0) + castingMinutes);
         if (phases) addOccupiedInterval(intervalsByPosition, position.code, phases.occupiedFromAt, phases.occupiedUntilAt);
       }
     }
@@ -500,15 +546,26 @@ export function planOrder({
   }
   if (totalRemainingQuantity > 0) {
     const hasCompatiblePosition = itemsWithoutCompatiblePosition.length === 0 && positionList.length > 0;
+    const remainingItems = itemPlans.filter((plan) => plan.remainingQuantity > 0);
+    const itemWithoutAnyCapacityDay = remainingItems.some((plan) => {
+      const item = normalizedItems.find((candidate) => candidate.itemId === plan.itemId);
+      return item && !workingDates.some((date) => {
+        const capacity = calendarByDate.get(date)?.capacityMinutes;
+        return capacity == null || capacity >= item.productionMinutesPerUnit;
+      });
+    });
+    const capacityBlocked = itemWithoutAnyCapacityDay || remainingItems.some((item) => capacityBlockedItemIds.has(item.itemId));
     conflicts.push({
       type: itemsWithoutMoldConfiguration.length
         ? "mold_configuration"
-        : itemsWithoutCompatiblePosition.length || !positionList.length ? "position" : "horizon",
+        : !hasCompatiblePosition ? "position" : capacityBlocked ? "capacity" : "horizon",
       dueDate: due,
       suggestedDueDate: null,
       remainingQuantity: totalRemainingQuantity,
       message: itemsWithoutMoldConfiguration.length
         ? `Há ${totalRemainingQuantity} unidade(s) sem configuração de molde compatível; revise os moldes exigidos no cadastro da peça.`
+        : capacityBlocked
+          ? `A capacidade diária em minutos não comporta ${totalRemainingQuantity} unidade(s) ainda pendentes.`
         : hasCompatiblePosition
           ? `O horizonte não comporta ${totalRemainingQuantity} unidade(s); amplie o horizonte ou revise as posições disponíveis.`
           : `Há ${totalRemainingQuantity} unidade(s) aguardando posição física adequada; confira a disponibilidade das posições.`,
@@ -516,6 +573,16 @@ export function planOrder({
   }
 
   const totalPlannedMinutes = units.reduce((sum, unit) => sum + unit.productionMinutesSnapshot, 0);
+  const dailyCapacityUsage = [...minutesUsedByDate]
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(([date, minutesUsed]) => ({
+      date,
+      minutesUsed,
+      capacityMinutes: calendarByDate.get(date)?.capacityMinutes ?? null,
+      remainingMinutes: calendarByDate.get(date)?.capacityMinutes == null
+        ? null
+        : Math.max(0, calendarByDate.get(date).capacityMinutes - minutesUsed),
+    }));
   const feasible = totalRemainingQuantity === 0 && dueMet && !conflicts.some((item) =>
     item.type === "capacity" || item.type === "position" || item.type === "mold_configuration"
   );
@@ -534,6 +601,7 @@ export function planOrder({
     suggestedDueDate: dueMet ? null : plannedEndDate,
     workingDays: workingDates.length,
     capacityPerWorkingDay: positionList.length,
+    dailyCapacityUsage,
     totalRequestedQuantity,
     totalToProduce: totalRequestedQuantity,
     totalPlannedQuantity,

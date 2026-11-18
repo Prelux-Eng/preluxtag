@@ -1,6 +1,6 @@
 # PRELUX / Fábio II — Etapa 3: domínio Projeto
 
-**Estado:** concluída localmente para revisão. A migration 015 e as mudanças das Edge Functions ainda não foram aplicadas ou publicadas.
+**Estado em 17/11/2026:** domínio implementado, ligado à interface do Planejamento e publicado no Supabase. A função de simulação ativa é `simulate-production` v9; a confirmação transacional é `confirm-production-plan` v7. A migration de versionamento de Engenharia e a migration de confirmação idempotente constam no histórico ativo.
 
 ## Responsabilidades
 
@@ -41,7 +41,7 @@ Calendário de segunda a sexta, sem feriados, início em 05/01/2026:
 
 ## Integridade e implantação
 
-A etapa não executa gravações no Supabase. A implementação depende da tabela `engineering_parameter_versions` e da coluna `orders.engineering_parameter_version_id`, previstas em `database/015_engineering_parameter_versions.sql`. Portanto, não publique as Edge Functions antes de aplicar essa migration. O trigger de revisão pressupõe a função `touch_factory_plan_revision()` já instalada pela Etapa 5.
+A rota de simulação não grava dados. A confirmação, em rota separada, recalcula os dados no servidor e persiste a fila numa transação idempotente. `engineering_parameter_versions` e `orders.engineering_parameter_version_id` já existem no projeto ativo; o trigger `touch_factory_plan_revision()` invalida confirmações calculadas sobre dados antigos.
 
 A Etapa 5 original continua concluída no histórico do projeto. Esta Etapa 3 pertence à sequência nova da reestruturação.
 
@@ -53,4 +53,4 @@ Comando executado:
 node --test
 ```
 
-Resultado: **57 testes aprovados, 0 falhas**.
+O total de testes é mantido pela suíte atual; consulte a execução mais recente de `node --test`. A suíte cobre filas, compatibilidade, preparo, capacidade diária, cura fora da posição, limites e ajustes.

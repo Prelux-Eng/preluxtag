@@ -220,6 +220,43 @@ export function initializePlanning({ planningRepository, operationsRepository, n
     return unit.piece_code || unit.piece_name || "Peça";
   }
 
+  // Formatação de leitura: cálculos e limites continuam vindo do servidor.
+  function formatDurationMinutes(value) {
+    const minutes = Math.max(0, Math.trunc(Number(value) || 0));
+    const hours = Math.floor(minutes / 60);
+    const remainder = minutes % 60;
+    if (!hours) return `${remainder} min`;
+    return remainder ? `${hours} h ${remainder} min` : `${hours} h`;
+  }
+
+  function formatClockTime(value) {
+    if (!value) return "";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return "";
+    return new Intl.DateTimeFormat("pt-BR", {
+      timeZone: state.scenario?.commitContext?.timeZone || "America/Sao_Paulo",
+      hour: "2-digit",
+      minute: "2-digit",
+      hourCycle: "h23",
+    }).format(date);
+  }
+
+  function castingTimeRange(unit) {
+    const start = formatClockTime(unit.casting_start_at);
+    const end = formatClockTime(unit.casting_end_at);
+    return start && end ? `${start}–${end}` : "";
+  }
+
+  function dailyCapacityUsageFor(date) {
+    return state.scenario?.dailyCapacityUsage?.find((entry) => entry.date === date) || null;
+  }
+
+  function dailyCapacityTitle(date) {
+    const usage = dailyCapacityUsageFor(date);
+    if (!usage || Number(usage.minutesUsed) <= 0) return "";
+    return `${formatDurationMinutes(usage.minutesUsed)} de ${formatDurationMinutes(usage.capacityMinutes)} de concretagem`;
+  }
+
   function phaseEventsForDate(date) {
     if (useLegacyScheduleView()) {
       return schedulesForDate(date).map((schedule) => ({ kind: "casting", value: schedule, quantity: Number(schedule.planned_quantity) || 0 }));
@@ -310,15 +347,26 @@ export function initializePlanning({ planningRepository, operationsRepository, n
       const isCasting = event.kind === "casting";
       const statusClass = value.status === "in_progress" ? "in-progress" : ["done", "pronta"].includes(value.status) ? "done" : "";
       const className = event.kind === "preparation" ? "preparation-event" : event.kind === "casting" ? "casting-event" : event.kind === "curing" ? "curing-event" : "finish-event";
-      const title = `${phaseEventLabel(event)} · ${formatDateBR(date)}${value.forecast_kind ? " · previsão sem reserva gravada" : ""}${event.kind === "curing" ? " · cura não ocupa posição" : ""}`;
-      const label = !useLegacyScheduleView() ? phaseEventLabel(event) : `${formatOrder(order)} · ${value.piece_code || "produção"} · ${Number(value.planned_quantity)} un.`;
+      const castingRange = isCasting ? castingTimeRange(value) : "";
+      const castingMinutes = isCasting ? Number(value.production_minutes_snapshot) || 0 : 0;
+      const castingDetails = isCasting && (castingRange || castingMinutes)
+        ? ` · concretagem ${castingRange || "em horário cadastrado"}${castingMinutes ? ` · ${formatDurationMinutes(castingMinutes)}` : ""}`
+        : "";
+      const title = `${phaseEventLabel(event)} · ${formatDateBR(date)}${castingDetails}${value.forecast_kind ? " · previsão sem reserva gravada" : ""}${event.kind === "curing" ? " · cura não ocupa posição" : ""}`;
+      const label = !useLegacyScheduleView()
+        ? `${phaseEventLabel(event)}${isCasting && castingMinutes ? ` · ${castingMinutes} min` : ""}`
+        : `${formatOrder(order)} · ${value.piece_code || "produção"} · ${Number(value.planned_quantity)} un.`;
       return `<span class="calendar-event ${className} ${statusClass} ${value.forecast_kind === "quote" ? "quote-forecast" : ""}" title="${escapeHtml(title)}">${escapeHtml(label)}</span>`;
     }).join("");
     const remainingEvents = events.length - eventLimit;
     const positionLabel = day.is_working
       ? `${stats.occupied}/${stats.positionCount} posições${stats.overCapacity ? " · conflito" : ""}`
       : stats.plannedUnits ? `Sem produção · ${stats.plannedUnits} concretagem(ns)` : "Sem produção";
-    return `<div class="calendar-day ${nonWorkingClass} ${todayClass} ${selectedClass}" role="button" tabindex="0" data-calendar-date="${date}" title="Abrir ajustes de ${formatDateBR(date)}"><span class="calendar-day-head"><span class="calendar-day-number">${Number(date.slice(-2))}</span><span class="calendar-day-status">${day.is_working ? "útil" : "parado"}</span></span><span class="calendar-day-capacity ${stats.overCapacity ? "position-conflict" : ""}">${positionLabel}</span>${activityLabel}<span class="calendar-day-occupancy"><i class="${occupancyClass}" style="width:${width}%"></i></span><div class="calendar-events">${eventRows}${remainingEvents > 0 ? `<span class="calendar-event-more">+${remainingEvents} etapas</span>` : ""}</div></div>`;
+    const capacityUsage = dailyCapacityUsageFor(date);
+    const minuteUsage = capacityUsage && Number(capacityUsage.minutesUsed) > 0
+      ? `<span class="calendar-day-minutes" title="${escapeHtml(dailyCapacityTitle(date))}">${formatDurationMinutes(capacityUsage.minutesUsed)} de ${formatDurationMinutes(capacityUsage.capacityMinutes)}</span>`
+      : "";
+    return `<div class="calendar-day ${nonWorkingClass} ${todayClass} ${selectedClass}" role="button" tabindex="0" data-calendar-date="${date}" title="Abrir ajustes de ${formatDateBR(date)}"><span class="calendar-day-head"><span class="calendar-day-number">${Number(date.slice(-2))}</span><span class="calendar-day-status">${day.is_working ? "útil" : "parado"}</span></span><span class="calendar-day-capacity ${stats.overCapacity ? "position-conflict" : ""}">${positionLabel}</span>${minuteUsage}${activityLabel}<span class="calendar-day-occupancy"><i class="${occupancyClass}" style="width:${width}%"></i></span><div class="calendar-events">${eventRows}${remainingEvents > 0 ? `<span class="calendar-event-more">+${remainingEvents} etapas</span>` : ""}</div></div>`;
   }
 
   function renderMonth() {
@@ -367,7 +415,8 @@ export function initializePlanning({ planningRepository, operationsRepository, n
       const date = addDays(start, index);
       const day = getDay(date) || { is_working: false };
       const stats = positionStats(date);
-      return `<div class="gantt-cell ${day.is_working ? "" : "off"}" data-calendar-date="${date}" title="${formatDateBR(date)} · ${day.is_working ? `${stats.occupied}/${stats.positionCount} posições` : "sem produção"}"><span>${Number(date.slice(-2))}</span><small>${day.is_working ? `${stats.occupied}/${stats.positionCount}` : "—"}</small></div>`;
+      const capacity = dailyCapacityTitle(date);
+      return `<div class="gantt-cell ${day.is_working ? "" : "off"}" data-calendar-date="${date}" title="${formatDateBR(date)} · ${day.is_working ? `${stats.occupied}/${stats.positionCount} posições` : "sem produção"}${capacity ? ` · ${capacity}` : ""}"><span>${Number(date.slice(-2))}</span><small>${day.is_working ? `${stats.occupied}/${stats.positionCount}` : "—"}</small></div>`;
     }).join("");
     let rows = "";
     const appendRow = (label, getContent, rowClass = "") => {
@@ -545,12 +594,21 @@ export function initializePlanning({ planningRepository, operationsRepository, n
         `Ajuste em ${formatDateBR(adjustment.occurredOn)}: ${adjustment.reason} (${adjustment.impactDays > 0 ? "+" : ""}${adjustment.impactDays} dia(s)).`
       );
       const issues = [...conflicts, ...adjustments].join(" ");
-      return `<article class="scenario-order ${order.feasible ? "feasible" : "infeasible"}"><div><strong>${escapeHtml(order.orderNumber || "Pedido")}</strong><span>${order.status === "orcamento" ? "Orçamento · hipótese" : "Fila aprovada · previsão"}</span></div><div><strong>${escapeHtml(order.forecastEndDate ? formatDateBR(order.forecastEndDate) : "Sem data")}</strong><span>Fim do último acabamento</span></div><div><strong>${escapeHtml(outcome)}</strong><span>Limite ${formatDateBR(order.maximumDueDate)} · ${quantityWithinLimit}/${order.totalRequestedQuantity} un. cabem em ${maximumDays} dias</span></div>${issues ? `<small>${escapeHtml(issues)}</small>` : ""}</article>`;
+      const castingLoad = Number(order.totalProductionMinutes) > 0
+        ? ` · ${formatDurationMinutes(order.totalProductionMinutes)} de concretagem`
+        : "";
+      return `<article class="scenario-order ${order.feasible ? "feasible" : "infeasible"}"><div><strong>${escapeHtml(order.orderNumber || "Pedido")}</strong><span>${order.status === "orcamento" ? "Orçamento · hipótese" : "Fila aprovada · previsão"}${escapeHtml(castingLoad)}</span></div><div><strong>${escapeHtml(order.forecastEndDate ? formatDateBR(order.forecastEndDate) : "Sem data")}</strong><span>Fim do último acabamento</span></div><div><strong>${escapeHtml(outcome)}</strong><span>Limite ${formatDateBR(order.maximumDueDate)} · ${quantityWithinLimit}/${order.totalRequestedQuantity} un. cabem em ${maximumDays} dias</span></div>${issues ? `<small>${escapeHtml(issues)}</small>` : ""}</article>`;
     }).join("");
     const bottleneck = scenario.bottleneck
       ? `Maior carga: ${scenario.bottleneck.positionCode}, ${scenario.bottleneck.occupiedDays} dia(s) ocupados (${scenario.bottleneck.preparationDays} de preparação e ${scenario.bottleneck.castingDays} de concretagem).`
       : "Sem posição ocupada no cenário.";
-    result.innerHTML = `<p class="scenario-caption">${scenario.orderCount} pedido(s) · ${scenario.totalUnits} unidade(s) com posição prevista · ${escapeHtml(bottleneck)} Unidades sem vaga permanecem aguardando posição.</p><div class="scenario-orders">${cards}</div>`;
+    const peakCapacityDay = (scenario.dailyCapacityUsage || [])
+      .filter((entry) => Number(entry.minutesUsed) > 0 && Number(entry.capacityMinutes) > 0)
+      .sort((a, b) => Number(b.minutesUsed) / Number(b.capacityMinutes) - Number(a.minutesUsed) / Number(a.capacityMinutes))[0];
+    const peakCapacity = peakCapacityDay
+      ? `Pico diário de concretagem: ${formatDurationMinutes(peakCapacityDay.minutesUsed)} de ${formatDurationMinutes(peakCapacityDay.capacityMinutes)} em ${formatDateBR(peakCapacityDay.date)}.`
+      : "";
+    result.innerHTML = `<p class="scenario-caption">${scenario.orderCount} pedido(s) · ${scenario.totalUnits} unidade(s) com posição prevista · ${escapeHtml(bottleneck)} ${escapeHtml(peakCapacity)} Unidades sem vaga permanecem aguardando posição.</p><div class="scenario-orders">${cards}</div>`;
   }
 
   async function simulateSelectedOrders() {

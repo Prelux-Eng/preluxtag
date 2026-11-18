@@ -5,11 +5,11 @@ import { buildCalendarDays } from "../supabase/functions/_shared/calendar.js";
 import { FACTORY_RULES, simulateProject } from "../supabase/functions/_shared/project-domain.js";
 import { simulateProductionOrders } from "../supabase/functions/_shared/factory-simulation-service.js";
 
-function calendar(startDate = "2026-01-05", endDate = "2026-07-31", exceptions = []) {
+function calendar(startDate = "2026-01-05", endDate = "2026-07-31", exceptions = [], capacityMinutes = 480) {
   return buildCalendarDays({
     startDate,
     endDate,
-    settings: { default_capacity_minutes: 480 },
+    settings: { default_capacity_minutes: capacityMinutes },
     exceptions,
   });
 }
@@ -18,7 +18,7 @@ function position(code, config = {}) {
   return { code, status: "disponivel", ...config };
 }
 
-function viga(quantity = 1) {
+function viga(quantity = 1, productionMinutesSnapshot = 120) {
   return {
     id: "item-viga",
     pieceTypeId: "piece-viga",
@@ -29,6 +29,7 @@ function viga(quantity = 1) {
     dimensionZcm: 25,
     quantity,
     sequence: 1,
+    productionMinutesSnapshot,
   };
 }
 
@@ -65,6 +66,78 @@ test("pedido isolado: quatro posições prontas concretam quatro peças por dia 
   assert.equal(plan.feasible, true);
   assert.equal(plan.totalVolumeM3, 0.25);
   assert.equal(plan.totalWeightKg, 625);
+  assert.equal(plan.totalProductionMinutes, 600);
+  assert.deepEqual(result.dailyCapacityUsage.slice(0, 2).map((day) => [day.date, day.minutesUsed, day.capacityMinutes]), [
+    ["2026-01-05", 480, 480],
+    ["2026-01-06", 120, 480],
+  ]);
+});
+
+test("minutos de concretagem limitam quantas unidades cabem em cada dia", () => {
+  const result = simulateProject({
+    calendarDays: calendar("2026-01-05", "2026-01-12", [], 300),
+    positions: ["P01", "P02", "P03", "P04"].map((code) => position(code, ready)),
+    orders: [order("PED-0001", 5)],
+  });
+
+  assert.deepEqual(result.orders[0].units.map((unit) => unit.castDate), [
+    "2026-01-05", "2026-01-05", "2026-01-06", "2026-01-06", "2026-01-07",
+  ]);
+  assert.deepEqual(result.dailyCapacityUsage.slice(0, 3).map((day) => [day.minutesUsed, day.remainingMinutes]), [
+    [240, 60], [240, 60], [120, 180],
+  ]);
+});
+
+test("minutos de dois tipos diferentes são somados antes de reservar a data", () => {
+  const mixedOrder = order("PED-0001", 1);
+  mixedOrder.items = [
+    { ...viga(1, 300), id: "item-300", sequence: 1 },
+    { ...viga(1, 200), id: "item-200", sequence: 2 },
+  ];
+
+  const result = simulateProject({
+    calendarDays: calendar(),
+    positions: [position("P01", ready), position("P02", ready)],
+    orders: [mixedOrder],
+  });
+
+  assert.deepEqual(result.orders[0].units.map((unit) => [unit.productionMinutesSnapshot, unit.castDate]), [
+    [300, "2026-01-05"], [200, "2026-01-06"],
+  ]);
+});
+
+test("carga de uma unidade maior que qualquer capacidade diária gera conflito claro", () => {
+  const oversizedOrder = order("PED-0001", 1);
+  oversizedOrder.items = [viga(1, 301)];
+  const result = simulateProject({
+    calendarDays: calendar("2026-01-05", "2026-01-12", [], 300),
+    positions: [position("P01", ready)],
+    orders: [oversizedOrder],
+  });
+
+  assert.equal(result.orders[0].totalPlannedQuantity, 0);
+  assert.equal(result.orders[0].conflicts[0].type, "capacity");
+  assert.match(result.orders[0].conflicts[0].message, /301 minutos/);
+});
+
+test("reservas já existentes descontam a capacidade de concretagem do dia", () => {
+  const result = simulateProject({
+    calendarDays: calendar(),
+    positions: ["P01", "P02", "P03", "P04"].map((code) => position(code, ready)),
+    existingReservations: [{
+      positionCode: "P04",
+      status: "done",
+      scheduledDate: "2026-01-05",
+      startDate: "2026-01-05",
+      endDate: "2026-01-05",
+      productionMinutesSnapshot: 300,
+      moldCatalogCodes: ["LEITO_20", "LATERAL_25"],
+    }],
+    orders: [order("PED-0001", 2)],
+  });
+
+  assert.deepEqual(result.orders[0].units.map((unit) => unit.castDate), ["2026-01-05", "2026-01-06"]);
+  assert.equal(result.dailyCapacityUsage[0].minutesUsed, 420);
 });
 
 test("forma já pronta dispensa preparação; a cura libera a posição para a próxima concretagem", () => {
@@ -247,7 +320,7 @@ test("placa usa a bancada plana sem moldes e preserva volume e peso pelas três 
   const placa = {
     id: "item-placa", pieceTypeId: "piece-placa", pieceKind: "placa",
     requiredMoldCodes: [], dimensionXcm: 100, dimensionYcm: 200, dimensionZcm: 10,
-    quantity: 1,
+    quantity: 1, productionMinutesSnapshot: 120,
   };
   const result = simulateProject({
     calendarDays: calendar(),
@@ -350,6 +423,7 @@ test("API de simulação não grava e respeita concretagem de unidade retirada",
     piece_types: [{
       id: "piece-viga", organization_id: "org", piece_kind: "viga",
       dimension_x_cm: 20, dimension_y_cm: 100, dimension_z_cm: 25,
+      production_minutes_per_unit: 30,
     }],
     piece_type_molds: [
       { piece_type_id: "piece-viga", role: "leito", catalog_code: "LEITO_20", organization_id: "org" },
@@ -406,6 +480,13 @@ test("API de simulação não grava e respeita concretagem de unidade retirada",
   assert.deepEqual(result.orders.map((entry) => entry.engineeringParameterVersion), [1, 2]);
   assert.deepEqual(result.orders.map((entry) => entry.totalWeightKg), [150, 125]);
   assert.equal(result.orders[0].units[0].steps[0].plannedStartAt, "2026-01-05T10:30:00.000Z");
+  assert.equal(result.orders[0].units[0].productionMinutesSnapshot, 30);
+  assert.equal(result.orders[0].units[0].steps[0].durationMinutes, 30);
+  assert.equal(result.orders[0].units[0].steps[0].plannedEndAt, "2026-01-05T11:00:00.000Z");
+  assert.equal(result.orders[0].units[0].occupiedUntilAt, "2026-01-05T11:00:00.000Z");
+  assert.equal(result.orders[0].units[0].steps[1].plannedStartAt, "2026-01-05T11:00:00.000Z");
+  assert.equal(result.orders[0].units[0].steps[1].durationMinutes, 2 * 24 * 60);
+  assert.equal(result.orders[0].units[0].steps[2].plannedStartAt, "2026-01-08T10:30:00.000Z");
   assert.deepEqual(result.orders[0].externalAdjustments, [{
     reason: "Manutenção elétrica",
     occurredOn: "2026-01-02",

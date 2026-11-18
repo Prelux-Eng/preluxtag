@@ -38,7 +38,7 @@ Se o comando `npm` não estiver disponível, execute `node scripts/serve.mjs`. D
 
 Consulte [`database/README.md`](database/README.md) para a ordem das migrações e [`backend/README.md`](backend/README.md) para publicação das Edge Functions.
 Para decisões e pendências da Etapa 5, consulte [`docs/FABIO_II_ETAPA5_REVISAO.md`](docs/FABIO_II_ETAPA5_REVISAO.md).
-O inventário da nova reestruturação está em [`docs/ETAPA1_INVENTARIO_REESTRUTURACAO.md`](docs/ETAPA1_INVENTARIO_REESTRUTURACAO.md), e a implementação local da Engenharia está em [`docs/ETAPA2_ENGENHARIA.md`](docs/ETAPA2_ENGENHARIA.md).
+O inventário atualizado das cinco interfaces, da marca e do schema está em [`docs/ETAPA1_INVENTARIO_ATUALIZADO.md`](docs/ETAPA1_INVENTARIO_ATUALIZADO.md). O relatório anterior [`docs/ETAPA1_INVENTARIO_REESTRUTURACAO.md`](docs/ETAPA1_INVENTARIO_REESTRUTURACAO.md) foi mantido como histórico. A implementação da Engenharia está em [`docs/ETAPA2_ENGENHARIA.md`](docs/ETAPA2_ENGENHARIA.md).
 O fluxo de simulação e confirmação da fila está em [`docs/ETAPA5_CONFIRMACAO_PLANO.md`](docs/ETAPA5_CONFIRMACAO_PLANO.md).
 O motor de simulação da Etapa 2 e sua API somente de leitura estão documentados em [`docs/ETAPA2_MOTOR_SIMULACAO.md`](docs/ETAPA2_MOTOR_SIMULACAO.md).
 O calendário de previsão da Etapa 3 está documentado em [`docs/ETAPA3_CALENDARIO.md`](docs/ETAPA3_CALENDARIO.md).

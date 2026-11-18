@@ -113,14 +113,18 @@ function positionConfiguration(position) {
 
 function normalizedCalendar(days) {
   const byDate = new Map();
+  const capacityByDate = new Map();
   for (const day of days || []) {
     const date = normalizeDate(day.date, "dia do calendário");
     if (byDate.has(date)) throw new PlannerError(`O calendário contém a data duplicada ${date}.`);
     const capacity = Number(day.capacityMinutes ?? day.capacity_minutes ?? 0);
-    byDate.set(date, Boolean(day.isWorking ?? day.is_working) && capacity > 0);
+    const isWorking = Boolean(day.isWorking ?? day.is_working) && capacity > 0;
+    byDate.set(date, isWorking);
+    capacityByDate.set(date, isWorking ? capacity : 0);
   }
   return {
     byDate,
+    capacityByDate,
     working: [...byDate].filter(([, isWorking]) => isWorking).map(([date]) => date).sort(),
     firstDate: [...byDate.keys()].sort()[0] ?? null,
     lastDate: [...byDate.keys()].sort().at(-1) ?? null,
@@ -169,6 +173,12 @@ function normalizedOrders(orders) {
         "A duração da cura",
         365,
       );
+      const productionMinutesSnapshot = Number(
+        item.productionMinutesSnapshot ?? item.production_minutes_snapshot,
+      );
+      if (!Number.isSafeInteger(productionMinutesSnapshot) || productionMinutesSnapshot < 1) {
+        throw new PlannerError(`O item ${itemId} precisa ter minutos de concretagem configurados antes do planejamento.`);
+      }
       const config = configurationFor(item);
       const x = item.dimensionXcm ?? item.dimension_x_cm;
       const y = item.dimensionYcm ?? item.dimension_y_cm;
@@ -188,6 +198,7 @@ function normalizedOrders(orders) {
         sequence,
         quantity,
         curingDays,
+        productionMinutesSnapshot,
         config,
         metrics,
       };
@@ -278,7 +289,15 @@ function configurationAt(position, date) {
   return key;
 }
 
-function candidateFor(position, item, startDate, calendar, engineeringParameters, castingsByDate) {
+function candidateFor(
+  position,
+  item,
+  startDate,
+  calendar,
+  engineeringParameters,
+  castingsByDate,
+  productionMinutesByDate,
+) {
   if (!position.available || position.plateOnly !== (item.config.kind === "placa")) return null;
   const firstIndex = calendar.working.findIndex((date) => date >= startDate);
   if (firstIndex < 0) return null;
@@ -288,6 +307,9 @@ function candidateFor(position, item, startDate, calendar, engineeringParameters
     if (castDate > horizonEnd) break;
     if (position.busy.has(castDate)) continue;
     if ((castingsByDate.get(castDate) || 0) >= engineeringParameters.maxCastingsPerWorkday) continue;
+    const dailyCapacity = calendar.capacityByDate.get(castDate) || 0;
+    const scheduledMinutes = productionMinutesByDate.get(castDate) || 0;
+    if (scheduledMinutes + item.productionMinutesSnapshot > dailyCapacity) continue;
     if (configurationAt(position, castDate) === item.config.key) {
       return { position, castDate, preparationDates: [] };
     }
@@ -304,9 +326,23 @@ function workingDatesAfter(date, count, calendar) {
   return calendar.working.filter((day) => day > date).slice(0, count);
 }
 
-function bestCandidate(positions, item, startDate, calendar, engineeringParameters, castingsByDate) {
+function bestCandidate(
+  positions,
+  item,
+  startDate,
+  calendar,
+  engineeringParameters,
+  castingsByDate,
+  productionMinutesByDate,
+) {
   const candidates = positions.map((position) => candidateFor(
-    position, item, startDate, calendar, engineeringParameters, castingsByDate,
+    position,
+    item,
+    startDate,
+    calendar,
+    engineeringParameters,
+    castingsByDate,
+    productionMinutesByDate,
   )).filter(Boolean);
   candidates.sort((a, b) =>
     a.castDate.localeCompare(b.castDate) ||
@@ -316,13 +352,17 @@ function bestCandidate(positions, item, startDate, calendar, engineeringParamete
   return candidates[0] ?? null;
 }
 
-function reserve(candidate, item, castingsByDate) {
+function reserve(candidate, item, castingsByDate, productionMinutesByDate) {
   const { position, castDate, preparationDates } = candidate;
   for (const date of preparationDates) position.busy.add(date);
   position.busy.add(castDate);
   position.preparationDays += preparationDates.length;
   position.castingDays += 1;
   castingsByDate.set(castDate, (castingsByDate.get(castDate) || 0) + 1);
+  productionMinutesByDate.set(
+    castDate,
+    (productionMinutesByDate.get(castDate) || 0) + item.productionMinutesSnapshot,
+  );
   if (preparationDates.length) {
     position.events.push({ date: preparationDates.at(-1), key: item.config.key });
     position.events.sort((a, b) => a.date.localeCompare(b.date));
@@ -345,6 +385,26 @@ export function simulateProject({ calendarDays, positions, orders, existingReser
   }
   const results = [];
   const castingsByDate = new Map();
+  const productionMinutesByDate = new Map();
+  for (const reservation of existingReservations || []) {
+    if (!["planned", "in_progress", "done"].includes(reservation.status ?? "planned")) continue;
+    const castDate = reservation.scheduledDate ?? reservation.scheduled_date ??
+      reservation.castDate ?? reservation.cast_date ?? reservation.endDate ?? reservation.end_date;
+    if (!castDate || !calendar.capacityByDate.has(castDate)) continue;
+    castingsByDate.set(castDate, (castingsByDate.get(castDate) || 0) + 1);
+    const capacity = calendar.capacityByDate.get(castDate) || 0;
+    const rawMinutes = reservation.productionMinutesSnapshot ?? reservation.production_minutes_snapshot;
+    const reservedMinutes = Number(rawMinutes);
+    // Eventos antigos sem retrato da carga ainda reservam o turno inteiro.
+    // Isso evita oferecer capacidade que pode já ter sido consumida.
+    const minutes = Number.isSafeInteger(reservedMinutes) && reservedMinutes > 0
+      ? reservedMinutes
+      : capacity;
+    productionMinutesByDate.set(
+      castDate,
+      (productionMinutesByDate.get(castDate) || 0) + minutes,
+    );
+  }
   for (const order of queue) {
     // A data contratual do pedido continua intacta para prazo e atraso. A
     // programação física começa hoje quando o pedido foi aberto no passado.
@@ -357,6 +417,7 @@ export function simulateProject({ calendarDays, positions, orders, existingReser
     const units = [];
     const conflicts = [];
     let totalRequested = 0;
+    let totalProductionMinutes = 0;
     let totalVolumeM3 = 0;
     let totalWeightKg = 0;
     for (const item of order.items) {
@@ -369,9 +430,22 @@ export function simulateProject({ calendarDays, positions, orders, existingReser
           calendar,
           order.engineeringParameters,
           castingsByDate,
+          productionMinutesByDate,
         );
         if (!candidate) {
-          conflicts.push({ type: "position", itemId: item.id, unitSequence: sequence, message: "Nenhuma posição compatível cabe no horizonte de simulação." });
+          const canFitAnyWorkingDay = calendar.working.some((date) =>
+            date >= schedulingStartDate &&
+            (calendar.capacityByDate.get(date) || 0) >= item.productionMinutesSnapshot
+          );
+          conflicts.push({
+            type: canFitAnyWorkingDay ? "position" : "capacity",
+            itemId: item.id,
+            unitSequence: sequence,
+            productionMinutesSnapshot: item.productionMinutesSnapshot,
+            message: canFitAnyWorkingDay
+              ? "Nenhuma posição compatível com capacidade diária disponível cabe no horizonte de simulação."
+              : `A carga de concretagem de ${item.productionMinutesSnapshot} minutos excede a capacidade diária disponível no calendário.`,
+          });
           continue;
         }
         const cureStartDate = addDays(candidate.castDate, 1);
@@ -385,9 +459,10 @@ export function simulateProject({ calendarDays, positions, orders, existingReser
           conflicts.push({ type: "calendar", itemId: item.id, unitSequence: sequence, message: "O calendário não alcança o acabamento desta unidade." });
           continue;
         }
-        reserve(candidate, item, castingsByDate);
+        reserve(candidate, item, castingsByDate, productionMinutesByDate);
         totalVolumeM3 += item.metrics?.volumeM3 ?? 0;
         totalWeightKg += item.metrics?.weightKg ?? 0;
+        totalProductionMinutes += item.productionMinutesSnapshot;
         units.push({
           itemId: item.id,
           pieceTypeId: item.pieceTypeId,
@@ -405,6 +480,7 @@ export function simulateProject({ calendarDays, positions, orders, existingReser
           preparationEndDate: candidate.preparationDates.at(-1) ?? null,
           preparationDates: candidate.preparationDates,
           curingDays: item.curingDays,
+          productionMinutesSnapshot: item.productionMinutesSnapshot,
           castDate: candidate.castDate,
           cureStartDate,
           cureEndDate,
@@ -451,6 +527,7 @@ export function simulateProject({ calendarDays, positions, orders, existingReser
       feasible: complete && overLimitDays === 0 && (!order.dueDate || requestedDelayDays === 0),
       totalRequestedQuantity: totalRequested,
       totalPlannedQuantity: units.length,
+      totalProductionMinutes,
       totalVolumeM3,
       totalWeightKg,
       conflicts,
@@ -464,6 +541,18 @@ export function simulateProject({ calendarDays, positions, orders, existingReser
     occupiedDays: position.preparationDays + position.castingDays,
   }));
   const busiest = [...usage].sort((a, b) => b.occupiedDays - a.occupiedDays || a.positionCode.localeCompare(b.positionCode))[0];
+  const dailyCapacityUsage = [...productionMinutesByDate]
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(([date, minutesUsed]) => {
+      const capacityMinutes = calendar.capacityByDate.get(date) || 0;
+      return {
+        date,
+        minutesUsed,
+        capacityMinutes,
+        remainingMinutes: Math.max(0, capacityMinutes - minutesUsed),
+        castings: castingsByDate.get(date) || 0,
+      };
+    });
   return {
     rules: FACTORY_RULES,
     parameterVersions: [...new Map(queue.map((order) => [
@@ -477,6 +566,7 @@ export function simulateProject({ calendarDays, positions, orders, existingReser
     allFeasible: results.every((order) => order.feasible),
     orderCount: results.length,
     totalUnits: results.reduce((sum, order) => sum + order.totalPlannedQuantity, 0),
+    dailyCapacityUsage,
     bottleneck: busiest?.occupiedDays ? { type: "position", ...busiest } : null,
     positionUsage: usage,
     orders: results,

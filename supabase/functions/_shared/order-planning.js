@@ -124,14 +124,14 @@ async function loadExistingReservations({ db, organizationId, startDate, endDate
   const reservationStartDate = addDays(startDate, -1);
   const [{ data: units, error: unitsError }, { data: legacy, error: legacyError }] = await Promise.all([
     db.from("production_orders")
-      .select("id, order_id, order_item_id, planned_cast_date, status")
+      .select("id, order_id, order_item_id, planned_cast_date, production_minutes_snapshot, status")
       .eq("organization_id", organizationId)
       .in("status", ["planned", "in_progress", "done", "scrapped"])
       .gte("planned_cast_date", reservationStartDate)
       .lte("planned_cast_date", endDate)
       .limit(10000),
     db.from("production_schedules")
-      .select("order_id, order_item_id, work_date, planned_quantity, status")
+      .select("order_id, order_item_id, work_date, planned_quantity, planned_minutes, status")
       .eq("organization_id", organizationId)
       .in("status", ["planned", "in_progress", "done"])
       .gte("work_date", startDate)
@@ -167,9 +167,16 @@ async function loadExistingReservations({ db, organizationId, startDate, endDate
   const unitById = new Map(includedUnits.map((unit) => [unit.id, unit]));
   const codeByPositionId = new Map((positionsResult.data || []).map((position) => [position.id, position.code]));
   const unitCountBySchedule = new Map();
+  const unitMinutesBySchedule = new Map();
+  const unitSnapshotsBySchedule = new Map();
   for (const unit of includedUnits) {
     const key = `${unit.order_id}|${unit.order_item_id}|${unit.planned_cast_date}`;
     unitCountBySchedule.set(key, (unitCountBySchedule.get(key) || 0) + 1);
+    const minutes = numberOrZero(unit.production_minutes_snapshot);
+    if (minutes > 0) {
+      unitMinutesBySchedule.set(key, (unitMinutesBySchedule.get(key) || 0) + minutes);
+      unitSnapshotsBySchedule.set(key, (unitSnapshotsBySchedule.get(key) || 0) + 1);
+    }
   }
   const existingAllocations = (allocationsResult.data || [])
     .filter((allocation) => includedUnitIds.has(allocation.production_order_id))
@@ -177,6 +184,7 @@ async function loadExistingReservations({ db, organizationId, startDate, endDate
       ...allocation,
       orderId: unitById.get(allocation.production_order_id)?.order_id ?? null,
       positionCode: codeByPositionId.get(allocation.mold_position_id) ?? null,
+      productionMinutesSnapshot: unitById.get(allocation.production_order_id)?.production_minutes_snapshot ?? null,
     }))
     .filter((allocation) => allocation.orderId !== currentOrderId);
 
@@ -188,7 +196,16 @@ async function loadExistingReservations({ db, organizationId, startDate, endDate
     const representedByUnits = unitCountBySchedule.get(key) || 0;
     const legacyQuantity = Math.max(0, numberOrZero(row.planned_quantity));
     const remainingQuantity = legacyQuantity - representedByUnits;
-    return remainingQuantity > 0 ? [{ ...row, planned_quantity: remainingQuantity }] : [];
+    const totalMinutes = Math.max(0, numberOrZero(row.planned_minutes));
+    const representedMinutes = unitMinutesBySchedule.get(key) || 0;
+    const missingSnapshots = Math.max(0, representedByUnits - (unitSnapshotsBySchedule.get(key) || 0));
+    const estimatedMinutesPerUnit = legacyQuantity > 0 ? totalMinutes / legacyQuantity : 0;
+    const remainingMinutes = Math.max(0, Math.round(
+      totalMinutes - representedMinutes - missingSnapshots * estimatedMinutesPerUnit,
+    ));
+    return remainingQuantity > 0
+      ? [{ ...row, planned_quantity: remainingQuantity, planned_minutes: remainingMinutes }]
+      : [];
   });
 
   return { existingSchedules, existingAllocations };
@@ -244,29 +261,24 @@ export async function buildPlanningQueue({ db, organizationId, input = {} }) {
   }
   ensureFourPositions(positionsResult.data);
 
-  // A migration 009 habilita etapas com horários e ocupação por intervalo.
-  // Se a versão ainda não estiver instalada, a fila conserva o comportamento
-  // de datas legado. Quando instalada, os valores vêm das constantes do banco.
+  // O horário é uma configuração do turno. A duração de concretagem vem do
+  // snapshot de cada item; cura e acabamento continuam em etapas separadas.
   const [constantsResult, organizationResult] = await Promise.all([
     db.from("calculation_constants")
       .select("constant_key, numeric_value, unit")
       .eq("organization_id", organizationId)
-      .in("constant_key", ["casting_start_hour", "casting_duration_minutes", "curing_duration_hours"]),
+      .in("constant_key", ["casting_start_hour"]),
     db.from("organizations").select("timezone").eq("id", organizationId).maybeSingle(),
   ]);
   let productionTiming = null;
-  if (!constantsResult.error && (constantsResult.data || []).length) {
+  if (!constantsResult.error) {
     const constants = new Map((constantsResult.data || []).map((row) => [row.constant_key, row]));
-    const startHour = Number(constants.get("casting_start_hour")?.numeric_value);
-    const castingMinutes = Number(constants.get("casting_duration_minutes")?.numeric_value);
-    const curingHours = Number(constants.get("curing_duration_hours")?.numeric_value);
-    if (![startHour, castingMinutes, curingHours].every(Number.isFinite)) {
-      throw new OrderPlanningError("As constantes de horários da produção estão incompletas.", 409);
+    const startHour = Number(constants.get("casting_start_hour")?.numeric_value ?? 8);
+    if (!Number.isFinite(startHour) || startHour < 0 || startHour > 23) {
+      throw new OrderPlanningError("O horário de início da concretagem é inválido.", 409);
     }
     productionTiming = {
       castStartTime: `${String(Math.trunc(startHour)).padStart(2, "0")}:00`,
-      castingDurationMinutes: castingMinutes,
-      curingDurationHours: curingHours,
       timeZone: organizationResult.data?.timezone || "America/Sao_Paulo",
     };
   }
@@ -446,9 +458,8 @@ export async function buildPlanningQueue({ db, organizationId, input = {} }) {
         requiresMoldConfig: ["braco", "pilar", "viga", "placa"].includes(piece.piece_kind),
         quantity: item.quantity,
         curingDays: DEFAULT_CURING_DAYS,
-        // Campos legados de capacidade: a duração total da peça está nas etapas.
-        productionMinutesSnapshot: productionTiming?.castingDurationMinutes ??
-          (numberOrZero(item.production_minutes_snapshot) || numberOrZero(piece.production_minutes_per_unit)),
+        productionMinutesSnapshot:
+          numberOrZero(item.production_minutes_snapshot) || numberOrZero(piece.production_minutes_per_unit),
       };
     });
     let plan;
@@ -484,6 +495,7 @@ export async function buildPlanningQueue({ db, organizationId, input = {} }) {
         orderId: order.id,
         scheduled_date: unit.castDate,
         positionCode: unit.positionCode,
+        productionMinutesSnapshot: unit.productionMinutesSnapshot,
         status: "planned",
       });
     }

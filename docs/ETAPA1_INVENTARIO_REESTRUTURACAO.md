@@ -1,5 +1,10 @@
 # PRELUX / Fábio II — Etapa 1: inventário e proposta de arquitetura
 
+> Este relatório foi substituído pelo inventário atualizado em
+> [`ETAPA1_INVENTARIO_ATUALIZADO.md`](ETAPA1_INVENTARIO_ATUALIZADO.md). Use o
+> arquivo atualizado para o schema e os contratos vigentes após as publicações
+> de 17/11/2026; este conteúdo é mantido como histórico.
+
 **Estado:** material para revisão. Esta etapa não altera o site, as tabelas nem os dados do Supabase.
 **Conferido em:** 17/11/2026, por leitura do repositório e consultas somente de leitura ao Supabase ativo.
 
