@@ -4,29 +4,32 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="description" content="Pedidos, planejamento e etiquetas de produção PRELUX." />
-  <meta name="theme-color" content="#071b2d" />
+  <meta name="theme-color" content="#07182a" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <link rel="manifest" href="manifest.webmanifest" />
-  <link rel="stylesheet" href="css/operations.css?v=8" />
-  <link rel="stylesheet" href="css/app.css?v=4" />
+  <link rel="stylesheet" href="css/operations.css?v=9" />
+  <link rel="stylesheet" href="css/app.css?v=5" />
+  <link rel="stylesheet" href="css/prelux-refresh.css?v=1" />
   <link rel="apple-touch-icon" href="icons/icon-192.png" />
   <title>PRELUX · Pedidos</title>
 </head>
 <body>
   <div class="shell">
     <aside class="sidebar">
-      <div class="brand"><div class="brand-mark">P</div><div><strong>PRELUX</strong><span>RASTREABILIDADE</span></div></div>
+      <div class="brand" aria-label="PRELUX"><span class="brand-mark" aria-hidden="true">P</span><span class="brand-copy"><strong>PRELUX</strong><small>ESTRUTURAS PRÉ-MOLDADAS</small></span></div>
       <nav class="nav" role="tablist" aria-orientation="vertical" aria-label="Áreas do PRELUX">
-        <button class="active" type="button" role="tab" id="tabPedidos" aria-controls="operationsView" aria-selected="true" tabindex="0" data-view="pedidos"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 5h16v14H4z"/><path d="M8 9h8M8 13h5M17 13v5M14.5 15.5h5"/></svg>PEDIDOS</button>
-        <button type="button" role="tab" id="tabPlanejamento" aria-controls="planningView" aria-selected="false" tabindex="-1" data-view="planejamento"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M8 2v4M16 2v4M3 9h18M8 13h3M13 13h3M8 17h3"/></svg>PLANEJAMENTO</button>
-      </nav>
+  <button class="active" type="button" role="tab" id="tabPedidos" aria-controls="operationsView" aria-selected="true" tabindex="0" data-view="pedidos"><span class="nav-icon"><img src="assets/icone-engenharia.png" alt="" aria-hidden="true" /></span><span>PEDIDOS</span></button>
+  <button type="button" role="tab" id="tabPlanejamento" aria-controls="planningView" aria-selected="false" tabindex="-1" data-view="planejamento"><span class="nav-icon"><img src="assets/icone-planejamento.png" alt="" aria-hidden="true" /></span><span>PLANEJAMENTO</span></button>
+  <button type="button" role="tab" id="tabEtiquetas" aria-controls="etiquetasView" aria-selected="false" tabindex="-1" data-view="etiquetas"><span class="nav-icon"><img src="assets/icone-etiqueta.png" alt="" aria-hidden="true" /></span><span>ETIQUETAS</span></button>
+</nav>
       <div class="side-note">Fluxo PRELUX: pedido, engenharia, projeto, produção e rastreabilidade.</div>
     </aside>
     <main>
-      <header class="topbar"><div><h1 id="pageTitle">Pedidos</h1><p id="pageDescription">Pedido → Engenharia → Projeto → Produzir → Etiquetas</p></div><div class="pill"><span class="dot"></span> Acesso sem login</div></header>
-      <section class="labels-section" id="etiquetasView" aria-label="Etiquetas dos pedidos" hidden>
+      <header class="topbar"><div class="topbar-copy"><span class="topbar-kicker">PRELUX · OPERAÇÃO INDUSTRIAL</span><h1 id="pageTitle">Pedidos</h1><p id="pageDescription">Pedido → Engenharia → Projeto → Produzir</p></div><div class="pill"><span class="dot"></span> Acesso sem login</div></header>
+      <section class="labels-section" id="etiquetasView" role="tabpanel" aria-labelledby="tabEtiquetas" aria-label="Etiquetas dos pedidos" hidden>
+        <section class="labels-hero"><div class="labels-hero-copy"><span class="section-kicker">RASTREABILIDADE PRELUX</span><h2>Etiquetas de produção</h2><p>Consulte, confira e imprima as etiquetas relacionadas aos pedidos.</p></div><div class="labels-hero-icon"><img src="assets/icone-etiqueta.png" alt="" aria-hidden="true" /></div></section>
         <section class="card records-card" id="generatedLabelsCard"><div class="card-head"><div><h3>Etiquetas dos pedidos concluídos</h3><small id="generatedLabelCount">Carregando etiquetas do banco…</small></div></div><div class="field full label-print-actor"><label for="labelPrintActor">Responsável pela emissão ou reimpressão</label><input class="input" id="labelPrintActor" maxlength="120" autocomplete="name" placeholder="Informe seu nome antes de baixar ou imprimir etiquetas" /><small class="form-help">Como o sistema ainda não exige login, este nome é informado pelo operador. O registro confirma a solicitação, não que a impressora concluiu a impressão.</small></div><div class="table-wrap"><table class="table"><thead><tr><th>Pedido / etiqueta</th><th>Peça</th><th>Cliente</th><th>Ações</th></tr></thead><tbody id="generatedLabelsBody"><tr><td colspan="4" class="empty">As etiquetas surgem aqui após a conclusão de todas as unidades do pedido.</td></tr></tbody></table></div></section>
         <div class="toolbar"><div><h2>Etiqueta avulsa</h2><p>O editor manual continua disponível para peças fora do fluxo automático.</p></div><div class="actions"><button class="btn ghost" id="clearBtn">Limpar formulário</button><button class="btn primary" id="saveBtn">Salvar peça</button></div></div>
         <div class="grid">
@@ -157,6 +160,6 @@
     };
   </script>
   <!-- A composição e a ordem das áreas ficam centralizadas no ponto de entrada. -->
-  <script type="module" src="js/main.js?v=5"></script>
+  <script type="module" src="js/main.js?v=6"></script>
 </body>
 </html>
