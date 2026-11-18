@@ -62,7 +62,7 @@ function selectedIds(input) {
 
 async function fixedReservations({ db, organizationId, startedOrderIds, positions, timeZone, today }) {
   const units = startedOrderIds.length ? checked(await db.from("production_orders")
-    .select("id, order_id")
+    .select("id, order_id, production_minutes_snapshot")
     .eq("organization_id", organizationId)
     .in("order_id", startedOrderIds)
     .in("status", ["planned", "in_progress", "done", "pronta", "scrapped"])
@@ -83,8 +83,16 @@ async function fixedReservations({ db, organizationId, startedOrderIds, position
     .eq("status", "done")
     .gte("scheduled_date", today)
     .limit(10000), "Não foi possível ler concretagens concluídas");
+  const completedUnitIds = [...new Set(completedToday
+    .map((allocation) => allocation.production_order_id)
+    .filter((id) => id && !unitIds.includes(id)))];
+  const completedUnits = completedUnitIds.length ? checked(await db.from("production_orders")
+    .select("id, order_id, production_minutes_snapshot")
+    .eq("organization_id", organizationId)
+    .in("id", completedUnitIds)
+    .limit(10000), "Não foi possível ler a carga de concretagens concluídas") : [];
   const withdrawnCasts = checked(await db.from("withdrawn_unit_form_events")
-    .select("source_allocation_id, mold_position_id, scheduled_date, occupied_from_at, occupied_until_at, mold_catalog_codes")
+    .select("source_allocation_id, mold_position_id, scheduled_date, occupied_from_at, occupied_until_at, mold_catalog_codes, production_minutes_snapshot")
     .eq("organization_id", organizationId)
     .eq("casting_completed", true)
     .gte("scheduled_date", today)
@@ -92,6 +100,7 @@ async function fixedReservations({ db, organizationId, startedOrderIds, position
     .map((event) => ({ ...event, id: event.source_allocation_id, status: "done" }));
   const allocations = [...new Map([...startedAllocations, ...completedToday, ...withdrawnCasts]
     .map((allocation) => [allocation.id, allocation])).values()];
+  const productionOrderById = new Map([...units, ...completedUnits].map((unit) => [unit.id, unit]));
   const codeById = new Map(positions.map((position) => [position.id, position.code]));
   return allocations.map((allocation) => {
     const positionCode = codeById.get(allocation.mold_position_id);
@@ -103,9 +112,13 @@ async function fixedReservations({ db, organizationId, startedOrderIds, position
     const endDate = allocation.occupied_until_at
       ? localDate(new Date(Date.parse(allocation.occupied_until_at) - 1), timeZone)
       : allocation.scheduled_date;
+    const productionOrder = productionOrderById.get(allocation.production_order_id);
     return {
       positionCode, startDate, endDate,
       status: allocation.status,
+      scheduledDate: allocation.scheduled_date,
+      productionMinutesSnapshot: allocation.production_minutes_snapshot ??
+        productionOrder?.production_minutes_snapshot ?? null,
       moldCatalogCodes: allocation.mold_catalog_codes,
       occupiedUntilAt: allocation.occupied_until_at,
     };
@@ -268,7 +281,7 @@ export async function simulateProductionOrders({ db, organizationId, input = {},
   const pieceIds = [...new Set(items.map((item) => item.piece_type_id))];
   const [piecesResult, moldsResult] = await Promise.all([
     pieceIds.length ? db.from("piece_types")
-      .select("id, piece_kind, dimension_x_cm, dimension_y_cm, dimension_z_cm")
+      .select("id, piece_kind, dimension_x_cm, dimension_y_cm, dimension_z_cm, production_minutes_per_unit")
       .eq("organization_id", organizationId).in("id", pieceIds)
       : Promise.resolve({ data: [], error: null }),
     pieceIds.length ? db.from("piece_type_molds")
@@ -291,6 +304,9 @@ export async function simulateProductionOrders({ db, organizationId, input = {},
     list.push({
       ...item,
       pieceKind: piece.piece_kind,
+      productionMinutesSnapshot: Number(item.production_minutes_snapshot) > 0
+        ? Number(item.production_minutes_snapshot)
+        : Number(piece.production_minutes_per_unit),
       requiredMoldCodes: moldsByPiece.get(piece.id) || [],
       dimensionXcm: piece.dimension_x_cm,
       dimensionYcm: piece.dimension_y_cm,
@@ -334,6 +350,7 @@ export async function simulateProductionOrders({ db, organizationId, input = {},
       const phases = buildDailyProductionSteps({
         castDate: unit.castDate,
         finishDate: unit.finishDate,
+        productionMinutes: unit.productionMinutesSnapshot,
         preparationDates: unit.preparationDates,
         calendarDays,
         curingDays,
@@ -343,7 +360,7 @@ export async function simulateProductionOrders({ db, organizationId, input = {},
       });
       Object.assign(unit, {
         curingDays,
-        productionMinutesSnapshot: Number(item?.production_minutes_snapshot || 0),
+        productionMinutesSnapshot: unit.productionMinutesSnapshot,
         plannedEndDate: unit.finishDate,
         ...phases,
       });

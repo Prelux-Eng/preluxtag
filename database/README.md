@@ -158,12 +158,12 @@ da preparação (se necessária) até o fim da concretagem. A cura ocorre fora d
 posição. A validação no banco confere os moldes, impede concretagens duplicadas
 no mesmo dia e bloqueia intervalos sobrepostos.
 
-O planejador anterior lê concretagem e cura de `calculation_constants` (120
-minutos e 12 horas no banco ativo). A migration 013 passou a preencher as colunas
-legadas de minutos pela concretagem configurada. O novo simulador diário da
-Etapa 2 usa 1 dia útil de concretagem, 2 dias corridos de cura e 1 dia útil de
-acabamento sem converter o turno em minutos. Capacidade diária continua em
-`calendar_settings`.
+O catálogo já guarda `production_minutes_per_unit`; o snapshot do item e de cada
+unidade define a duração ativa da concretagem. O simulador soma esses minutos
+contra a capacidade diária do calendário e usa o snapshot para calcular o fim
+exato da concretagem. Cura por dois dias corridos e acabamento por um turno útil
+continuam como etapas separadas. A regra de uma concretagem por posição/dia e o
+teto diário de concretagens da Engenharia também continuam valendo.
 
 Pedidos em orçamento são entradas da simulação sem gravação de reserva. Na
 confirmação, os orçamentos selecionados são aprovados junto com a fila recalculada.
@@ -190,3 +190,12 @@ incluída no front-end nem em arquivos versionados.
 As migrations 027–029 já constam no histórico do Supabase ativo. Elas criam
 versões dos parâmetros de Engenharia, recibos idempotentes de confirmação e
 versionamento/auditoria das etiquetas, sem apagar registros operacionais.
+
+A migration `supabase/migrations/20261118112946_use_casting_minutes_capacity.sql`
+(espelhada em `database/017_use_casting_minutes_capacity.sql`) acrescenta o
+snapshot de minutos ao histórico de unidades retiradas e valida o total diário
+de `production_schedules.planned_minutes` contra o calendário. Também impede
+reduzir a capacidade de um dia abaixo de minutos já programados. Ela foi
+aplicada ao Supabase ativo; as funções `simulate-production` v10,
+`confirm-production-plan` v8 e `plan-order` v5 foram publicadas com validação
+JWT habilitada.

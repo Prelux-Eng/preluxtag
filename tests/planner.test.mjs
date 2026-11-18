@@ -6,11 +6,11 @@ import { buildPlanningQueue } from "../supabase/functions/_shared/order-planning
 import { calculatePieceMetrics } from "../supabase/functions/_shared/piece-metrics.js";
 import { planOrder } from "../supabase/functions/_shared/planner.js";
 
-function calendar(startDate, endDate, exceptions = []) {
+function calendar(startDate, endDate, exceptions = [], capacityMinutes = 480) {
   return buildCalendarDays({
     startDate,
     endDate,
-    settings: { default_capacity_minutes: 480 },
+    settings: { default_capacity_minutes: capacityMinutes },
     exceptions,
   });
 }
@@ -58,7 +58,7 @@ function mockDb(tables) {
   return { from: (table) => new Query(table) };
 }
 
-test("avança início não útil, distribui até quatro concretagens por dia e ignora minutos na capacidade", () => {
+test("avança início não útil, limita por posições e recusa carga acima da capacidade diária", () => {
   const days = calendar("2026-01-10", "2026-01-24");
   const first = planOrder({ calendarDays: days, startDate: "2026-01-10", planningHorizonDays: 10, items: [item({ quantity: 5, minutes: 10 })] });
   const second = planOrder({ calendarDays: days, startDate: "2026-01-10", planningHorizonDays: 10, items: [item({ quantity: 5, minutes: 900 })] });
@@ -67,8 +67,28 @@ test("avança início não útil, distribui até quatro concretagens por dia e i
   assert.equal(first.totalPlannedQuantity, 5);
   assert.equal(first.units.filter((unit) => unit.castDate === "2026-01-12").length, 4);
   assert.equal(first.units.filter((unit) => unit.castDate === "2026-01-13").length, 1);
-  assert.deepEqual(first.units.map((unit) => [unit.castDate, unit.positionCode]), second.units.map((unit) => [unit.castDate, unit.positionCode]));
+  assert.deepEqual(first.units.map((unit) => unit.castDate), [
+    "2026-01-12", "2026-01-12", "2026-01-12", "2026-01-12", "2026-01-13",
+  ]);
+  assert.equal(first.dailyCapacityUsage[0].minutesUsed, 40);
+  assert.equal(second.totalPlannedQuantity, 0);
+  assert.equal(second.conflicts.some((conflict) => conflict.type === "capacity"), true);
   assert.equal(first.plannedEndDate, "2026-01-16");
+});
+
+test("planejador legado também soma minutos antes de alocar cada posição", () => {
+  const result = planOrder({
+    calendarDays: calendar("2026-01-05", "2026-01-09", [], 300),
+    startDate: "2026-01-05",
+    planningHorizonDays: 5,
+    items: [item({ quantity: 3, minutes: 120 })],
+  });
+
+  assert.deepEqual(result.units.map((unit) => unit.castDate), [
+    "2026-01-05", "2026-01-05", "2026-01-06",
+  ]);
+  assert.equal(result.dailyCapacityUsage[0].minutesUsed, 240);
+  assert.equal(result.dailyCapacityUsage[0].remainingMinutes, 60);
 });
 
 test("cura conta fim de semana e acabamento ocorre no próximo dia útil", () => {
@@ -106,7 +126,7 @@ test("alocação existente ocupa somente a posição e o dia informados", () => 
     startDate: "2026-01-05",
     planningHorizonDays: 3,
     existingAllocations: [
-      { scheduled_date: "2026-01-05", position_code: "P01", status: "planned", order_id: "old-order" },
+      { scheduled_date: "2026-01-05", position_code: "P01", production_minutes_snapshot: 30, status: "planned", order_id: "old-order" },
     ],
     items: [item({ quantity: 4 })],
   });
@@ -217,9 +237,9 @@ test("fila global ordena pedidos por início e depois pela ordem de cadastro", a
     calendar_settings: [{ organization_id: "org-1", planning_horizon_days: 5, default_capacity_minutes: 480 }],
     mold_positions: ["P01", "P02", "P03", "P04"].map((code) => ({ id: code, organization_id: "org-1", code, status: "disponivel" })),
     order_items: [
-      { id: "item-newer", organization_id: "org-1", order_id: "order-newer", piece_type_id: "piece-1", quantity: 5, production_minutes_snapshot: 900, sequence: 1 },
-      { id: "item-earlier-date", organization_id: "org-1", order_id: "order-earlier-date", piece_type_id: "piece-1", quantity: 1, production_minutes_snapshot: 10, sequence: 1 },
-      { id: "item-same-date-later", organization_id: "org-1", order_id: "order-same-date-later", piece_type_id: "piece-1", quantity: 1, production_minutes_snapshot: 1, sequence: 1 },
+      { id: "item-newer", organization_id: "org-1", order_id: "order-newer", piece_type_id: "piece-1", quantity: 5, production_minutes_snapshot: 120, sequence: 1 },
+      { id: "item-earlier-date", organization_id: "org-1", order_id: "order-earlier-date", piece_type_id: "piece-1", quantity: 1, production_minutes_snapshot: 120, sequence: 1 },
+      { id: "item-same-date-later", organization_id: "org-1", order_id: "order-same-date-later", piece_type_id: "piece-1", quantity: 1, production_minutes_snapshot: 120, sequence: 1 },
     ],
     piece_types: [{ id: "piece-1", organization_id: "org-1", code: "VIGA", name: "Viga", production_minutes_per_unit: 30, curing_days: 14 }],
     production_orders: [],

@@ -9,7 +9,7 @@ O aplicativo é um **PWA estático em HTML, CSS e JavaScript com módulos ES, se
 
 O banco ativo já possui **2 obras, 2 pedidos, 1 item, 1 tipo de peça, 15 medidas no catálogo, 4 posições P01–P04, 15 unidades em `production_orders` e 75 registros de etapa**. Esses dados são reais e devem ser preservados. As migrations 008–013 aparecem no histórico ativo. `molds` (exemplares físicos) está vazia; `mold_catalog` contém 7 leitos, 5 laterais e 3 braços. `calendar_days` e as tabelas de projeto, alocação, ajustes e estoque já existem.
 
-Constantes hoje gravadas: densidade 2,5 t/m³, início da concretagem às 08:00, duração da concretagem 120 min e duração da cura 12 h. **Regra nova aprovada nesta conversa:** preparação por 5 dias úteis, concretagem por 1 dia útil, cura por 2 dias corridos e acabamento por 1 dia útil. O banco e o planejador ainda usam os tempos antigos; nenhuma constante foi alterada nesta etapa. “Um dia útil de concretagem” representa uma janela de operação/capacidade, não 24 horas nem um número presumido de minutos de turno.
+Constantes históricas ainda registradas incluem densidade 2,5 t/m³, início da concretagem às 08:00, 120 minutos de concretagem e 12 horas de cura. **Regra operacional confirmada depois:** `production_minutes_per_unit` define a concretagem ativa e seu consumo da capacidade diária; cura de 2 dias corridos e acabamento de 1 dia útil são etapas separadas. Quando a forma muda, preparação ocupa a posição por 5 dias úteis até o fim da concretagem. A migration `20261118112946_use_casting_minutes_capacity` foi aplicada ao Supabase ativo e as Edge Functions de simulação, confirmação e compatibilidade foram atualizadas.
 
 ## 2. Mapa do processo
 
@@ -192,13 +192,13 @@ Quatro posições não significam sempre quatro concretagens: calendário, manut
 
 ## 8. Divergências resolvidas nesta conversa
 
-1. **Preparação:** manter cinco dias **úteis**, ocupando P01–P04. O planejador atual ainda não aplica preparação condicional de ponta a ponta.
+1. **Preparação:** manter cinco dias **úteis**, ocupando P01–P04 até a concretagem, conforme a versão publicada.
 2. **Escopo de peça/catálogo:** manter **placa** com três dimensões e o catálogo atual editável com proteção.
-3. **Durações:** adotar **um dia útil de concretagem, dois dias corridos de cura e um dia útil de acabamento**, além dos cinco dias úteis de preparação quando necessários. O tempo manual por peça não substitui essas etapas. Os valores de 120 min/12 h ainda estão ativos e precisam de migração coordenada.
+3. **Durações:** usar os minutos cadastrados por tipo de peça para a concretagem ativa e para calcular capacidade e horário final. Cura continua em dois dias corridos e acabamento em um dia útil; preparação continua com cinco dias úteis quando a forma mudar. Os registros históricos de 120 min/12 h permanecem preservados; uma migration local integra a regra nova.
 4. **Ocupação durante a cura:** liberar P01–P04 após a concretagem; a cura ocorre fora da posição. O banco e o código atuais reservam até o fim da cura e precisarão mudar juntos.
 5. **Status de pedido:** manter **sem “Concluído”** no fluxo novo. O enum legado contém o valor, mas a constraint já impede novos usos.
 
-**PREMISSAS ainda abertas para desenho detalhado:** quando um pedido em orçamento entra na fila firme; como registrar a desmontagem da forma pronta; capacidade física do pátio de cura/estoque; quais etapas um retrabalho reinicia; se a data contratual de entrega depende de inspeção, expedição ou montagem; critério de resistência para desforma; horário real do turno e, por isso, quantos minutos representam o dia útil de concretagem. Nenhuma dessas respostas deve ser substituída por valor inventado.
+**PREMISSAS ainda abertas para desenho detalhado:** como registrar a desmontagem da forma pronta; capacidade física do pátio de cura/estoque; quais etapas um retrabalho reinicia; se a data contratual de entrega depende de inspeção, expedição ou montagem; critério de resistência para desforma. Os minutos de concretagem devem ser mantidos no cadastro de cada tipo com base na rotina real da fábrica; não substituí-los por um valor universal.
 
 ## 9. Verificação desta etapa e próximo passo
 

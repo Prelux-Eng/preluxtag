@@ -21,7 +21,7 @@ test("placa recusa dimensões ausentes, negativas ou não numéricas", () => {
   }
 });
 
-test("horários exatos usam fuso da unidade e reservam posição até o fim da cura", () => {
+test("horários legados usam o fuso da unidade e liberam a posição ao fim da concretagem", () => {
   const phases = buildProductionPhases({
     castDate: "2026-02-02",
     castStartTime: "08:00",
@@ -34,7 +34,7 @@ test("horários exatos usam fuso da unidade e reservam posição até o fim da c
   assert.equal(phases.steps[0].plannedEndAt, "2026-02-02T13:00:00.000Z");
   assert.equal(phases.steps[1].plannedEndAt, "2026-02-03T01:00:00.000Z");
   assert.equal(phases.cureEndDate, "2026-02-02");
-  assert.equal(phases.occupiedUntilAt, phases.steps[1].plannedEndAt);
+  assert.equal(phases.occupiedUntilAt, phases.steps[0].plannedEndAt);
   assert.deepEqual(phases.steps.slice(2).map((step) => step.durationMinutes), [null, null, null]);
 });
 
@@ -49,23 +49,23 @@ test("duração conhecida alimenta data de liberação sem mudar a cura legada q
     calendarDays,
     startDate: "2026-02-02",
     planningHorizonDays: 2,
-    items: [{ itemId: "i1", pieceTypeId: "p1", quantity: 1, curingDays: 2 }],
+    items: [{ itemId: "i1", pieceTypeId: "p1", quantity: 1, curingDays: 2, productionMinutesSnapshot: 30 }],
   }).units;
   const [timed] = planOrder({
     calendarDays,
     startDate: "2026-02-02",
     planningHorizonDays: 2,
-    items: [{ itemId: "i1", pieceTypeId: "p1", quantity: 1, pieceKind: "placa", requiresMoldConfig: true }],
+    items: [{ itemId: "i1", pieceTypeId: "p1", quantity: 1, pieceKind: "placa", requiresMoldConfig: true, productionMinutesSnapshot: 120 }],
     positions: [{ code: "P01", status: "disponivel", configuration_kind: "placa" }],
-    productionTiming: { castStartTime: "08:00", timeZone: "America/Sao_Paulo", castingDurationMinutes: 120, curingDurationHours: 12 },
+    productionTiming: { castStartTime: "08:00", timeZone: "America/Sao_Paulo" },
   }).units;
 
   assert.equal(legacy.cureEndDate, "2026-02-04");
-  assert.equal(timed.cureEndDate, "2026-02-02");
-  assert.equal(timed.finishDate, "2026-02-03");
-  assert.equal(timed.steps.length, 5);
+  assert.equal(timed.cureEndDate, "2026-02-04");
+  assert.equal(timed.finishDate, "2026-02-05");
+  assert.equal(timed.steps.length, 3);
   assert.equal(timed.occupiedFromAt, timed.steps[0].plannedStartAt);
-  assert.equal(timed.occupiedUntilAt, timed.steps[1].plannedEndAt);
+  assert.equal(timed.occupiedUntilAt, timed.steps[0].plannedEndAt);
 });
 
 test("posição plana só recebe placa e não aceita braço ou pilar/viga", () => {
@@ -80,7 +80,7 @@ test("posição plana só recebe placa e não aceita braço ou pilar/viga", () =
     startDate: "2026-02-02",
     planningHorizonDays: 2,
     positions: [{ code: "P01", status: "disponivel", configuration_kind: "placa" }],
-    items: [{ itemId: "i1", pieceTypeId: "p1", quantity: 1, pieceKind: "viga", requiredMoldCodes: ["LEITO_25", "LATERAL_30"], requiresMoldConfig: true }],
+    items: [{ itemId: "i1", pieceTypeId: "p1", quantity: 1, pieceKind: "viga", requiredMoldCodes: ["LEITO_25", "LATERAL_30"], requiresMoldConfig: true, productionMinutesSnapshot: 30 }],
   });
 
   assert.equal(result.units.length, 0);

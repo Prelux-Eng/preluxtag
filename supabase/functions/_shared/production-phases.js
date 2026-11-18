@@ -1,9 +1,10 @@
 /*
  * Gera os marcos horários que acompanham cada unidade programada.
  *
- * O horário-base é uma configuração operacional, enquanto duração de
- * concretagem e cura vêm do catálogo de constantes da organização. O módulo
- * não consulta Supabase para poder ser exercitado isoladamente em Node.js.
+ * O horário-base vem da Engenharia; os minutos de concretagem vêm do snapshot
+ * do tipo de peça. Cura, preparação e acabamento continuam sendo calculados
+ * em suas próprias etapas. O módulo não consulta Supabase para ser testado
+ * isoladamente em Node.js.
  */
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
@@ -86,6 +87,7 @@ export function buildDailyProductionSteps({
   finishDate,
   preparationDates = [],
   calendarDays = [],
+  productionMinutes,
   curingDays = 2,
   timeZone = "America/Sao_Paulo",
   castStartTime = "08:00",
@@ -108,9 +110,16 @@ export function buildDailyProductionSteps({
   }
   for (const date of prepDates) capacityForDate(calendarDays, date);
   const castCapacity = capacityForDate(calendarDays, castDate);
+  const castingMinutes = Number(productionMinutes);
+  if (!Number.isSafeInteger(castingMinutes) || castingMinutes < 1) {
+    fail("Informe os minutos de concretagem da unidade.");
+  }
+  if (castingMinutes > castCapacity) {
+    fail(`A concretagem de ${castingMinutes} minutos excede a capacidade de ${castCapacity} minutos em ${castDate}.`);
+  }
   const finishCapacity = capacityForDate(calendarDays, finishDate);
   const castingStartAt = zonedDateTimeToUtc(castDate, castStartTime, timeZone);
-  const castingEndAt = addMinutes(castingStartAt, castCapacity);
+  const castingEndAt = addMinutes(castingStartAt, castingMinutes);
   const curingEndAt = addMinutes(castingEndAt, cureDays * 24 * 60);
   const finishingStartAt = zonedDateTimeToUtc(finishDate, castStartTime, timeZone);
   const finishingEndAt = addMinutes(finishingStartAt, finishCapacity);
@@ -137,7 +146,7 @@ export function buildDailyProductionSteps({
     {
       stepKind: "concretagem",
       sequence: steps.length + 1,
-      durationMinutes: castCapacity,
+      durationMinutes: castingMinutes,
       plannedStartAt: castingStartAt,
       plannedEndAt: castingEndAt,
       status: "planned",
@@ -169,13 +178,13 @@ export function buildDailyProductionSteps({
   };
 }
 
-/** Cria horários exatos e o intervalo em que a posição fica reservada. */
+/** Helper de compatibilidade para horários legados de concretagem e cura. */
 export function buildProductionPhases({
   castDate,
   timeZone = "America/Sao_Paulo",
   castStartTime = "08:00",
   castingDurationMinutes = 120,
-  curingDurationHours = 12,
+  curingDurationHours = 48,
 } = {}) {
   const castingMinutes = parsePositiveNumber(castingDurationMinutes, "A duração da concretagem");
   const curingHours = parsePositiveNumber(curingDurationHours, "A duração da cura");
@@ -189,7 +198,8 @@ export function buildProductionPhases({
 
   return {
     occupiedFromAt: castingStartAt,
-    occupiedUntilAt: curingEndAt,
+    // A peça é retirada da posição ao acabar a concretagem; a cura acontece fora dela.
+    occupiedUntilAt: castingEndAt,
     cureStartDate: dateInTimeZone(castingEndAt, timeZone),
     cureEndDate: dateInTimeZone(curingEndAt, timeZone),
     steps: [

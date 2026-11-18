@@ -1,6 +1,6 @@
 # PRELUX / Fábio II — Etapa 2: Engenharia
 
-**Estado:** implementação local pronta para revisão. A migration e a nova Edge Function não foram aplicadas/publicadas no Supabase ativo.
+**Estado em 17/11/2026:** cadastro versionado aplicado ao Supabase ativo. A migration `20261117144307_engineering_parameter_versions` e a Edge Function `engineering-admin` versão 1 estão ativas. A integração local usa `production_minutes_per_unit` como duração ativa da concretagem e capacidade por dia; cura, acabamento e preparação permanecem etapas separadas.
 **Decisões mantidas:** densidade de 2.500 kg/m³; medidas em centímetros; catálogo existente reaproveitado; braço usa uma forma BRAÇO; pilar/viga usam LEITO × LATERAL; placa usa bancada plana.
 
 ## O que entrou
@@ -34,7 +34,7 @@ O script [`015_engineering_parameter_versions.sql`](../database/015_engineering_
 - contadores de versão em pedidos, tipos de peça, unidades e posições;
 - RLS ativado e sem policies públicas; execução da RPC limitada a `service_role`.
 
-Os parâmetros técnicos da fila ficam registrados por versão. A integração com o domínio Projeto está concluída localmente e documentada em [`ETAPA3_PROJETO.md`](ETAPA3_PROJETO.md). O campo antigo `production_minutes_per_unit` continua no modelo para compatibilidade e não substitui as etapas por dias.
+Os parâmetros técnicos da fila ficam registrados por versão. A integração com o domínio Projeto está concluída localmente e documentada em [`ETAPA3_PROJETO.md`](ETAPA3_PROJETO.md). O snapshot de minutos do tipo é congelado no item/unidade para não mudar o prazo de pedidos existentes quando o catálogo for editado.
 
 ## Contratos de API
 
@@ -70,13 +70,13 @@ Na raiz do repositório:
 node --test
 ```
 
-Resultado nesta etapa: **54 testes aprovados, 0 falhas**. Os casos novos cobrem fórmulas, validação de medidas e parâmetros, densidade versionada, 35 combinações, braço fixo, placa sem forma e consistência das opções usadas pela interface.
+Última execução da suíte completa em 17/11/2026: **61 testes aprovados, 0 falhas**. Os casos de Engenharia cobrem fórmulas, validação de medidas e parâmetros, densidade versionada, 35 combinações, braço fixo, placa sem forma e consistência das opções usadas pela interface.
 
-O SQL foi revisado no repositório, mas não foi executado contra o banco ativo. O comando Supabase CLI não está instalado neste ambiente; por isso o script segue a sequência local `database/015` e ainda precisa ser convertido para uma migration padrão do Supabase antes de publicação. A Edge Function e as mudanças que dependem da tabela também precisam ser publicadas somente depois da migration.
+O schema ativo foi consultado pelo conector Supabase. No repositório, `database/015_engineering_parameter_versions.sql` mantém a sequência local; a versão aplicada no projeto ativo está espelhada como migration Supabase `20261117144307_engineering_parameter_versions`. A Edge Function está ativa como `engineering-admin` v1.
 
 ## Pendências para revisão
 
 - A versão atual alimenta os cálculos de cadastro; o domínio Projeto recebe a versão correspondente ao pedido aprovado ou a versão vigente quando simula um orçamento.
 - Os contadores são incrementados no banco; as telas ainda precisam enviar `expectedVersion` nos comandos de edição de pedido, tipo de peça e posição para rejeitar de fato uma gravação baseada em tela desatualizada.
 - A autoria individual da alteração não pode ser gravada sem login. O log atual identifica a chamada como `sistema-sem-login`.
-- A política de catálogo editável continua conforme a decisão anterior; a regra conflitante do anexo que o declara imutável permanece pendente de resposta.
+- Catálogo editável e suporte à placa estão confirmados; o anexo que sugeria catálogo imutável foi superado por essa decisão.
