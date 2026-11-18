@@ -89,32 +89,27 @@ export function initializeOperations({ operationsRepository, listPieceMoldOption
   // Monta a estrutura da aba e registra os eventos delegados da interface.
   function shell() {
     $("operationsView").innerHTML = `
-      <section class="operations-hero">
+      <section class="operations-hero" id="operationsHero">
         <img class="operations-hero-art" src="assets/prelux-fabrica.png" alt="" aria-hidden="true" />
         <div class="operations-hero-copy">
           <h2>Do pedido à produção</h2>
           <p>Registre obra e peças; acompanhe engenharia, projeto e fabricação.</p>
           <div class="operations-hero-actions">
-            <button class="btn primary" id="operationsNew" type="button">Novo pedido</button>
             <button class="btn hero-catalog-button" id="operationsOpenCadastro" type="button"><img src="assets/icone-cadastro-claro.png" alt="" aria-hidden="true" />Cadastro</button>
           </div>
         </div>
       </section>
-      <div class="toolbar operations-toolbar">
-        <h2>Indicadores</h2>
-        <button class="btn" id="operationsRefresh" type="button">Atualizar</button>
+      <div class="toolbar operations-toolbar" id="operationsMetricsToolbar">
+        <h2 id="operationsSectionHeading">Indicadores</h2>
+        <div class="actions"><button class="btn primary" id="operationsNew" type="button">Novo pedido</button><button class="btn" id="operationsRefresh" type="button">Atualizar</button></div>
       </div>
-      <div class="metric-grid">
+      <div class="metric-grid" id="operationsMetrics">
         <div class="card metric-card"><small>Obras ativas</small><strong id="operationsWorksMetric">—</strong></div>
         <div class="card metric-card"><small>Pedidos abertos</small><strong id="operationsOrdersMetric">—</strong></div>
         <div class="card metric-card"><small>Tipos de peça</small><strong id="operationsPiecesMetric">—</strong></div>
         <div class="card metric-card"><small>Formas disponíveis</small><strong id="operationsMoldsMetric">—</strong></div>
         <div class="card metric-card"><small>Posições disponíveis</small><strong id="operationsPositionsMetric">—</strong></div>
       </div>
-      <section class="operations-flow-card" aria-labelledby="operationsFlowTitle">
-        <div class="operations-flow-heading"><h3 id="operationsFlowTitle">Etapas do pedido</h3></div>
-        <nav class="operations-flow" id="operationsFlow" aria-label="Etapas do pedido"></nav>
-      </section>
       <div class="operations-status" id="operationsStatus">Carregando cadastros.</div>
       <section class="card operations-panel" id="operationsDataPanel">
         <div class="operations-section-heading" id="operationsCadastroHeading" hidden><div><h3>Cadastro</h3><p>Obras, peças, catálogo de leito/lateral/braço/placa, formas e posições.</p></div><button class="btn" id="operationsReturnToOrders" type="button">Voltar ao pedido</button></div>
@@ -139,16 +134,6 @@ export function initializeOperations({ operationsRepository, listPieceMoldOption
     });
     $("operationsReturnToOrders").addEventListener("click", () => {
       state.tab = "orders";
-      state.cadastroOpen = false;
-      state.query = "";
-      renderTabs();
-      renderTable();
-    });
-    $("operationsFlow").addEventListener("click", (event) => {
-      const button = event.target.closest("button[data-flow-stage]");
-      if (!button) return;
-      const stage = button.dataset.flowStage;
-      state.tab = stage;
       state.cadastroOpen = false;
       state.query = "";
       renderTabs();
@@ -208,14 +193,25 @@ export function initializeOperations({ operationsRepository, listPieceMoldOption
 
   // Resumo, tabelas e indicadores: recebem dados normalizados do repositório.
   function renderTabs() {
-    $("operationsFlow").innerHTML = flowStages.map(([key, label], index) =>
-      '<button type="button" data-flow-stage="' + key + '" aria-pressed="' + (key === state.tab) + '"><span class="flow-step-index">' + (index + 1) + '</span>' + label + '</button>'
-    ).join("");
     $("operationsTabs").innerHTML = cadastroTabs.map(([key, label]) =>
       `<button type="button" data-operations-tab="${key}" aria-pressed="${key === state.tab}">${label}</button>`
     ).join("");
     $("operationsCadastroHeading").hidden = !state.cadastroOpen;
     $("operationsTabs").hidden = !state.cadastroOpen;
+    const showOrderOverview = state.tab === "orders" && !state.cadastroOpen;
+    $("operationsHero").hidden = !showOrderOverview;
+    const sectionHeadings = {
+      works: "Obras",
+      orders: "Indicadores",
+      engineering: "Análise de engenharia",
+      projects: "Projetos",
+      produzir: "Produção",
+      pieces: "Tipos de peça",
+      molds: "Formas",
+      positions: "Posições",
+    };
+    $("operationsSectionHeading").textContent = sectionHeadings[state.tab] || "Operação";
+    $("operationsMetrics").hidden = !showOrderOverview;
     const labels = { works: "Nova obra", orders: "Novo pedido", engineering: "Novo pedido", projects: "Novo projeto", produzir: "Produção", pieces: "Nova peça", molds: "Nova forma", positions: "Gerenciar posições" };
     $("operationsNew").textContent = labels[state.tab] || "Novo pedido";
     $("operationsNew").hidden = ["engineering", "produzir", "positions"].includes(state.tab);
@@ -1744,6 +1740,16 @@ export function initializeOperations({ operationsRepository, listPieceMoldOption
   }
 
   shell();
-  window.addEventListener("prelux:operations:open", () => refreshData());
+  window.addEventListener("prelux:operations:open", (event) => {
+    const stage = event.detail?.stage;
+    if (flowStages.some(([key]) => key === stage)) {
+      state.tab = stage;
+      state.cadastroOpen = false;
+      state.query = "";
+      renderTabs();
+      renderTable();
+    }
+    refreshData();
+  });
   window.addEventListener("prelux:labels:select", () => navigate("etiquetas"));
 }

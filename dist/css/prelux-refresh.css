@@ -47,6 +47,13 @@ body {
   gap: 5px;
 }
 
+.nav-divider {
+  display: block;
+  height: 1px;
+  margin: 8px 2px;
+  background: #294357;
+}
+
 .nav button {
   min-height: 52px;
   gap: 10px;
@@ -82,6 +89,12 @@ body {
   height: 33px;
   object-fit: contain;
   filter: drop-shadow(0 0 1px rgba(166, 215, 245, .7));
+}
+
+#operationsHero[hidden],
+#operationsMetricsToolbar[hidden],
+#operationsMetrics[hidden] {
+  display: none !important;
 }
 
 .side-note,
@@ -289,72 +302,6 @@ main {
   line-height: 1;
 }
 
-.operations-flow-card {
-  margin: 0 0 13px;
-  padding: 14px;
-  border: 1px solid var(--line);
-  border-radius: 9px;
-  background: #fff;
-  box-shadow: none;
-}
-
-.operations-flow-heading h3 {
-  margin: 0;
-  color: var(--ink);
-  font-size: 15px;
-  font-weight: 720;
-}
-
-.operations-flow {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 7px;
-  margin-top: 11px;
-}
-
-.operations-flow button {
-  display: flex;
-  min-width: 0;
-  min-height: 42px;
-  align-items: center;
-  gap: 8px;
-  padding: 7px 10px;
-  border: 1px solid #d0dce4;
-  border-radius: 7px;
-  background: #fff;
-  color: #304c61;
-  font-size: 11px;
-  font-weight: 700;
-}
-
-.operations-flow button:hover {
-  border-color: #77a9ca;
-}
-
-.operations-flow button[aria-pressed="true"] {
-  border-color: #4f91be;
-  background: #edf5fa;
-  color: #0d5789;
-  box-shadow: none;
-}
-
-.flow-step-index {
-  display: grid;
-  width: 23px;
-  height: 23px;
-  flex: 0 0 23px;
-  place-items: center;
-  border-radius: 5px;
-  background: #e9eff3;
-  color: #647b8b;
-  font-size: 11px;
-}
-
-.operations-flow button[aria-pressed="true"] .flow-step-index {
-  background: #d6eaf7;
-  color: #0d5789;
-}
-
 .operations-status {
   margin-bottom: 12px;
   border-radius: 7px;
@@ -433,10 +380,16 @@ textarea:focus-visible {
   }
 
   .nav {
-    display: flex;
+    display: grid;
     flex: 1;
-    justify-content: flex-end;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 4px;
+  }
+
+  .nav-divider {
+    grid-column: 1 / -1;
+    width: 100%;
+    margin: 1px 0;
   }
 
   .nav button {
@@ -482,10 +435,6 @@ textarea:focus-visible {
     width: 65%;
   }
 
-  .operations-flow {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
   .planning-grid,
   .grid {
     grid-template-columns: 1fr;
@@ -506,18 +455,24 @@ textarea:focus-visible {
   }
 
   .nav {
-    display: flex;
+    display: grid;
     width: 100%;
-    justify-content: stretch;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .nav button {
-    flex: 1;
+    flex: none;
     flex-direction: column;
     gap: 3px;
     min-width: 0;
     padding: 4px 2px;
     font-size: 9px;
+  }
+
+  .nav-divider {
+    grid-column: 1 / -1;
+    width: 100%;
+    margin: 1px 0;
   }
 
   .nav-icon {
@@ -562,9 +517,6 @@ textarea:focus-visible {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .operations-flow-card {
-    padding: 11px;
-  }
 }
 
 /* Etiquetas: mantenha formulário, lista e prévia dentro de seus cartões. */
