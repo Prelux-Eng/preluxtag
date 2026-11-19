@@ -1235,6 +1235,21 @@ export function initializePlanning({ planningRepository, operationsRepository, n
   // ouvintes até que esta área seja inicializada pelo ponto de entrada.
   document.querySelectorAll("[data-calendar-mode]").forEach((button) => button.addEventListener("click", () => setCalendarMode(button.dataset.calendarMode)));
   $('planningAnchor').value = localToday();
+  $('planningPdfBtn').addEventListener("click", () => {
+    const { start, end } = visibleBounds();
+    const generatedAt = new Intl.DateTimeFormat("pt-BR", {
+      dateStyle: "short",
+      timeStyle: "short",
+    }).format(new Date());
+    $('planningPrintMeta').textContent = `${$('planningCalendarHeading').textContent} · Período: ${formatDateBR(start)} a ${formatDateBR(end)} · Gerado em ${generatedAt}`;
+
+    // O relatório usa a prévia de impressão do navegador para salvar como PDF,
+    // sem depender de bibliotecas externas ou enviar dados para outro serviço.
+    const previousTitle = document.title;
+    document.title = "Planejamento PRELUX";
+    window.addEventListener("afterprint", () => { document.title = previousTitle; }, { once: true });
+    window.print();
+  });
   $('planningRefreshBtn').addEventListener("click", refreshPlanning);
   $('planningAnchor').addEventListener("change", refreshPlanning);
   $('planningPrevious').addEventListener("click", () => changePeriod(-1));

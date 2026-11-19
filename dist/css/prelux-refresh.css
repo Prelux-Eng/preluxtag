@@ -519,6 +519,193 @@ textarea:focus-visible {
 
 }
 
+/* Relatório de planejamento: o navegador gera o PDF via impressão nativa. */
+.planning-print-header {
+  display: none;
+}
+
+@media print {
+  @page {
+    size: A4 landscape;
+    margin: 10mm;
+  }
+
+  html,
+  body {
+    width: 100%;
+    min-width: 0;
+    margin: 0 !important;
+    background: #fff !important;
+    color: #172f44 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .shell {
+    display: block !important;
+    min-height: 0 !important;
+  }
+
+  .sidebar,
+  .topbar,
+  #etiquetasView,
+  #operationsView,
+  .planning-view > .toolbar,
+  .calendar-controls,
+  .planning-scenario-actions,
+  .toast,
+  .modal-backdrop {
+    display: none !important;
+  }
+
+  main {
+    width: 100% !important;
+    min-width: 0 !important;
+    margin: 0 !important;
+  }
+
+  #planningView,
+  #planningView[hidden] {
+    display: block !important;
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  .planning-print-header {
+    display: block !important;
+    margin: 0 0 8mm;
+    padding-bottom: 4mm;
+    border-bottom: 1px solid #9aafbf;
+  }
+
+  .planning-print-header h1 {
+    margin: 0 0 2mm;
+    color: #0b2b46;
+    font-size: 20pt;
+  }
+
+  .planning-print-header p {
+    margin: 0;
+    color: #526778;
+    font-size: 9pt;
+  }
+
+  .metric-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+    gap: 3mm !important;
+    margin-bottom: 5mm !important;
+  }
+
+  #planningView .card {
+    border: 1px solid #cbd8e1 !important;
+    border-radius: 2mm !important;
+    box-shadow: none !important;
+    break-inside: avoid;
+  }
+
+  #planningView .planning-scenario,
+  #planningView .planning-backlog,
+  #planningView .planning-grid {
+    margin-bottom: 5mm;
+  }
+
+  .planning-grid {
+    grid-template-columns: minmax(0, 1.5fr) minmax(65mm, .5fr) !important;
+    gap: 4mm !important;
+  }
+
+  .calendar-card {
+    overflow: visible !important;
+  }
+
+  .calendar-toolbar {
+    padding: 3mm 4mm !important;
+  }
+
+  .calendar-grid {
+    gap: 1mm !important;
+    padding: 3mm !important;
+  }
+
+  .calendar-day {
+    min-height: 19mm !important;
+    padding: 1.5mm !important;
+    border-radius: 1mm !important;
+    box-shadow: none !important;
+    transform: none !important;
+    cursor: default !important;
+  }
+
+  .calendar-week-view .calendar-day {
+    min-height: 35mm !important;
+  }
+
+  .calendar-events {
+    gap: 1mm !important;
+  }
+
+  .calendar-event,
+  .calendar-window-event {
+    padding: 1mm !important;
+    font-size: 6.5pt !important;
+    white-space: normal !important;
+    overflow-wrap: anywhere;
+  }
+
+  .calendar-legend {
+    gap: 2mm 4mm !important;
+    padding: 0 3mm 3mm !important;
+    font-size: 7pt !important;
+  }
+
+  .gantt-wrap {
+    overflow: visible !important;
+    margin: 0 3mm 3mm !important;
+    border: 0 !important;
+  }
+
+  .gantt-group,
+  .gantt-timeline {
+    min-width: 0 !important;
+  }
+
+  .gantt-timeline {
+    grid-template-columns: 34mm repeat(var(--gantt-days), minmax(0, 1fr)) !important;
+  }
+
+  .gantt-label {
+    position: static !important;
+    min-height: 8mm !important;
+    padding: 1mm !important;
+    font-size: 6.5pt !important;
+  }
+
+  .gantt-cell {
+    min-width: 0 !important;
+    min-height: 8mm !important;
+    padding: .5mm !important;
+  }
+
+  .gantt-head .gantt-cell small,
+  .gantt-work {
+    font-size: 5.5pt !important;
+    overflow-wrap: anywhere;
+  }
+
+  .planning-view input {
+    display: none !important;
+  }
+
+  #planningView .planning-scenario,
+  #planningView .planning-backlog,
+  #planningView .calendar-card,
+  #planningView .planning-list {
+    break-inside: auto;
+  }
+}
+
 /* Etiquetas: mantenha formulário, lista e prévia dentro de seus cartões. */
 .labels-section #generatedLabelsCard .card-head {
   padding: 18px 20px 14px;
