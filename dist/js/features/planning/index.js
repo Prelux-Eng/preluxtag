@@ -518,14 +518,6 @@ export function initializePlanning({ planningRepository, operationsRepository, n
     $('planningOccupancyKpi').textContent = `${occupancy}%`;
     $('planningCapacityKpi').textContent = todayStats ? `${todayStats.occupied}/${todayStats.positionCount}` : "—";
     $('planningAlertsKpi').textContent = String(alertDays);
-    const weekdayNames = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
-    const workingWeekdays = state.settings.rules.length
-      ? state.settings.rules.filter((rule) => rule.is_working).map((rule) => Number(rule.weekday))
-      : [1, 2, 3, 4, 5];
-    $('planningWorkdaysSummary').textContent = workingWeekdays.length
-      ? workingWeekdays.map((weekday) => weekdayNames[weekday]).join(", ")
-      : "Sem dias definidos";
-    $('planningDefaultCapacitySummary').textContent = `${activePositionCount()} posições por dia útil`;
   }
 
   function renderCalendar() {
@@ -551,19 +543,11 @@ export function initializePlanning({ planningRepository, operationsRepository, n
       `<label class="scenario-quote"><input type="checkbox" value="${escapeHtml(order.id)}" ${state.selectedQuoteIds.has(order.id) ? "checked" : ""} />${escapeHtml(formatOrder(order))}</label>`
     ).join("") : '<span class="scenario-empty">Nenhum orçamento disponível para simular.</span>';
     const result = $('planningScenarioResult');
-    const connection = $('planningConnectionState');
     const confirmButton = $('planningConfirmBtn');
     confirmButton.disabled = state.confirmingScenario || state.scenarioDirty || Boolean(state.simulationError) || !state.scenario?.orderCount;
     confirmButton.textContent = state.selectedQuoteIds.size
       ? "Aprovar orçamentos e confirmar fila"
       : "Confirmar fila aprovada";
-    connection.innerHTML = state.scenarioDirty
-      ? '<span class="dot" style="background:#d58a1e"></span><span>Seleção alterada; atualize a simulação para ver a nova previsão.</span>'
-      : state.simulationError
-        ? `<span class="dot" style="background:#d58a1e"></span><span>Previsão indisponível: ${escapeHtml(state.simulationError)}</span>`
-        : state.scenario
-          ? '<span class="dot" style="background:var(--green)"></span><span>Prévia calculada no servidor; confirme para gravar a fila e reservar posições.</span>'
-          : '<span class="dot"></span><span>Calendário carregado. Selecione um orçamento para simular.</span>';
     if (state.simulationError) {
       result.innerHTML = `<p class="scenario-error">${escapeHtml(state.simulationError)}</p>`;
       return;
@@ -1008,12 +992,10 @@ export function initializePlanning({ planningRepository, operationsRepository, n
 
   async function refreshPlanningNow() {
     const stateContainer = $('planningCalendarState');
-    const connection = $('planningConnectionState');
     const config = window.PRELUX_CONFIG || {};
     if (!config.supabaseUrl || !config.supabaseAnonKey) {
       stateContainer.className = "calendar-placeholder";
       stateContainer.innerHTML = '<div><strong>Calendário visual preparado</strong><p>Configure o acesso ao backend para carregar dias úteis, pedidos e programações.</p></div>';
-      connection.innerHTML = '<span class="dot"></span><span>Backend ainda não configurado. O editor de etiquetas avulsas funciona localmente.</span>';
       return;
     }
     const range = visibleBounds();
@@ -1053,11 +1035,6 @@ export function initializePlanning({ planningRepository, operationsRepository, n
       ));
       await simulateSelectedOrders();
       renderCalendar();
-      connection.innerHTML = state.scenario
-        ? '<span class="dot" style="background:var(--green)"></span><span>Prévia calculada: preparação, concretagem, cura e acabamento; confirme para gravar a fila.</span>'
-        : state.simulationError
-          ? `<span class="dot" style="background:#d58a1e"></span><span>Calendário carregado; previsão indisponível: ${escapeHtml(state.simulationError)}</span>`
-          : '<span class="dot" style="background:var(--green)"></span><span>Calendário carregado. Selecione um orçamento para simular.</span>';
     } catch (error) {
       state.scenario = null;
       state.scenarioUnits = null;
@@ -1069,7 +1046,6 @@ export function initializePlanning({ planningRepository, operationsRepository, n
       $('planningBacklogCount').textContent = "—";
       $('planningBacklogList').innerHTML = `<p class="planning-backlog-empty">Não foi possível carregar os pedidos do cadastro: ${escapeHtml(error.message || "verifique a conexão e tente atualizar")}</p>`;
       $('planningBacklogWorks').hidden = true;
-      connection.innerHTML = '<span class="dot"></span><span>Backend configurado, mas a chamada não respondeu corretamente.</span>';
       showToast("Falha ao atualizar o calendário.");
     }
   }

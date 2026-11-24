@@ -473,8 +473,7 @@ main {
 }
 .planning-grid {
   display:grid;
-  grid-template-columns:minmax(0,1.35fr) minmax(300px,.65fr);
-  gap:24px
+  grid-template-columns:minmax(0,1fr)
 }
 .calendar-card {
   overflow:hidden
@@ -526,55 +525,6 @@ main {
   margin:0 auto;
   line-height:1.55;
   font-size:13px
-}
-.module-note {
-  padding:20px
-}
-.module-note h3 {
-  margin:0 0 9px;
-  font-size:16px
-}
-.module-note p {
-  margin:0 0 17px;
-  color:var(--muted);
-  font-size:13px;
-  line-height:1.55
-}
-.connection-state {
-  display:flex;
-  align-items:flex-start;
-  gap:10px;
-  background:#fff8e8;
-  border:1px solid #f0dba8;
-  color:#7b5b19;
-  border-radius:10px;
-  padding:12px;
-  font-size:12px;
-  line-height:1.45
-}
-.connection-state .dot {
-  flex:0 0 auto;
-  margin-top:4px;
-  background:#d69a24
-}
-.planning-list {
-  display:grid;
-  gap:10px;
-  padding:0 20px 20px
-}
-.planning-list div {
-  display:flex;
-  justify-content:space-between;
-  gap:12px;
-  border-top:1px solid #edf1f4;
-  padding-top:11px;
-  font-size:12px
-}
-.planning-list span {
-  color:var(--muted)
-}
-.planning-list strong {
-  color:var(--ink)
 }
 .sr-only {
   position:absolute;
@@ -1122,9 +1072,6 @@ main {
   }
 }
 /* Visões semanais, Gantt e ajustes responsivos */
-.planning-grid {
-  grid-template-columns:minmax(0,1fr) 280px
-}
 .calendar-toolbar {
   align-items:flex-start
 }
@@ -1156,12 +1103,6 @@ main {
 }
 .month-control input[type="date"] {
   min-width:142px
-}
-.scope-note {
-  margin:0 20px 20px;
-  color:var(--muted);
-  font-size:11px;
-  line-height:1.5
 }
 .calendar-day {
   display:flex;

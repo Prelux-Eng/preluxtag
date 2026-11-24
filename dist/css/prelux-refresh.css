@@ -612,8 +612,7 @@ textarea:focus-visible {
   }
 
   .planning-grid {
-    grid-template-columns: minmax(0, 1.5fr) minmax(65mm, .5fr) !important;
-    gap: 4mm !important;
+    grid-template-columns: minmax(0, 1fr) !important;
   }
 
   .calendar-card {
@@ -700,8 +699,7 @@ textarea:focus-visible {
 
   #planningView .planning-scenario,
   #planningView .planning-backlog,
-  #planningView .calendar-card,
-  #planningView .planning-list {
+  #planningView .calendar-card {
     break-inside: auto;
   }
 }
