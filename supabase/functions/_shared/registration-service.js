@@ -3,10 +3,9 @@
  * A Edge Function valida a chamada HTTP; este servico aplica as regras,
  * consulta o dominio de planejamento e delega a gravacao atomica a uma RPC.
  */
-import { reconcileFactoryPlan } from "./factory-plan-service.js";
+import { simulateAndPersistFactoryDeadlines } from "./factory-plan-service.js";
 import { calculatePieceMetrics } from "./piece-metrics.js";
 import { getCurrentEngineeringParameters } from "./engineering-service.js";
-import { resolveRequestedDueDate } from "./registration-rules.js";
 import { registrationRepository } from "./registration-repository.js";
 
 function invalid(message, status = 422) {
@@ -67,114 +66,41 @@ async function castingMinutesForLegacyFields(db, organizationId) {
   return minutes;
 }
 
-/** Valida e coordena a criacao completa sem expor acesso ao banco ao navegador. */
+/** Mantém compatibilidade com clientes antigos usando o fluxo em duas etapas. */
 export async function createOrderPieceRegistration(db, organizationId, input) {
-  const startDate = isoDate(input.startDate);
-  const dueDate = resolveRequestedDueDate({
+  const sourceWork = input.work && typeof input.work === "object" ? input.work : null;
+  const startDate = isoDate(sourceWork?.startDate || input.startDate);
+  const work = sourceWork || (input.workNumber ? {
+    workNumber: input.workNumber,
+    name: input.workName,
+    responsibleName: input.responsibleName,
+    address: input.address,
+    clientName: input.clientName,
     startDate,
-    manualDate: String(input.requestedDueDate || ""),
-    manuallyEdited: input.requestedDueDateManual === true,
-  });
-  const pieceKind = String(input.pieceKind || "");
-  if (!["braco", "pilar", "viga"].includes(pieceKind)) invalid("Selecione braco, pilar ou viga.", 400);
-
-  const pieceId = crypto.randomUUID();
-  const orderId = crypto.randomUUID();
-  const itemId = crypto.randomUUID();
-  const quantity = positiveInteger(input.quantity, "A quantidade");
-  const work = {
-    workNumber: requiredText(input.workNumber, "o numero da obra", 80),
-    name: requiredText(input.workName, "o nome da obra", 180),
-    responsibleName: requiredText(input.responsibleName, "o engenheiro responsavel", 180),
-    address: requiredText(input.address, "o endereco da obra", 300),
-    clientName: requiredText(input.clientName, "o cliente", 180),
+  } : null);
+  const { order } = await createOrderHeader(db, organizationId, {
+    clientName: work?.clientName || input.clientName,
     startDate,
-    requestedDueDate: dueDate,
-  };
-  const piece = {
-    id: pieceId,
-    organization_id: organizationId,
-    code: requiredText(input.pieceCode, "o codigo da peca", 60).toLocaleUpperCase(),
-    name: requiredText(input.pieceName, "o nome da peca", 180),
-    piece_kind: pieceKind,
-    production_minutes_per_unit: 0,
-  };
-
-  const dimensions = {
-    x: positiveDecimal(input.dimensionXcm, "Largura X"),
-    y: positiveDecimal(input.dimensionYcm, "Comprimento Y"),
-    z: positiveDecimal(input.dimensionZcm, "Dimensão Z"),
-  };
-  const { parameters: engineeringParameters } = await getCurrentEngineeringParameters(db, organizationId);
-  const metrics = calculatePieceMetrics({
-    ...dimensions,
-    concreteDensityKgM3: engineeringParameters.concreteDensityKgM3,
+    requestedDueDate: null,
+    orderObservations: input.orderObservations,
+    work: work ? { ...work, startDate, requestedDueDate: null } : null,
   });
+  const orderId = order?.orderId || order?.id;
+  if (!orderId) invalid("Não foi possível obter o identificador do pedido criado.", 500);
 
-  const castingMinutes = await castingMinutesForLegacyFields(db, organizationId);
-  piece.production_minutes_per_unit = castingMinutes;
-
-  const molds = pieceKind === "braco"
-    ? [{ role: "braco", catalogCode: requiredText(input.bracoCatalogCode, "a forma de braco", 80) }]
-    : [
-      { role: "leito", catalogCode: requiredText(input.leitoCatalogCode, "a forma LEITO", 80) },
-      { role: "lateral", catalogCode: requiredText(input.lateralCatalogCode, "a forma LATERAL", 80) },
-    ];
-  const { data: moldRows, error: moldError } = await registrationRepository.getMoldCatalogEntries(db, molds.map((mold) => mold.catalogCode));
-  if (moldError) throwDatabaseError(moldError, "Nao foi possivel validar as formas do catalogo.");
-  const validTypes = { braco: "BRACO", leito: "LEITO", lateral: "LATERAL" };
-  if (molds.some((mold) => !(moldRows || []).some((row) => row.code === mold.catalogCode && row.mold_type === validTypes[mold.role]))) {
-    invalid("Selecione formas existentes compativeis com o tipo de peca.", 400);
-  }
-  const moldsForDimensions = resolveCatalogMolds(pieceKind, dimensions.x, dimensions.z, moldRows || []);
-  if (!moldsForDimensions || molds.some((mold) => !moldsForDimensions.some((expected) =>
-    expected.role === mold.role && expected.catalogCode === mold.catalogCode
-  ))) {
-    invalid(pieceKind === "braco"
-      ? "A forma BRAÇO precisa corresponder às dimensões X × Z da peça."
-      : "A forma LEITO precisa corresponder a X e a LATERAL precisa corresponder a Z.", 422);
-  }
-
-  // Este fluxo cria um orçamento. Não calcula nem grava posições; a confirmação
-  // passa exclusivamente pelo Planejamento transacional da Etapa 5.
-  const registration = {
+  const item = await addOrderPieceItem(db, organizationId, {
     orderId,
-    itemId,
-    pieceId,
-    work,
-    order: { status: "orcamento", requestedDueDate: dueDate, startDate, observations: String(input.orderObservations || "").trim() },
-    item: { quantity, sequence: 1, observations: String(input.itemObservations || "").trim() },
-    piece: {
-      code: piece.code,
-      name: piece.name,
-      pieceKind,
-      dimensionXcm: dimensions.x,
-      dimensionYcm: dimensions.y,
-      dimensionZcm: dimensions.z,
-      volumeCm3: metrics.volumeCm3,
-      volumeM3: metrics.volumeM3,
-      weightKg: metrics.weightKg,
-      observations: String(input.pieceObservations || "").trim(),
-      productionMinutesPerUnit: castingMinutes,
-      moldCatalogs: Object.fromEntries(molds.map((mold) => [mold.role, mold.catalogCode])),
-    },
-    plans: [],
-    planningCalendarDays: [],
-  };
-  const { data, error } = await registrationRepository.createRegistration(db, organizationId, registration);
-  if (error) throwDatabaseError(error, "Nao foi possivel gravar obra, pedido, peca e planejamento. A RPC depende da proposta SQL aprovada.");
-
-  return {
-    registration: data,
-    planning: {
-      committed: false,
-      simulatedOnly: true,
-      waitingForPosition: false,
-      feasible: null,
-      plannedUnitCount: 0,
-      warning: "Orçamento salvo sem reserva; simule no Planejamento.",
-    },
-  };
+    pieceCode: input.pieceCode,
+    pieceName: input.pieceName,
+    pieceKind: input.pieceKind,
+    quantity: input.quantity,
+    dimensionXcm: input.dimensionXcm,
+    dimensionYcm: input.dimensionYcm,
+    dimensionZcm: input.dimensionZcm,
+    pieceObservations: input.pieceObservations,
+    itemObservations: input.itemObservations,
+  });
+  return { order, ...item };
 }
 
 /** Salva primeiro o cabeçalho do pedido; a obra é opcional e pode ser criada ou atualizada. */
@@ -182,11 +108,8 @@ export async function createOrderHeader(db, organizationId, input) {
   const orderId = crypto.randomUUID();
   const linkedWork = input.work && typeof input.work === "object" ? input.work : null;
   const startDate = isoDate(linkedWork?.startDate || input.startDate);
-  const requestedDueDate = resolveRequestedDueDate({
-    startDate,
-    manualDate: String(linkedWork?.requestedDueDate || input.requestedDueDate || ""),
-    manuallyEdited: linkedWork?.requestedDueDateManual === true || input.requestedDueDateManual === true,
-  });
+  // A data só pode ser calculada depois que as quantidades entrarem no pedido.
+  const requestedDueDate = null;
   const clientName = requiredText(linkedWork?.clientName || input.clientName, "o cliente", 180);
   const work = linkedWork ? {
     workNumber: requiredText(linkedWork.workNumber, "o número da obra", 80).toLocaleUpperCase(),
@@ -198,6 +121,32 @@ export async function createOrderHeader(db, organizationId, input) {
     requestedDueDate,
   } : null;
 
+  // Uma mudança de início pode tornar previsões antigas anteriores ao início.
+  // Libere apenas essas datas antes da trigger de herança; se o cabeçalho falhar,
+  // restaure os valores anteriores.
+  let staleOrderDeadlines = [];
+  if (work) {
+    const escapedWorkNumber = work.workNumber.replace(/[\\%_]/g, "\\$&");
+    const matchingWorks = await db.from("works").select("id, work_number, start_date")
+      .eq("organization_id", organizationId).ilike("work_number", escapedWorkNumber).limit(20);
+    if (matchingWorks.error) throwDatabaseError(matchingWorks.error, "Não foi possível verificar a obra antes de atualizar seu início.");
+    const existingWork = (matchingWorks.data || []).find((row) =>
+      String(row.work_number || "").trim().toLocaleUpperCase() === work.workNumber.toLocaleUpperCase()
+    );
+    if (existingWork && existingWork.start_date !== startDate) {
+      const staleResult = await db.from("orders").select("id, requested_due_date")
+        .eq("organization_id", organizationId).eq("work_id", existingWork.id)
+        .lt("requested_due_date", startDate);
+      if (staleResult.error) throwDatabaseError(staleResult.error, "Não foi possível consultar os prazos existentes da obra.");
+      staleOrderDeadlines = (staleResult.data || []).filter((row) => row.requested_due_date);
+      if (staleOrderDeadlines.length) {
+        const clearResult = await db.from("orders").update({ requested_due_date: null })
+          .eq("organization_id", organizationId).in("id", staleOrderDeadlines.map((row) => row.id));
+        if (clearResult.error) throwDatabaseError(clearResult.error, "Não foi possível atualizar os prazos antigos da obra.");
+      }
+    }
+  }
+
   const { data, error } = await registrationRepository.createOrderHeader(db, organizationId, {
     orderId,
     clientName,
@@ -206,7 +155,14 @@ export async function createOrderHeader(db, organizationId, input) {
     observations: String(input.orderObservations || "").trim(),
     work,
   });
-  if (error) throwDatabaseError(error, "Não foi possível salvar o pedido inicial.");
+  if (error) {
+    if (staleOrderDeadlines.length) {
+      await Promise.all(staleOrderDeadlines.map((row) => db.from("orders")
+        .update({ requested_due_date: row.requested_due_date })
+        .eq("organization_id", organizationId).eq("id", row.id)));
+    }
+    throwDatabaseError(error, "Não foi possível salvar o pedido inicial.");
+  }
   return { order: data };
 }
 
@@ -328,22 +284,28 @@ export async function addOrderPieceItem(db, organizationId, input) {
   let scenario = null;
   let result = null;
   let planningError = null;
-  if (!isBudget) {
-    try {
-      ({ scenario, result } = await reconcileFactoryPlan({ db, organizationId }));
-    } catch (error) {
-      planningError = error;
-    }
+  let estimatedDueDates = {};
+  try {
+    ({ scenario, result, estimatedDueDates } = await simulateAndPersistFactoryDeadlines({
+      db,
+      organizationId,
+      orderIds: isBudget ? [orderId] : [],
+    }));
+  } catch (error) {
+    planningError = error;
   }
   const targetPlan = scenario?.orders?.find((entry) => entry.orderId === orderId) || null;
   const plannedUnitCount = Number(targetPlan?.totalPlannedQuantity || 0);
   const requestedUnitCount = Number(targetPlan?.totalRequestedQuantity || quantity);
-  const waitingForPosition = !isBudget && plannedUnitCount < requestedUnitCount;
-  const warning = isBudget
-    ? "Orçamento salvo sem reserva; simule-o no Planejamento."
-    : planningError
-      ? "O item foi salvo, mas a fila não pôde ser atualizada. Recarregue o Planejamento."
-      : waitingForPosition ? "O item foi salvo e parte da quantidade aguarda posição livre." : null;
+  const waitingForPosition = Boolean(targetPlan) && plannedUnitCount < requestedUnitCount;
+  const estimatedDueDate = estimatedDueDates[orderId] || null;
+  const warning = planningError
+    ? "O item foi salvo, mas o prazo não pôde ser calculado. Atualize o Planejamento."
+    : waitingForPosition
+      ? `${requestedUnitCount - plannedUnitCount} unidade(s) aguardam posição ou capacidade; o prazo será calculado quando todas puderem ser programadas.`
+      : isBudget
+        ? "Orçamento salvo sem reserva; o prazo é uma estimativa e poderá mudar quando a fila for aprovada."
+        : null;
 
   return {
     registration: data,
@@ -353,6 +315,9 @@ export async function addOrderPieceItem(db, organizationId, input) {
       waitingForPosition,
       feasible: Boolean(targetPlan?.feasible),
       plannedUnitCount,
+      requestedUnitCount,
+      estimatedDueDate,
+      totalProductionMinutes: Number(targetPlan?.totalProductionMinutes || 0),
       positionCodes: [...new Set((targetPlan?.units || []).map((unit) => unit.positionCode))],
       reservedUnitCount: result?.scheduledUnitCount || 0,
       warning,

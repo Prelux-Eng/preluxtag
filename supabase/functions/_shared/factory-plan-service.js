@@ -150,6 +150,106 @@ export function reconcileFactoryPlan({ db, organizationId }) {
   return commitScenario({ db, organizationId, selectedQuoteIds: [], allowEmpty: true });
 }
 
+/** Salva os prazos calculados para todos os pedidos completos da simulação. */
+async function persistEstimatedDueDates({ db, organizationId, scenario, affectedOrderIds = [], affectedWorkIds = [] }) {
+  const plans = Array.isArray(scenario?.orders) ? scenario.orders : [];
+  const orderIds = [...new Set([
+    ...plans.map((plan) => plan.orderId).filter(Boolean),
+    ...affectedOrderIds.filter(Boolean),
+  ])];
+  if (!orderIds.length && !affectedWorkIds.length) return {};
+  const currentResult = await db.from("orders")
+    .select("id, work_id, requested_due_date, status, is_active")
+    .eq("organization_id", organizationId)
+    .in("id", orderIds.length ? orderIds : ["00000000-0000-0000-0000-000000000000"]);
+  if (currentResult.error) {
+    throw new FactorySimulationError("Não foi possível salvar os prazos calculados dos pedidos.", 500);
+  }
+
+  const currentById = new Map((currentResult.data || []).map((order) => [order.id, order]));
+  const estimatedDueDates = {};
+  const updates = [];
+  for (const plan of plans) {
+    const quantity = Number(plan.totalRequestedQuantity || 0);
+    const planned = Number(plan.totalPlannedQuantity || 0);
+    const complete = quantity > 0 && planned === quantity && /^\d{4}-\d{2}-\d{2}$/.test(plan.plannedEndDate || "");
+    const dueDate = complete ? (plan.forecastEndDate || plan.plannedEndDate) : null;
+    estimatedDueDates[plan.orderId] = dueDate;
+    const current = currentById.get(plan.orderId);
+    if (!current || current.requested_due_date === dueDate) continue;
+    updates.push(db.from("orders").update({ requested_due_date: dueDate })
+      .eq("organization_id", organizationId).eq("id", plan.orderId));
+  }
+
+  const updatedOrders = await Promise.all(updates);
+  if (updatedOrders.some((result) => result.error)) {
+    throw new FactorySimulationError("O Planejamento foi calculado, mas não foi possível gravar um ou mais prazos.", 500);
+  }
+
+  const workIds = [...new Set([
+    ...(currentResult.data || []).map((order) => order.work_id).filter(Boolean),
+    ...affectedWorkIds.filter(Boolean),
+  ])];
+  if (!workIds.length) return estimatedDueDates;
+
+  const [linkedOrdersResult, worksResult] = await Promise.all([
+    db.from("orders").select("work_id, requested_due_date")
+      .eq("organization_id", organizationId).eq("is_active", true)
+      .in("work_id", workIds).in("status", ["orcamento", "aprovado", "em_producao", "atrasado"]),
+    db.from("works").select("id, requested_due_date")
+      .eq("organization_id", organizationId).in("id", workIds),
+  ]);
+  if (linkedOrdersResult.error || worksResult.error) {
+    throw new FactorySimulationError("Os prazos dos pedidos foram calculados, mas o prazo da obra não pôde ser atualizado.", 500);
+  }
+
+  const dueDatesByWork = new Map();
+  for (const order of linkedOrdersResult.data || []) {
+    const dates = dueDatesByWork.get(order.work_id) || [];
+    dates.push(order.requested_due_date || null);
+    dueDatesByWork.set(order.work_id, dates);
+  }
+  const workById = new Map((worksResult.data || []).map((work) => [work.id, work]));
+  const workUpdates = [];
+  for (const workId of workIds) {
+    const dates = dueDatesByWork.get(workId) || [];
+    const dueDate = dates.length && dates.every(Boolean) ? dates.sort().at(-1) : null;
+    if (workById.get(workId)?.requested_due_date === dueDate) continue;
+    workUpdates.push(db.from("works").update({ requested_due_date: dueDate })
+      .eq("organization_id", organizationId).eq("id", workId));
+  }
+  const updatedWorks = await Promise.all(workUpdates);
+  if (updatedWorks.some((result) => result.error)) {
+    throw new FactorySimulationError("Os prazos dos pedidos foram calculados, mas o prazo da obra não pôde ser atualizado.", 500);
+  }
+  return estimatedDueDates;
+}
+
+/** Simula orçamentos escolhidos ou replaneja a fila aprovada e grava as datas finais. */
+export async function simulateAndPersistFactoryDeadlines({
+  db,
+  organizationId,
+  orderIds = [],
+  affectedOrderIds = [],
+  affectedWorkIds = [],
+}) {
+  let scenario;
+  let result = null;
+  if (orderIds.length) {
+    scenario = await simulateProductionOrders({ db, organizationId, input: { orderIds } });
+  } else {
+    ({ scenario, result } = await reconcileFactoryPlan({ db, organizationId }));
+  }
+  const estimatedDueDates = await persistEstimatedDueDates({
+    db,
+    organizationId,
+    scenario,
+    affectedOrderIds,
+    affectedWorkIds,
+  });
+  return { scenario, result, estimatedDueDates };
+}
+
 /** Recalcula a fila e aprova os orçamentos selecionados no mesmo commit. */
 export function confirmFactoryPlan({ db, organizationId, orderIds = [], idempotencyKey }) {
   if (typeof idempotencyKey !== "string" || !UUID_RE.test(idempotencyKey)) {
@@ -161,5 +261,8 @@ export function confirmFactoryPlan({ db, organizationId, orderIds = [], idempote
     selectedQuoteIds: orderIds,
     allowEmpty: false,
     idempotencyKey,
+  }).then(async (confirmation) => {
+    await persistEstimatedDueDates({ db, organizationId, scenario: confirmation.scenario });
+    return confirmation;
   });
 }

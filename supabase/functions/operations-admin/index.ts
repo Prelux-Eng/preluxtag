@@ -6,7 +6,7 @@
 import { getServerConfig } from "../_shared/env.js";
 import { ensurePost, handleError, json, readJson } from "../_shared/http.js";
 import { findWorkingDayCompletionDate } from "../_shared/order-planning.js";
-import { reconcileFactoryPlan } from "../_shared/factory-plan-service.js";
+import { simulateAndPersistFactoryDeadlines } from "../_shared/factory-plan-service.js";
 import { calculatePieceMetrics } from "../_shared/piece-metrics.js";
 import { calculatePlateMetrics } from "../_shared/plate-metrics.js";
 import { getCurrentEngineeringParameters } from "../_shared/engineering-service.js";
@@ -323,8 +323,20 @@ async function readOperationsData(db: any, organizationId: string) {
   };
 }
 
-async function replanOpenQueue(db: any, organizationId: string) {
-  const { scenario, result } = await reconcileFactoryPlan({ db, organizationId });
+async function replanOpenQueue(
+  db: any,
+  organizationId: string,
+  quoteOrderIds: string[] = [],
+  targetOrderId: string | null = null,
+  affectedWorkIds: string[] = [],
+) {
+  const { scenario, result, estimatedDueDates } = await simulateAndPersistFactoryDeadlines({
+    db,
+    organizationId,
+    orderIds: quoteOrderIds,
+    affectedOrderIds: targetOrderId ? [targetOrderId] : [],
+    affectedWorkIds,
+  });
   const waitingOrders = (scenario.orders || []).filter((order: any) =>
     order.totalPlannedQuantity < order.totalRequestedQuantity
   );
@@ -336,6 +348,13 @@ async function replanOpenQueue(db: any, organizationId: string) {
     plannedOrderCount: scenario.orderCount,
     plannedUnitCount: result?.scheduledUnitCount || 0,
     waitingUnitCount: result?.waitingUnitCount || 0,
+    estimatedDueDate: targetOrderId ? estimatedDueDates[targetOrderId] || null : null,
+    totalProductionMinutes: targetOrderId
+      ? Number(scenario.orders.find((order: any) => order.orderId === targetOrderId)?.totalProductionMinutes || 0)
+      : null,
+    totalRequestedQuantity: targetOrderId
+      ? Number(scenario.orders.find((order: any) => order.orderId === targetOrderId)?.totalRequestedQuantity || 0)
+      : null,
     warning: warnings.length ? warnings.slice(0, 5).join(" ") : null,
   };
 }
@@ -434,7 +453,7 @@ async function handler(request: Request) {
         address: textValue(input.address, "o endereço", 300),
         responsibleName: textValue(input.responsibleName, "o responsável", 180),
         startDate: dateValue(input.startDate, "data de início", true),
-        requestedDueDate: dateValue(input.requestedDueDate, "data prevista", true),
+        requestedDueDate: null,
         status: enumValue(input.status, WORK_STATUSES, "planejamento", "Status da obra"),
         observations: textValue(input.observations, "as observações", 1000),
       };
@@ -442,18 +461,47 @@ async function handler(request: Request) {
         throw badRequest("A data prevista da obra não pode ser anterior ao início.");
       }
       let previousStartDate: string | null = null;
+      let previousDueDate: string | null = null;
       if (record.id) {
         const { data: previousWork, error: previousError } = await db.from("works")
-          .select("start_date").eq("organization_id", organizationId).eq("id", record.id).maybeSingle();
+          .select("start_date, requested_due_date").eq("organization_id", organizationId).eq("id", record.id).maybeSingle();
         if (previousError) throwDbError(previousError, "Não foi possível consultar a obra antes da atualização.");
         previousStartDate = previousWork?.start_date || null;
+        previousDueDate = previousWork?.requested_due_date || null;
+      }
+      const startDateChanged = record.id !== null && previousStartDate !== record.startDate;
+      // O prazo vem do planejamento. Preserve-o em alterações cadastrais simples;
+      // uma mudança de início limpa a previsão antiga para que o motor a recalcule.
+      record.requestedDueDate = startDateChanged ? null : previousDueDate;
+      if (record.startDate && record.requestedDueDate && record.requestedDueDate < record.startDate) {
+        throw badRequest("A data calculada da obra não pode ser anterior ao início.");
+      }
+      let staleOrderDeadlines: Array<{ id: string; requested_due_date: string }> = [];
+      if (startDateChanged && record.startDate) {
+        const staleOrdersResult = await db.from("orders").select("id, requested_due_date")
+          .eq("organization_id", organizationId).eq("work_id", record.id)
+          .lt("requested_due_date", record.startDate);
+        if (staleOrdersResult.error) throwDbError(staleOrdersResult.error, "Não foi possível preparar o recálculo do prazo da obra.");
+        staleOrderDeadlines = (staleOrdersResult.data || []).filter((order: any) => order.requested_due_date);
+        if (staleOrderDeadlines.length) {
+          const clearResult = await db.from("orders").update({ requested_due_date: null })
+            .eq("organization_id", organizationId).in("id", staleOrderDeadlines.map((order) => order.id));
+          if (clearResult.error) throwDbError(clearResult.error, "Não foi possível liberar as previsões antigas da obra.");
+        }
       }
       const { data, error } = await db.rpc("save_work_record", { p_org_id: organizationId, p_record: record });
-      if (error) throwDbError(error, "Não foi possível salvar a obra.");
+      if (error) {
+        if (staleOrderDeadlines.length) {
+          await Promise.all(staleOrderDeadlines.map((order) => db.from("orders")
+            .update({ requested_due_date: order.requested_due_date })
+            .eq("organization_id", organizationId).eq("id", order.id)));
+        }
+        throwDbError(error, "Não foi possível salvar a obra.");
+      }
       let planning: Record<string, unknown> | null = null;
       if (record.id && previousStartDate !== (data?.start_date || null)) {
         try {
-          planning = await replanOpenQueue(db, organizationId);
+          planning = await replanOpenQueue(db, organizationId, [], null, [record.id]);
         } catch {
           planning = { committed: false, warning: "A obra foi salva, mas o calendário não pôde ser recalculado. Atualize o planejamento." };
         }
@@ -491,7 +539,7 @@ async function handler(request: Request) {
         workId: workId || null,
         clientId,
         startDate: inheritedStartDate || dateValue(input.startDate, "data de início")!,
-        requestedDueDate: dateValue(input.requestedDueDate, "prazo", true),
+        requestedDueDate: null,
         status: enumValue(input.status, ORDER_STATUSES, "orcamento", "Status do pedido"),
         observations: textValue(input.observations, "as observações", 1000),
       };
@@ -570,8 +618,10 @@ async function handler(request: Request) {
       // fila, porém, grava as reservas e a aprovação dos orçamentos em um só commit.
       let planning: Record<string, unknown> = { committed: false };
       try {
+        const savedOrderId = String(data?.id || order.id || "");
+        const selectedQuoteIds = data?.status === "orcamento" && savedOrderId ? [savedOrderId] : [];
         planning = {
-          ...(await replanOpenQueue(db, organizationId)),
+          ...(await replanOpenQueue(db, organizationId, selectedQuoteIds, savedOrderId || null)),
           simulatedOnly: data.status === "orcamento",
         };
       } catch (planningError) {

@@ -169,19 +169,12 @@ export function initializeOperations({ operationsRepository, listPieceMoldOption
         updateRegistrationMetrics();
         updateRegistrationPositionHint();
       }
-      if (event.target.id === "registrationStartDate") updateRegistrationDueDate();
-      if (event.target.id === "registrationDueDate") {
-        event.target.dataset.manual = "true";
-        $("registrationDueMode").textContent = "editada manualmente";
-        $("registrationRestoreDue").hidden = false;
-      }
       if (event.target.id === "registrationWorkNumber") populateExistingWork();
       if (event.target.matches("[data-item-quantity]") && $("orderProjectSections")) refreshOrderProjectSections();
     });
     $("operationsModalBody").addEventListener("click", (event) => {
       if (event.target.id === "addOrderItem") { addOrderItemRow(); refreshOrderProjectSections(); }
       if (event.target.id === "registrationSaveItem") saveRegistrationItem();
-      if (event.target.id === "registrationRestoreDue") updateRegistrationDueDate(true);
       if (event.target.closest("[data-remove-order-item]")) { event.target.closest(".ops-item-row")?.remove(); refreshOrderProjectSections(); }
       if (event.target.id === "addProjectSection") addProjectSection();
       if (event.target.id === "addOrderProjectSection") addProjectSection();
@@ -241,6 +234,14 @@ export function initializeOperations({ operationsRepository, listPieceMoldOption
   function formatNumber(value, digits = 2) {
     const number = Number(value);
     return Number.isFinite(number) ? new Intl.NumberFormat("pt-BR", { maximumFractionDigits: digits }).format(number) : "—";
+  }
+
+  function formatProductionDuration(minutes) {
+    const total = Number(minutes);
+    if (!Number.isFinite(total) || total <= 0) return "0 min";
+    const hours = Math.floor(total / 60);
+    const remainder = Math.round(total % 60);
+    return [hours ? `${hours} h` : "", remainder ? `${remainder} min` : ""].filter(Boolean).join(" ");
   }
 
   function pieceTypeLabel(value) {
@@ -564,7 +565,7 @@ export function initializeOperations({ operationsRepository, listPieceMoldOption
           ${inputField("registrationManualClient", "Cliente", "", "text", { required: true })}
         </div>
         ${inputField("registrationStartDate", "Data de início", today(), "date", { required: true })}
-        <div class="field"><label for="registrationDueDate">Prazo previsto <span id="registrationDueMode">automático · início + 90 dias corridos</span></label><input class="input" id="registrationDueDate" name="registrationDueDate" type="date" required /><button class="btn ops-restore-due" id="registrationRestoreDue" type="button" hidden>Restaurar +90 dias</button></div>
+        <div class="ops-form-hint full" id="registrationDeadlineIntro">O prazo será calculado automaticamente depois que as peças e quantidades forem informadas, considerando a capacidade, a concretagem, a cura, o acabamento e a preparação necessária das formas.</div>
         ${textareaField("registrationOrderObservations", "Observações do pedido")}
         <div class="field"><label>Número do pedido</label><input class="input" id="registrationOrderPreview" value="${escapeHtml(nextOrderPreview())}" readonly /><span class="form-help">O banco gera a sequência definitiva no salvamento.</span></div>
         <div class="ops-form-hint full" id="registrationWorkMatch" aria-live="polite">Se o número da obra já existir, seus dados serão atualizados nesta gravação.</div>
@@ -572,6 +573,7 @@ export function initializeOperations({ operationsRepository, listPieceMoldOption
     </section>
     <section class="ops-registration-step" data-registration-step="2" hidden>
       <div class="ops-registration-progress"><strong id="registrationSavedOrderLabel">Pedido salvo</strong><span>Inclua um item por vez. Cada item fica gravado imediatamente.</span></div>
+      <div class="ops-form-hint full" id="registrationDeadlineSummary" aria-live="polite">O prazo será calculado após salvar as peças e suas quantidades.</div>
       <div class="ops-registration-items" id="registrationSavedItemsList" aria-live="polite"><p>Nenhum item incluído ainda.</p></div>
       <div class="ops-form-grid">
         ${inputField("registrationPieceCode", "Código da peça", "", "text", { required: true })}
@@ -601,19 +603,6 @@ export function initializeOperations({ operationsRepository, listPieceMoldOption
     form.dataset.registrationSavedItems = "[]";
     $("operationsModalSave").textContent = "Salvar pedido e continuar";
     updateRegistrationWorkMode();
-    updateRegistrationDueDate();
-  }
-
-  function updateRegistrationDueDate(force = false) {
-    const start = $("registrationStartDate")?.value;
-    const due = $("registrationDueDate");
-    if (!due || !start) return;
-    if (force) {
-      due.dataset.manual = "false";
-      $("registrationRestoreDue").hidden = true;
-      $("registrationDueMode").textContent = "automática · início + 90 dias corridos";
-    }
-    if (due.dataset.manual !== "true") due.value = addDays(start, 90);
   }
 
   function updateRegistrationWorkMode() {
@@ -732,16 +721,7 @@ export function initializeOperations({ operationsRepository, listPieceMoldOption
     $("registrationClient").value = work.client_name || "";
     $("registrationAddress").value = work.address || "";
     if (work.start_date) $("registrationStartDate").value = work.start_date;
-    updateRegistrationDueDate(true);
-    if (work.requested_due_date) {
-      const due = $("registrationDueDate");
-      due.value = work.requested_due_date;
-      const isManual = work.requested_due_date !== addDays(work.start_date || $("registrationStartDate").value, 90);
-      due.dataset.manual = String(isManual);
-      $("registrationDueMode").textContent = isManual ? "prazo manual já salvo na obra" : "automática · início + 90 dias corridos";
-      $("registrationRestoreDue").hidden = !isManual;
-    }
-    message.textContent = `A obra ${work.work_number} já existe. Os dados informados serão atualizados e os pedidos ligados a ela herdarão cliente e início.`;
+    message.textContent = `A obra ${work.work_number} já existe. Os dados informados serão atualizados e os pedidos ligados a ela herdarão cliente e início. O prazo será calculado após informar as peças e quantidades.`;
   }
 
   function ensureStage4() {
@@ -768,7 +748,8 @@ export function initializeOperations({ operationsRepository, listPieceMoldOption
       ${inputField("responsibleName", "Responsável", work?.responsible_name || "", "text", { optional: true })}
       ${inputField("address", "Endereço da obra", work?.address || "", "text", { full: true, optional: true })}
       ${inputField("startDate", "Data de início", work?.start_date || "", "date", { optional: true })}
-      ${inputField("requestedDueDate", "Prazo previsto", work?.requested_due_date || "", "date", { optional: true })}
+      ${inputField("requestedDueDate", "Prazo estimado pelo sistema", work?.requested_due_date || "", "date", { optional: true, readonly: true })}
+      <div class="ops-form-hint full">O prazo da obra é calculado a partir das quantidades dos pedidos ativos e atualizado conforme a capacidade, a preparação das formas, a concretagem, a cura e o acabamento.</div>
       ${selectField("status", "Status", work?.status || "planejamento", [["planejamento", "Planejamento"], ["ativa", "Ativa"], ["concluida", "Concluída"], ["cancelada", "Cancelada"]])}
       ${textareaField("observations", "Observações", work?.observations || "")}
     </div>`;
@@ -821,9 +802,9 @@ export function initializeOperations({ operationsRepository, listPieceMoldOption
       ${inputField("clientName", "Cliente (quando não houver obra)", order?.client_name || "", "text", { placeholder: "Cliente do pedido" })}
       <div class="ops-form-hint full" id="orderClientHelp">Ao escolher uma obra, o pedido usa automaticamente o cliente cadastrado nela.</div>
       ${inputField("startDate", "Data de início", order?.start_date || today(), "date", { required: true, readonly: Boolean(order?.work_id) })}
-      ${inputField("requestedDueDate", "Prazo solicitado", order?.requested_due_date || "", "date", { optional: true })}
+      ${inputField("requestedDueDate", "Prazo estimado pelo sistema", order?.requested_due_date || "", "date", { optional: true, readonly: true })}
       ${selectField("status", "Status", order?.status || "orcamento", statusOptions, { required: true, placeholder: "Selecione o status" })}
-      <div class="ops-form-hint full">Concluído é aplicado quando todas as unidades produzidas estiverem Prontas.</div>
+      <div class="ops-form-hint full">O prazo é recalculado ao salvar as quantidades, usando o tempo por peça e a capacidade do Planejamento. Concluído é aplicado quando todas as unidades produzidas estiverem Prontas.</div>
       <div class="field full"><label>Itens do pedido <span>o prazo resulta das etapas e da preparação da forma quando necessária</span></label><div class="ops-items" id="orderItems">${items.map(orderItemRow).join("")}</div><div class="ops-inline-actions"><button class="btn" type="button" id="addOrderItem">Adicionar item</button></div></div>
       ${projectEditor}
       ${textareaField("observations", "Observações", order?.observations || "")}
@@ -1362,6 +1343,20 @@ export function initializeOperations({ operationsRepository, listPieceMoldOption
       : "<p>Nenhum item incluído ainda.</p>";
   }
 
+  function renderRegistrationDeadline(planning = {}) {
+    const summary = $("registrationDeadlineSummary");
+    if (!summary) return;
+    if (planning.estimatedDueDate) {
+      const quantity = Number(planning.requestedUnitCount || planning.totalRequestedQuantity || 0);
+      const duration = formatProductionDuration(planning.totalProductionMinutes);
+      summary.textContent = `${planning.simulatedOnly ? "Previsão calculada" : "Prazo calculado pelo sistema"}: ${dateBR(planning.estimatedDueDate)} · ${quantity} ${quantity === 1 ? "peça" : "peças"} · ${duration} de concretagem acumulada. A data também considera capacidade, preparação da forma, cura e acabamento.${planning.simulatedOnly ? " Orçamento simulado, sem reserva de posição." : ""}`;
+      return;
+    }
+    summary.textContent = planning.warning
+      ? `Prazo ainda sem data: ${planning.warning}`
+      : "Prazo ainda sem data. O sistema precisa conseguir programar todas as unidades para calcular a conclusão.";
+  }
+
   async function saveRegistrationItem() {
     const form = $("operationsForm");
     const button = $("registrationSaveItem");
@@ -1408,6 +1403,7 @@ export function initializeOperations({ operationsRepository, listPieceMoldOption
         moldCatalogCodes: molds.codes,
         sequence: savedItems.length + 1,
       });
+      renderRegistrationDeadline(response?.planning || {});
       const positions = response?.planning?.positionCodes || response?.registration?.positionCodes || [];
       const typeLabels = { braco: "Braço", pilar: "Pilar", viga: "Viga", placa: "Placa" };
       savedItems.push({
@@ -1468,13 +1464,11 @@ export function initializeOperations({ operationsRepository, listPieceMoldOption
           }
           const workMode = formValue(form, "registrationWorkMode");
           const startDate = formValue(form, "registrationStartDate");
-          const dueDate = formValue(form, "registrationDueDate");
           const linkedToWork = workMode !== "sem_obra";
           const response = await operationsRepository.createOrderHeader({
             clientName: registrationClientName(form),
             startDate,
-            requestedDueDate: dueDate,
-            requestedDueDateManual: $("registrationDueDate").dataset.manual === "true",
+            requestedDueDate: null,
             orderObservations: formValue(form, "registrationOrderObservations"),
             work: linkedToWork ? {
               workNumber: formValue(form, "registrationWorkNumber"),
@@ -1483,8 +1477,7 @@ export function initializeOperations({ operationsRepository, listPieceMoldOption
               address: formValue(form, "registrationAddress"),
               clientName: registrationClientName(form),
               startDate,
-              requestedDueDate: dueDate,
-              requestedDueDateManual: $("registrationDueDate").dataset.manual === "true",
+              requestedDueDate: null,
             } : null,
           });
           const header = response?.order || response?.registration || response;
@@ -1582,13 +1575,18 @@ export function initializeOperations({ operationsRepository, listPieceMoldOption
         });
         const savedOrderLabel = engineeringProject ? "Pedido e projeto" : "Pedido";
         if (response?.planning?.simulatedOnly) {
-          savedNotice = `${savedOrderLabel} salvo. Orçamento sem reserva; simule no Planejamento.`;
+          savedNotice = `${savedOrderLabel} salvo. Orçamento simulado, sem reserva de posição.`;
         } else if (response?.planning?.warning) {
           savedNotice = `${savedOrderLabel} ${engineeringProject ? "salvos" : "salvo"}. ${response.planning.warning}`;
         } else if (response?.planning?.removedFromPlan) {
           savedNotice = `${savedOrderLabel} ${engineeringProject ? "atualizados" : "atualizado"} e fila de produção recalculada.`;
         } else if (response?.planning?.committed) {
           savedNotice = `${savedOrderLabel} ${engineeringProject ? "salvos" : "salvo"} e ${engineeringProject ? "incluídos" : "incluído"} automaticamente no planejamento.`;
+        }
+        if (response?.planning?.estimatedDueDate) {
+          savedNotice += ` Prazo estimado pelo sistema: ${dateBR(response.planning.estimatedDueDate)}.`;
+        } else if (Number(response?.planning?.totalRequestedQuantity) > 0) {
+          savedNotice += " O prazo ainda depende de uma programação para todas as unidades.";
         }
       } else if (kind === "project") {
         if (!ensureFabio2()) throw new Error("O projeto de engenharia aguarda a Etapa 5.");

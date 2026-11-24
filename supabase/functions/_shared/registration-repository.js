@@ -8,10 +8,6 @@ export const registrationRepository = Object.freeze({
       .maybeSingle();
   },
 
-  getMoldCatalogEntries(db, codes) {
-    return db.from("mold_catalog").select("code, mold_type, measure_label").in("code", codes);
-  },
-
   getMoldCatalogByTypes(db, moldTypes) {
     return db.from("mold_catalog").select("code, mold_type, measure_label").in("mold_type", moldTypes);
   },
@@ -32,13 +28,6 @@ export const registrationRepository = Object.freeze({
       .order("sequence", { ascending: false })
       .limit(1)
       .maybeSingle();
-  },
-
-  createRegistration(db, organizationId, registration) {
-    return db.rpc("create_order_piece_registration", {
-      p_org_id: organizationId,
-      p_registration: registration,
-    });
   },
 
   createOrderHeader(db, organizationId, registration) {
