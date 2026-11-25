@@ -70,6 +70,7 @@ export const planningRepository = Object.freeze({
   rebuildCalendar: (startDate, endDate) => invoke("rebuild-calendar", { startDate, endDate }),
   getCalendar: (startDate, endDate) => calendar("get", { startDate, endDate }),
   getPlanningData: (startDate, endDate) => calendar("planning_data", { startDate, endDate }),
+  getPlanningPeriods: (orderIds) => calendar("planning_periods", { orderIds }),
   getCalendarSettings: () => calendar("get_settings"),
   saveCalendarSettings: (input) => calendar("save_settings", input),
   saveCalendarActivity: (input) => calendar("save_activity", input),

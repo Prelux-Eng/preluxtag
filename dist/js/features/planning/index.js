@@ -4,6 +4,7 @@
  * Acesso remoto passa pelo repositório; navegação, pelo módulo central.
  */
 import { calendarUnitsFromScenario, occupiedPositionCodes, positionConflictCount, visibleCalendarUnits } from "./scenario-calendar.js";
+import { buildPlanningPrintReport, renderPlanningPrintReport } from "./print-report.js";
 
 export function initializePlanning({ planningRepository, operationsRepository, navigate }) {
   const $ = (id) => document.getElementById(id);
@@ -1211,20 +1212,53 @@ export function initializePlanning({ planningRepository, operationsRepository, n
   // ouvintes até que esta área seja inicializada pelo ponto de entrada.
   document.querySelectorAll("[data-calendar-mode]").forEach((button) => button.addEventListener("click", () => setCalendarMode(button.dataset.calendarMode)));
   $('planningAnchor').value = localToday();
-  $('planningPdfBtn').addEventListener("click", () => {
-    const { start, end } = visibleBounds();
-    const generatedAt = new Intl.DateTimeFormat("pt-BR", {
-      dateStyle: "short",
-      timeStyle: "short",
-    }).format(new Date());
-    $('planningPrintMeta').textContent = `${$('planningCalendarHeading').textContent} · Período: ${formatDateBR(start)} a ${formatDateBR(end)} · Gerado em ${generatedAt}`;
-
-    // O relatório usa a prévia de impressão do navegador para salvar como PDF,
-    // sem depender de bibliotecas externas ou enviar dados para outro serviço.
-    const previousTitle = document.title;
-    document.title = "Planejamento PRELUX";
-    window.addEventListener("afterprint", () => { document.title = previousTitle; }, { once: true });
-    window.print();
+  $('planningPdfBtn').addEventListener("click", async () => {
+    const button = $('planningPdfBtn');
+    button.disabled = true;
+    button.textContent = "Preparando calendário…";
+    try {
+      // Atualiza a fila antes de imprimir para não exportar datas de uma
+      // simulação antiga ou de um mês que ficou aberto na tela.
+      await refreshPlanning();
+      if (state.simulationError) throw new Error(state.simulationError);
+      const productionPeriods = state.startedOrderIds.length
+        ? (await planningRepository.getPlanningPeriods(state.startedOrderIds)).periods
+        : [];
+      const report = buildPlanningPrintReport({
+        orders: state.orders,
+        scenarioOrders: state.scenario?.orders || [],
+        startedOrderIds: state.startedOrderIds,
+        productionPeriods,
+      });
+      if (!report.months.length) {
+        showToast("Ainda não há datas de produção para montar o calendário em PDF.");
+        return;
+      }
+      const generatedAt = new Intl.DateTimeFormat("pt-BR", {
+        dateStyle: "short", timeStyle: "short",
+      }).format(new Date());
+      $('planningPrintReport').innerHTML = renderPlanningPrintReport(report, { generatedAt });
+      const previousTitle = document.title;
+      const restorePrintView = () => {
+        document.body.classList.remove("planning-report-print");
+        document.title = previousTitle;
+        window.removeEventListener("afterprint", restorePrintView);
+      };
+      document.title = "PRELUX - Calendário de produção";
+      document.body.classList.add("planning-report-print");
+      window.addEventListener("afterprint", restorePrintView, { once: true });
+      try {
+        window.print();
+      } catch (error) {
+        restorePrintView();
+        throw error;
+      }
+    } catch (error) {
+      showToast(error.message || "Não foi possível gerar o calendário em PDF.");
+    } finally {
+      button.disabled = false;
+      button.textContent = "Calendário em PDF";
+    }
   });
   $('planningRefreshBtn').addEventListener("click", refreshPlanning);
   $('planningAnchor').addEventListener("change", refreshPlanning);

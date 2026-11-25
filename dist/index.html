@@ -12,6 +12,7 @@
   <link rel="stylesheet" href="css/operations.css?v=10" />
   <link rel="stylesheet" href="css/app.css?v=6" />
   <link rel="stylesheet" href="css/prelux-refresh.css?v=7" />
+  <link rel="stylesheet" href="css/planning-print.css?v=1" />
   <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png?v=4" />
   <link rel="icon" type="image/png" sizes="64x64" href="icons/favicon-64.png?v=4" />
   <link rel="apple-touch-icon" href="icons/icon-192.png?v=4" />
@@ -51,8 +52,8 @@
         <section class="card records-card" id="historyCard"><div class="card-head"><div><h3>Etiquetas avulsas</h3><small id="recordCount">0 registros salvos neste navegador</small></div><div class="record-tools"><input class="search" id="search" placeholder="Pesquisar ID ou cliente" /></div></div><div class="table-wrap"><table class="table"><thead><tr><th>ID / sequência</th><th>Quantidade</th><th>Cliente</th><th>Observações</th><th>Ações</th></tr></thead><tbody id="recordsBody"></tbody></table></div></section>
       </section>
       <section class="content planning-view" id="planningView" role="tabpanel" aria-labelledby="tabPlanejamento" hidden>
-        <div class="planning-print-header" id="planningPrintHeader"><h1>Relatório de Planejamento PRELUX</h1><p id="planningPrintMeta"></p></div>
-        <div class="toolbar"><div><h2>Fila e calendário</h2><p>Pedidos aprovados, prazos e ocupação das quatro posições.</p></div><div class="actions"><button class="btn" id="planningPdfBtn" type="button" title="Abre a impressão do navegador; escolha Salvar como PDF.">Gerar PDF</button><button class="btn" id="planningRefreshBtn" type="button">Atualizar calendário</button><button class="btn primary" id="planningNextBtn" type="button">Etiquetas dos pedidos</button></div></div>
+        <div class="planning-print-report" id="planningPrintReport"></div>
+        <div class="toolbar"><div><h2>Fila e calendário</h2><p>Pedidos aprovados, prazos e ocupação das quatro posições.</p></div><div class="actions"><button class="btn" id="planningPdfBtn" type="button" title="Abre a impressão do navegador; escolha Salvar como PDF.">Calendário em PDF</button><button class="btn" id="planningRefreshBtn" type="button">Atualizar calendário</button><button class="btn primary" id="planningNextBtn" type="button">Etiquetas dos pedidos</button></div></div>
         <div class="metric-grid">
           <div class="card metric-card"><small>Pedidos ativos</small><strong id="planningOrdersKpi">0</strong><span>pedidos com status aberto</span></div>
           <div class="card metric-card"><small>Ocupação das posições</small><strong id="planningOccupancyKpi">0%</strong><span>preparação + concretagem ÷ vagas úteis</span></div>

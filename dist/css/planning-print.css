@@ -1,0 +1,228 @@
+/* O relatório é montado apenas quando o operador escolhe Calendário em PDF. */
+.planning-print-report {
+  display: none;
+}
+
+@media print {
+  @page {
+    size: A4 landscape;
+    margin: 9mm;
+  }
+
+  body.planning-report-print .sidebar,
+  body.planning-report-print .topbar,
+  body.planning-report-print #etiquetasView,
+  body.planning-report-print #operationsView,
+  body.planning-report-print .toast,
+  body.planning-report-print .modal-backdrop,
+  body.planning-report-print #planningView > :not(#planningPrintReport) {
+    display: none !important;
+  }
+
+  body.planning-report-print #planningView,
+  body.planning-report-print #planningPrintReport {
+    display: block !important;
+  }
+
+  body.planning-report-print #planningPrintReport {
+    color: #14304a;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 8pt;
+    line-height: 1.25;
+  }
+
+  .planning-print-month {
+    break-after: page;
+    page-break-after: always;
+  }
+
+  .planning-print-month.last-month {
+    break-after: auto;
+    page-break-after: auto;
+  }
+
+  .planning-print-heading {
+    display: flex;
+    align-items: end;
+    justify-content: space-between;
+    gap: 8mm;
+    padding-bottom: 3mm;
+    margin-bottom: 3mm;
+    border-bottom: 2px solid #2469a4;
+  }
+
+  .planning-print-heading h2 {
+    margin: 0;
+    color: #0b2b46;
+    font-size: 16pt;
+    line-height: 1.1;
+  }
+
+  .planning-print-heading > div:first-child > span {
+    display: block;
+    margin-bottom: 1mm;
+    color: #2469a4;
+    font-size: 7pt;
+    font-weight: 800;
+    letter-spacing: .08em;
+  }
+
+  .planning-print-heading > div:last-child {
+    display: grid;
+    gap: 1mm;
+    text-align: right;
+  }
+
+  .planning-print-heading > div:last-child > strong {
+    font-size: 11pt;
+  }
+
+  .planning-print-heading small {
+    margin: 1mm 0 0;
+    color: #526778;
+    font-size: 8pt;
+  }
+
+  .planning-print-weekdays,
+  .planning-print-week {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+  }
+
+  .planning-print-weekdays {
+    border: 1px solid #a8bdcd;
+    border-bottom: 0;
+    background: #eaf2f9;
+  }
+
+  .planning-print-weekdays > * {
+    padding: 1.5mm 2mm;
+    font-size: 7pt;
+    font-weight: 700;
+    text-align: left;
+  }
+
+  .planning-print-week {
+    break-inside: avoid;
+    page-break-inside: avoid;
+    border-left: 1px solid #b9cbd9;
+  }
+
+  .planning-print-day {
+    min-width: 0;
+    min-height: 21mm;
+    padding: 1.2mm;
+    border-right: 1px solid #b9cbd9;
+    border-bottom: 1px solid #b9cbd9;
+    background: #fff;
+    overflow-wrap: anywhere;
+  }
+
+  .planning-print-day.outside {
+    background: #f3f6f8;
+  }
+
+  .planning-print-day-number {
+    display: block;
+    min-height: 3.2mm;
+    margin-bottom: .8mm;
+    font-size: 8pt;
+    font-weight: 700;
+  }
+
+  .planning-print-day.outside .planning-print-day-number {
+    color: #8395a3;
+  }
+
+  .planning-print-day-orders {
+    display: grid;
+    gap: .6mm;
+  }
+
+  .planning-print-order {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1mm;
+    min-width: 0;
+    padding: .6mm 1mm;
+    border-left: 2px solid var(--order-color, #2469a4);
+    background: var(--order-tint, #eaf2f9);
+    color: #12304a;
+    font-size: 7pt;
+    line-height: 1.1;
+  }
+
+  .planning-print-order.quote {
+    border-left-style: dashed;
+  }
+
+  .planning-print-marker {
+    flex: 0 0 auto;
+    font-size: 6.5pt;
+    font-weight: 700;
+  }
+
+  .planning-print-order.color-1,
+  .planning-print-period.color-1 { --order-color: #1c5e98; --order-tint: #e9f3fb; }
+  .planning-print-order.color-2,
+  .planning-print-period.color-2 { --order-color: #167d88; --order-tint: #e8f5f5; }
+  .planning-print-order.color-3,
+  .planning-print-period.color-3 { --order-color: #6a639d; --order-tint: #f0eef8; }
+  .planning-print-order.color-4,
+  .planning-print-period.color-4 { --order-color: #9b642b; --order-tint: #f8f1e8; }
+  .planning-print-order.color-5,
+  .planning-print-period.color-5 { --order-color: #377d4a; --order-tint: #edf6ee; }
+  .planning-print-order.color-6,
+  .planning-print-period.color-6 { --order-color: #986276; --order-tint: #f8eff3; }
+
+  .planning-print-periods {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1.5mm 5mm;
+    margin-top: 3mm;
+  }
+
+  .planning-print-period {
+    display: grid;
+    grid-template-columns: max-content minmax(0, 1fr);
+    gap: .5mm 3mm;
+    padding: 1.2mm 1.5mm;
+    border-left: 2px solid var(--order-color, #2469a4);
+    background: var(--order-tint, #eaf2f9);
+    font-size: 8pt;
+    break-inside: avoid;
+  }
+
+  .planning-print-period strong {
+    color: #0b2b46;
+  }
+
+  .planning-print-period span {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+  }
+
+  .planning-print-period small {
+    grid-column: 1;
+    color: #526778;
+    font-size: 6.5pt;
+  }
+
+  .planning-print-pending {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1.5mm 5mm;
+    margin-top: 3mm;
+    padding-top: 2mm;
+    border-top: 1px solid #a8bdcd;
+    color: #526778;
+    font-size: 7.5pt;
+  }
+
+  .planning-print-pending h3 {
+    grid-column: 1 / -1;
+    margin: 0;
+    font-size: 9pt;
+  }
+}

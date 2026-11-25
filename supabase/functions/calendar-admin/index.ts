@@ -7,6 +7,7 @@ import { buildCalendarDays } from "../_shared/calendar.js";
 import { getServerConfig } from "../_shared/env.js";
 import { ensurePost, handleError, json, readJson } from "../_shared/http.js";
 import { addDays, normalizeDate } from "../_shared/planner.js";
+import { summarizePlanningPeriods } from "../_shared/planning-periods.js";
 import { createAdminClient } from "../_shared/supabaseClient.js";
 
 const BATCH_SIZE = 500;
@@ -278,6 +279,50 @@ async function readPlanningData(db: ReturnType<typeof createAdminClient>, organi
   };
 }
 
+// A consulta mensal acima traz somente unidades do intervalo visível. O PDF
+// precisa do início e do fim de todas as unidades dos pedidos já iniciados.
+async function readPlanningPeriods(db: ReturnType<typeof createAdminClient>, organizationId: string, payload: Record<string, unknown>) {
+  const rawIds = Array.isArray(payload.orderIds) ? payload.orderIds : [];
+  const orderIds = [...new Set(rawIds.map((value) => String(value).trim()))];
+  if (orderIds.length > 1000 || orderIds.some((id) => !/^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i.test(id))) {
+    throw badRequest("Lista de pedidos inválida para o calendário em PDF.");
+  }
+  if (!orderIds.length) return { periods: [] };
+
+  const readPages = async (query: () => any) => {
+    const rows: any[] = [];
+    for (let offset = 0; offset < 100000; offset += 1000) {
+      const { data, error } = await query().range(offset, offset + 999);
+      if (error) throw error;
+      rows.push(...(data || []));
+      if ((data || []).length < 1000) return rows;
+    }
+    throw badRequest("Há unidades demais para gerar o calendário. Revise a programação.");
+  };
+
+  const items: any[] = [];
+  const units: any[] = [];
+  for (const batch of chunks(orderIds, 50)) {
+    const [batchItems, batchUnits] = await Promise.all([
+      readPages(() => db.from("order_items")
+        .select("id, order_id, quantity")
+        .eq("organization_id", organizationId)
+        .in("order_id", batch)
+        .order("id")),
+      readPages(() => db.from("production_orders")
+        .select("id, order_id, planned_cast_date, forecast_end_date, status")
+        .eq("organization_id", organizationId)
+        .in("order_id", batch)
+        .in("status", ["planned", "in_progress", "done", "pronta"])
+        .order("planned_cast_date")
+        .order("id")),
+    ]);
+    items.push(...batchItems);
+    units.push(...batchUnits);
+  }
+  return { periods: summarizePlanningPeriods(orderIds, items, units) };
+}
+
 async function readCalendarSettings(db: ReturnType<typeof createAdminClient>, organizationId: string) {
   const [{ data: settings, error: settingsError }, { data: rules, error: rulesError }, { data: startHour, error: startHourError }] = await Promise.all([
     db.from("calendar_settings").select("default_capacity_minutes, planning_horizon_days").eq("organization_id", organizationId).maybeSingle(),
@@ -359,6 +404,9 @@ async function handler(request: Request) {
     if (action === "planning_data") {
       const range = rangeFromPayload(payload);
       return json({ ok: true, range, ...(await readPlanningData(db, config.organizationId, range.startDate, range.endDate)) });
+    }
+    if (action === "planning_periods") {
+      return json({ ok: true, ...(await readPlanningPeriods(db, config.organizationId, payload)) });
     }
     if (action === "get_settings") {
       return json({ ok: true, ...(await readCalendarSettings(db, config.organizationId)) });
