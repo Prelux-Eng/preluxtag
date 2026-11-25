@@ -228,6 +228,9 @@ main {
 .field {
   margin-bottom:17px
 }
+.field[hidden] {
+  display:none!important
+}
 .field label {
   display:flex;
   justify-content:space-between;
@@ -1644,6 +1647,10 @@ main {
   outline:3px solid #9bc7e5;
   outline-offset:2px
 }
+.plan-phases{margin:14px 0 0;padding:12px 14px;border:1px solid #dce8f1;border-radius:10px;background:#f6fafd;color:#314b62;font-size:12px}
+.plan-phases>strong{display:block;margin-bottom:6px}
+.plan-phases ul{display:grid;gap:5px;margin:0;padding-left:18px}
+.plan-phases span{display:block;margin-top:8px;color:#65798b}
 @media(max-width:1050px) {
   .nav {
     gap:5px

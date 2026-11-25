@@ -279,13 +279,18 @@ async function readPlanningData(db: ReturnType<typeof createAdminClient>, organi
 }
 
 async function readCalendarSettings(db: ReturnType<typeof createAdminClient>, organizationId: string) {
-  const [{ data: settings, error: settingsError }, { data: rules, error: rulesError }] = await Promise.all([
+  const [{ data: settings, error: settingsError }, { data: rules, error: rulesError }, { data: startHour, error: startHourError }] = await Promise.all([
     db.from("calendar_settings").select("default_capacity_minutes, planning_horizon_days").eq("organization_id", organizationId).maybeSingle(),
     db.from("calendar_working_rules").select("weekday, is_working, capacity_minutes").eq("organization_id", organizationId).order("weekday"),
+    db.from("calculation_constants").select("numeric_value").eq("organization_id", organizationId)
+      .eq("constant_key", "casting_start_hour").maybeSingle(),
   ]);
   if (settingsError) throw settingsError;
   if (rulesError) throw rulesError;
-  return { settings: settings || { default_capacity_minutes: 480, planning_horizon_days: 365 }, rules: rules || [] };
+  const productionTiming = startHourError || !startHour
+    ? null
+    : { castingStartHour: Number(startHour.numeric_value) };
+  return { settings: settings || { default_capacity_minutes: 480, planning_horizon_days: 365 }, rules: rules || [], productionTiming };
 }
 
 async function saveCalendarSettings(db: ReturnType<typeof createAdminClient>, organizationId: string, payload: Record<string, unknown>) {
@@ -309,12 +314,29 @@ async function saveCalendarSettings(db: ReturnType<typeof createAdminClient>, or
       capacity_minutes: isWorking ? capacityMinutes : 0,
     };
   });
+  const castingStartHourValue = payload.castingStartHour;
+  let castingStartHour: number | null = null;
+  if (castingStartHourValue !== undefined && castingStartHourValue !== null && castingStartHourValue !== "") {
+    castingStartHour = Number(castingStartHourValue);
+    if (!Number.isInteger(castingStartHour) || castingStartHour < 0 || castingStartHour > 23) {
+      throw badRequest("O horário de início da concretagem deve estar entre 00:00 e 23:00.");
+    }
+  }
   const [{ error: settingsError }, { error: rulesError }] = await Promise.all([
     db.from("calendar_settings").upsert({ organization_id: organizationId, default_capacity_minutes: defaultCapacityMinutes }, { onConflict: "organization_id" }),
     db.from("calendar_working_rules").upsert(rules, { onConflict: "organization_id,weekday" }),
   ]);
   if (settingsError) throw settingsError;
   if (rulesError) throw rulesError;
+  if (castingStartHour !== null) {
+    const { error } = await db.from("calculation_constants").upsert({
+      organization_id: organizationId,
+      constant_key: "casting_start_hour",
+      numeric_value: castingStartHour,
+      unit: "h",
+    }, { onConflict: "organization_id,constant_key" });
+    if (error) throw error;
+  }
   return readCalendarSettings(db, organizationId);
 }
 

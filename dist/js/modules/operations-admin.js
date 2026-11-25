@@ -6,12 +6,13 @@
 (function attachOperationsAdmin(global) {
   const $ = (id) => document.getElementById(id);
   // Estado temporário da tela; os registros definitivos permanecem no Supabase.
-  const state = { data: null, tab: "works", loading: false, query: "", supportsStage4: false };
+  const state = { data: null, tab: "works", loading: false, query: "", supportsStage4: false, supportsFabio2: false };
   const tabs = [
     ["works", "Obras"],
     ["orders", "Pedidos"],
+    ["projects", "Projetos"],
     ["pieces", "Peças"],
-    ["molds", "Moldes"],
+    ["molds", "Formas"],
     ["positions", "Posições"],
   ];
 
@@ -52,7 +53,7 @@
   function statusLabel(value) {
     const labels = {
       planejamento: "Planejamento", ativa: "Ativa", concluida: "Concluída", cancelada: "Cancelada",
-      orcamento: "Orçamento", aprovado: "Aprovado", em_producao: "Em produção", concluido: "Concluído",
+      orcamento: "Orçamento", aprovado: "Aprovado", em_producao: "Em produção", concluido: "Concluído (legado)",
       entregue: "Entregue", atrasado: "Atrasado", cancelado: "Cancelado", ativo: "Ativo",
       manutencao: "Manutenção", bloqueado: "Bloqueado", retirado: "Retirado", planejada: "Planejada",
       disponivel: "Disponível", em_preparacao: "Em preparação", em_manutencao: "Em manutenção",
@@ -64,7 +65,7 @@
   }
 
   function badge(value) {
-    const tone = ["ativa", "concluida", "aprovado", "em_producao", "concluido", "entregue", "ativo", "aprovada", "done", "disponivel"].includes(value)
+    const tone = ["ativa", "concluida", "aprovado", "em_producao", "entregue", "ativo", "aprovada", "done", "disponivel"].includes(value)
       ? "good"
       : ["atrasado", "manutencao", "em_manutencao", "em_preparacao", "aguardando_aprovacao", "em_andamento", "in_progress"].includes(value)
         ? "warn"
@@ -83,14 +84,14 @@
   function shell() {
     $("operationsView").innerHTML = `
       <div class="toolbar operations-toolbar">
-        <div><h2>Cadastros de produção</h2><p>Obras, pedidos, catálogo de peças, moldes e quatro posições de produção.</p></div>
+        <div><h2>Cadastros de produção</h2><p>Obras, pedidos, projetos, catálogo de peças, formas e quatro posições.</p></div>
         <div class="actions"><button class="btn" id="operationsRefresh" type="button">Atualizar dados</button><button class="btn primary" id="operationsNew" type="button">Nova obra</button></div>
       </div>
       <div class="metric-grid">
         <div class="card metric-card"><small>Obras ativas</small><strong id="operationsWorksMetric">—</strong><span>cadastros em andamento</span></div>
-        <div class="card metric-card"><small>Pedidos abertos</small><strong id="operationsOrdersMetric">—</strong><span>pedidos não entregues ou cancelados</span></div>
+        <div class="card metric-card"><small>Pedidos abertos</small><strong id="operationsOrdersMetric">—</strong><span>fora dos status entregues, cancelados ou legados</span></div>
         <div class="card metric-card"><small>Tipos de peça</small><strong id="operationsPiecesMetric">—</strong><span>catálogo ativo</span></div>
-        <div class="card metric-card"><small>Moldes disponíveis</small><strong id="operationsMoldsMetric">—</strong><span>moldes ativos</span></div>
+        <div class="card metric-card"><small>Formas disponíveis</small><strong id="operationsMoldsMetric">—</strong><span>formas ativas</span></div>
         <div class="card metric-card"><small>Posições configuradas</small><strong id="operationsPositionsMetric">—</strong><span>de 4 posições físicas</span></div>
       </div>
       <div class="operations-status" id="operationsStatus">Carregando cadastros.</div>
@@ -121,11 +122,12 @@
     $("operationsForm").addEventListener("submit", submitForm);
     $("operationsModalBody").addEventListener("change", (event) => {
       if (event.target.id === "allocationResourceKind") updateAllocationFields();
-      if (event.target.id === "preparationStartDate") updatePreparationEnd();
+      if (event.target.id === "preparationStartDate" || event.target.id === "preparationMoldId") updatePreparationEnd();
       if (event.target.id === "orderWorkId") syncOrderClientHelp();
-      if (event.target.id === "pieceKind") updatePieceMoldFields();
+      if (event.target.id === "pieceKind") { updatePieceMoldFields(); updatePieceMetrics(); }
       if (event.target.id === "pieceMoldPair") syncPieceMoldPair();
       if (event.target.id === "positionConfigurationKind") updatePositionConfigFields();
+      if (event.target.id === "projectOrderId") refreshProjectSectionsForOrder();
     });
     $("operationsModalBody").addEventListener("input", (event) => {
       if (["dimensionXcm", "dimensionYcm", "dimensionZcm"].includes(event.target.id)) updatePieceMetrics();
@@ -133,6 +135,10 @@
     $("operationsModalBody").addEventListener("click", (event) => {
       if (event.target.id === "addOrderItem") addOrderItemRow();
       if (event.target.closest("[data-remove-order-item]")) event.target.closest(".ops-item-row")?.remove();
+      if (event.target.id === "addProjectSection") addProjectSection();
+      if (event.target.closest("[data-add-project-item]")) addProjectItem(event.target.closest(".ops-project-section"));
+      if (event.target.closest("[data-remove-project-section]")) event.target.closest(".ops-project-section")?.remove();
+      if (event.target.closest("[data-remove-project-item]")) event.target.closest(".ops-project-item-row")?.remove();
     });
   }
 
@@ -140,7 +146,7 @@
     $("operationsTabs").innerHTML = tabs.map(([key, label]) =>
       `<button type="button" data-operations-tab="${key}" aria-pressed="${key === state.tab}">${label}</button>`
     ).join("");
-    const labels = { works: "Nova obra", orders: "Novo pedido", pieces: "Nova peça", molds: "Novo molde", positions: "Gerenciar posições" };
+    const labels = { works: "Nova obra", orders: "Novo pedido", projects: "Novo projeto", pieces: "Nova peça", molds: "Nova forma", positions: "Gerenciar posições" };
     $("operationsNew").textContent = labels[state.tab];
     $("operationsNew").hidden = state.tab === "positions";
   }
@@ -151,7 +157,7 @@
     const data = state.data;
     if (!data) return;
     metric("operationsWorksMetric", data.works.length);
-    metric("operationsOrdersMetric", data.orders.filter((order) => !["entregue", "cancelado"].includes(order.status)).length);
+    metric("operationsOrdersMetric", data.orders.filter((order) => !["concluido", "entregue", "cancelado"].includes(order.status)).length);
     metric("operationsPiecesMetric", data.pieceTypes.length);
     metric("operationsMoldsMetric", data.molds.filter((mold) => mold.status === "ativo").length);
     metric("operationsPositionsMetric", state.supportsStage4 ? data.positions.filter((position) => Boolean(position.configuration_kind)).length : "—");
@@ -171,15 +177,16 @@
   }
 
   function pieceTypeLabel(value) {
-    return ({ braco: "Braço", pilar: "Pilar", viga: "Viga" })[value] || "Tipo pendente";
+    return ({ braco: "Braço", pilar: "Pilar", viga: "Viga", placa: "Placa" })[value] || "Tipo pendente";
   }
 
   function catalogLabel(code) {
     const item = (state.data?.moldCatalog || []).find((row) => row.code === code);
-    return item ? `${item.mold_type === "BRACO" ? "BRAÇO" : item.mold_type} ${item.measure_label} cm` : "Molde não informado";
+    return item ? `${item.mold_type === "BRACO" ? "BRAÇO" : item.mold_type} ${item.measure_label} cm` : "Forma não informada";
   }
 
   function pieceMoldSummary(piece) {
+    if (piece.piece_kind === "placa") return "Bancada plana · sem forma";
     const molds = piece.mold_catalogs || {};
     if (molds.braco) return escapeHtml(catalogLabel(molds.braco));
     if (molds.leito || molds.lateral) return `${escapeHtml(catalogLabel(molds.leito))}<span class="muted">+ ${escapeHtml(catalogLabel(molds.lateral))}</span>`;
@@ -203,6 +210,7 @@
   }
 
   function positionConfigLabel(position) {
+    if (position.configuration_kind === "placa") return "Bancada plana";
     if (position.configuration_kind === "braco" && position.braco_catalog_code) return catalogLabel(position.braco_catalog_code);
     if (position.configuration_kind === "pilar_viga" && position.leito_catalog_code && position.lateral_catalog_code) {
       return `${catalogLabel(position.leito_catalog_code)} + ${catalogLabel(position.lateral_catalog_code)}`;
@@ -235,8 +243,30 @@
         <td>${dateBR(order.start_date)}</td><td>${dateBR(order.requested_due_date)}</td><td>${badge(order.status)}</td>
         <td><div class="row-actions">${order.hasResourceAllocation ? '<span class="ops-badge warn" title="Os itens são preservados para manter o histórico das alocações.">Alocação registrada</span>' : actionButton("edit", order.id, "Editar")}</div></td>
       </tr>`).join("") : `<tr><td colspan="7" class="empty">Nenhum pedido encontrado.</td></tr>`;
+    } else if (state.tab === "projects") {
+      if (!state.supportsFabio2) {
+        $("operationsTable").innerHTML = `<div class="calendar-placeholder"><div><strong>Projetos de engenharia aguardam a Etapa 5</strong><p>A migração 009 habilita a divisão dos itens de cada pedido em seções do projeto.</p></div></div>`;
+        return;
+      }
+      $("operationsTable").innerHTML = tableHeader("Projetos por pedido", "Organize os itens de um pedido em seções e controle a quantidade distribuída.", "Pesquisar projeto, pedido ou cliente", ["Pedido", "Cliente", "Seções", "Itens distribuídos", "Ações"]);
+      const rows = (data.engineeringProjects || []).filter((project) => {
+        const order = data.orders.find((item) => item.id === project.order_id);
+        return `${order?.order_number || ""} ${order?.client_name || ""}`.toLocaleLowerCase().includes(filter);
+      });
+      $("operationsRows").innerHTML = rows.length ? rows.map((project) => {
+        const order = data.orders.find((item) => item.id === project.order_id);
+        const sections = project.sections || [];
+        const itemCount = sections.reduce((total, section) => total + (section.items || []).length, 0);
+        return `<tr>
+          <td>${escapeHtml(order?.order_number || "Pedido sem número")}<span class="muted">${escapeHtml(order?.work_name || "Sem obra")}</span></td>
+          <td>${escapeHtml(order?.client_name || "—")}</td>
+          <td>${sections.length}<span class="muted">${sections.map((section) => escapeHtml(section.section_name)).join(" · ")}</span></td>
+          <td>${itemCount}</td>
+          <td><div class="row-actions">${actionButton("edit-project", project.id, "Abrir projeto")}</div></td>
+        </tr>`;
+      }).join("") : `<tr><td colspan="5" class="empty">Ainda não há projetos de engenharia. Crie um projeto a partir de um pedido ativo.</td></tr>`;
     } else if (state.tab === "pieces") {
-      $("operationsTable").innerHTML = tableHeader("Catálogo de peças", "Tipos fixos, dimensões em centímetros e métricas calculadas automaticamente.", "Pesquisar código ou peça", ["Código / peça", "Tipo", "Dimensões X × Y × Z", "Volume / peso", "Tempo registrado", "Moldes", "Ações"]);
+      $("operationsTable").innerHTML = tableHeader("Catálogo de peças", "Tipos fixos, dimensões em centímetros e métricas calculadas automaticamente.", "Pesquisar código ou peça", ["Código / peça", "Tipo", "Dimensões X × Y × Z", "Volume / peso", "Tempo registrado", "Formas", "Ações"]);
       const rows = data.pieceTypes.filter((piece) => `${piece.code} ${piece.name} ${piece.piece_kind || ""} ${piece.dimensions}`.toLocaleLowerCase().includes(filter));
       $("operationsRows").innerHTML = rows.length ? rows.map((piece) => `<tr>
         <td>${escapeHtml(piece.code)}<span class="muted">${escapeHtml(piece.name)}</span></td>
@@ -265,16 +295,17 @@
     const pieceById = new Map(data.pieceTypes.map((piece) => [piece.id, piece.code]));
     const orderItemById = new Map();
     for (const order of data.orders) for (const item of order.items) orderItemById.set(item.id, { item, order });
+    const preparationDurationLabel = state.supportsFabio2 ? "5 dias úteis" : "7 dias corridos";
     const moldRows = rows.length ? rows.map((mold) => `<tr>
-      <td>${escapeHtml(mold.catalog_code ? catalogLabel(mold.catalog_code) : (mold.catalog_label || mold.name || "Molde legado"))}</td>
+      <td>${escapeHtml(mold.catalog_code ? catalogLabel(mold.catalog_code) : (mold.catalog_label || mold.name || "Forma legada"))}</td>
       <td>${escapeHtml(mold.code)}<span class="muted">${mold.catalog_code ? "identificador gerado" : "cadastro legado"}</span></td>
-      <td>${mold.cycle_minutes_per_unit == null ? "Não informado" : `${Number(mold.cycle_minutes_per_unit)} min/un.`}<span class="muted">preparação: 7 dias corridos</span></td>
+      <td>${mold.cycle_minutes_per_unit == null ? "Não informado" : `${Number(mold.cycle_minutes_per_unit)} min/un.`}<span class="muted">preparação: ${preparationDurationLabel}</span></td>
       <td>${(mold.piece_type_ids || []).map((id) => escapeHtml(pieceById.get(id) || "")).filter(Boolean).join(", ") || "—"}</td>
       <td>${badge(mold.status)}</td>
       <td><div class="row-actions">${actionButton("edit", mold.id, "Editar")}${actionButton("prepare", mold.id, "Preparar")}${actionButton("allocate", mold.id, "Alocar")}${mold.status !== "retirado" ? actionButton("archive", mold.id, "Retirar") : ""}</div></td>
-    </tr>`).join("") : `<tr><td colspan="6" class="empty">Nenhum molde cadastrado. Os moldes existentes podem ser incluídos sem importar códigos presumidos.</td></tr>`;
+    </tr>`).join("") : `<tr><td colspan="6" class="empty">Nenhuma forma cadastrada. As formas existentes podem ser incluídas sem importar códigos presumidos.</td></tr>`;
     const preparationRows = data.preparations.map((prep) => `<tr>
-      <td>${escapeHtml(moldById.get(prep.mold_id) || "Molde")}</td><td>${dateBR(prep.start_date)} – ${dateBR(prep.end_date)}</td>
+      <td>${escapeHtml(moldById.get(prep.mold_id) || "Forma")}</td><td>${dateBR(prep.start_date)} – ${dateBR(prep.end_date)}</td>
       <td>${badge(prep.status)}</td><td>${escapeHtml(prep.approved_by || "—")}</td>
       <td><div class="row-actions">${actionButton("edit-preparation", prep.id, "Editar")}</div></td>
     </tr>`).join("") || `<tr><td colspan="5" class="empty">Nenhuma preparação registrada.</td></tr>`;
@@ -286,11 +317,11 @@
       return `<tr><td>${escapeHtml(resource)}</td><td>${escapeHtml(product)}${override}</td><td>${dateBR(allocation.start_date)} – ${dateBR(allocation.end_date)}</td><td>${badge(allocation.status)}</td><td><div class="row-actions">${actionButton("edit-allocation", allocation.id, "Editar")}${allocation.status !== "cancelled" ? actionButton("cancel-allocation", allocation.id, "Cancelar") : ""}</div></td></tr>`;
     }).join("") || `<tr><td colspan="5" class="empty">Nenhuma alocação de produção registrada.</td></tr>`;
     $("operationsTable").innerHTML = `
-      <div class="operations-list-head"><div><h3>Moldes</h3><p>Catálogo fixo de medidas, ciclo opcional e preparação de sete dias corridos.</p></div><input class="search" id="operationsSearch" value="${escapeHtml(state.query)}" placeholder="Pesquisar molde ou medida" aria-label="Pesquisar moldes" /></div>
-      <div class="table-wrap"><table class="operations-table"><thead><tr><th>Molde</th><th>Identificador</th><th>Ciclo</th><th>Compatibilidade</th><th>Status</th><th>Ações</th></tr></thead><tbody id="moldRows">${moldRows}</tbody></table></div>
-      <div class="operations-list-head"><div><h3>Preparações</h3><p>Sete dias corridos; produção depende de checklist aprovado.</p></div><button class="btn" type="button" data-ops-action="new-preparation">Nova preparação</button></div>
-      <div class="table-wrap"><table class="operations-table"><thead><tr><th>Molde</th><th>Período contínuo</th><th>Status</th><th>Aprovador</th><th>Ações</th></tr></thead><tbody>${preparationRows}</tbody></table></div>
-      <div class="operations-list-head"><div><h3>Alocações</h3><p>O mesmo molde não pode ser reservado em períodos sobrepostos.</p></div><button class="btn" type="button" data-ops-action="new-allocation">Alocar produção</button></div>
+      <div class="operations-list-head"><div><h3>Formas</h3><p>Catálogo fixo de medidas, ciclo opcional e preparação de ${preparationDurationLabel}.</p></div><input class="search" id="operationsSearch" value="${escapeHtml(state.query)}" placeholder="Pesquisar forma ou medida" aria-label="Pesquisar formas" /></div>
+      <div class="table-wrap"><table class="operations-table"><thead><tr><th>Forma</th><th>Identificador</th><th>Ciclo</th><th>Compatibilidade</th><th>Status</th><th>Ações</th></tr></thead><tbody id="moldRows">${moldRows}</tbody></table></div>
+      <div class="operations-list-head"><div><h3>Preparações</h3><p>${preparationDurationLabel}; produção depende de checklist aprovado.</p></div><button class="btn" type="button" data-ops-action="new-preparation">Nova preparação</button></div>
+      <div class="table-wrap"><table class="operations-table"><thead><tr><th>Forma</th><th>Período contínuo</th><th>Status</th><th>Aprovador</th><th>Ações</th></tr></thead><tbody>${preparationRows}</tbody></table></div>
+      <div class="operations-list-head"><div><h3>Alocações</h3><p>A mesma forma não pode ser reservada em períodos sobrepostos.</p></div><button class="btn" type="button" data-ops-action="new-allocation">Alocar produção</button></div>
       <div class="table-wrap"><table class="operations-table"><thead><tr><th>Recurso</th><th>Pedido / peça</th><th>Período</th><th>Status</th><th>Ações</th></tr></thead><tbody>${allocationRows}</tbody></table></div>
       <p class="operations-help">Preparação: limpeza, aplicação de desmoldante e montagem precisam estar marcadas antes da aprovação. Conflitos de outros recursos só são mantidos com justificativa e responsável registrados.</p>`;
     $("operationsSearch").addEventListener("input", (event) => { state.query = event.target.value; renderTable(state.query); });
@@ -301,16 +332,16 @@
     const rows = positions.filter((position) => `${position.code} ${position.status} ${positionConfigLabel(position)}`.toLocaleLowerCase().includes(filter));
     const positionRows = rows.map((position) => `<tr>
       <td>${escapeHtml(position.code)}</td>
-      <td>${escapeHtml(positionConfigLabel(position))}<span class="muted">${position.configuration_kind === "pilar_viga" ? "LEITO e LATERAL na mesma posição" : position.configuration_kind === "braco" ? "Molde único" : "Selecione a configuração"}</span></td>
+      <td>${escapeHtml(positionConfigLabel(position))}<span class="muted">${position.configuration_kind === "pilar_viga" ? "LEITO e LATERAL na mesma posição" : position.configuration_kind === "braco" ? "Forma única" : position.configuration_kind === "placa" ? "Bancada plana, sem forma" : "Selecione a configuração"}</span></td>
       <td>${badge(position.status)}</td>
       <td>${escapeHtml(position.notes || "—")}</td>
       <td><div class="row-actions">${actionButton("edit-position", position.id, "Configurar")}</div></td>
     </tr>`).join("") || `<tr><td colspan="5" class="empty">Nenhuma posição encontrada.</td></tr>`;
-    const setupStatus = state.supportsStage4 ? "" : `<div class="ops-form-hint full">Para configurar posições e moldes, aplique database/007_stage4_piece_catalog_positions.sql e publique a Edge Function operations-admin atualizada.</div>`;
-    $("operationsTable").innerHTML = `<div class="operations-list-head"><div><h3>Posições físicas de molde</h3><p>Quatro posições fixas. Cada concretagem ocupa uma posição por um dia útil e a configuração seleciona a quais peças ela atende.</p></div><input class="search" id="operationsSearch" value="${escapeHtml(state.query)}" placeholder="Pesquisar posição ou molde" aria-label="Pesquisar posições" /></div>
+    const setupStatus = state.supportsStage4 ? "" : `<div class="ops-form-hint full">Para configurar posições e formas, aplique database/007_stage4_piece_catalog_positions.sql e publique a Edge Function operations-admin atualizada.</div>`;
+    $("operationsTable").innerHTML = `<div class="operations-list-head"><div><h3>Posições físicas de produção</h3><p>Quatro posições fixas. Cada posição fica reservada durante a concretagem e a cura; a configuração determina quais peças ela atende.</p></div><input class="search" id="operationsSearch" value="${escapeHtml(state.query)}" placeholder="Pesquisar posição ou forma" aria-label="Pesquisar posições" /></div>
       ${setupStatus}
       <div class="table-wrap"><table class="operations-table"><thead><tr><th>Posição</th><th>Configuração</th><th>Status</th><th>Observações</th><th>Ações</th></tr></thead><tbody>${positionRows}</tbody></table></div>
-      <p class="operations-help">Braço usa uma medida BRAÇO. Pilar e Viga usam um LEITO e um LATERAL na mesma posição. Tempo de setup permanece sem valor informado.</p>`;
+      <p class="operations-help">Braço usa uma forma BRAÇO; Pilar e Viga usam LEITO e LATERAL; placa usa bancada plana sem forma.</p>`;
     $("operationsSearch").addEventListener("input", (event) => { state.query = event.target.value; renderTable(state.query); });
   }
 
@@ -369,6 +400,7 @@
     if (["pieces", "molds", "positions"].includes(state.tab) && !ensureStage4()) return;
     if (state.tab === "works") return openWorkForm();
     if (state.tab === "orders") return openOrderForm();
+    if (state.tab === "projects") return openProjectForm();
     if (state.tab === "pieces") return openPieceForm();
     if (state.tab === "molds") return openMoldForm();
   }
@@ -378,6 +410,14 @@
     const message = "Os cadastros novos da Etapa 4 aguardam a migração 007 e a Edge Function operations-admin atualizada no Supabase.";
     showStatus(message, true);
     toast("Aplique a migração 007 no Supabase para continuar.");
+    return false;
+  }
+
+  function ensureFabio2() {
+    if (state.supportsFabio2) return true;
+    const message = "O fluxo de projetos, placas e etapas com horários exatos depende da migration 009 e da Edge Function atualizada.";
+    showStatus(message, true);
+    toast("A Etapa 5 ainda não está instalada no Supabase.");
     return false;
   }
 
@@ -408,7 +448,7 @@
 
   function openOrderForm(order = null) {
     const workOptions = state.data.works.map((work) => [work.id, `${work.work_number ? `${work.work_number} · ` : ""}${work.name}`]);
-    const statusOptions = [["orcamento", "Orçamento"], ["aprovado", "Aprovado"], ["em_producao", "Em produção"], ["concluido", "Concluído"], ["entregue", "Entregue"], ["atrasado", "Atrasado"], ["cancelado", "Cancelado"]];
+      const statusOptions = [["orcamento", "Orçamento"], ["aprovado", "Aprovado"], ["em_producao", "Em produção"], ["entregue", "Entregue"], ["atrasado", "Atrasado"], ["cancelado", "Cancelado"]];
     const items = order?.items?.length ? order.items : [{}];
     const body = `<div class="ops-form-grid">
       ${inputField("orderNumber", "Número do pedido", order?.order_number || "", "text", { optional: true })}
@@ -417,7 +457,7 @@
       <div class="ops-form-hint full" id="orderClientHelp">Ao escolher uma obra, o pedido usa automaticamente o cliente cadastrado nela.</div>
       ${inputField("startDate", "Data de início", order?.start_date || today(), "date", { required: true, readonly: Boolean(order?.work_id) })}
       ${inputField("requestedDueDate", "Prazo solicitado", order?.requested_due_date || "", "date", { optional: true })}
-      ${selectField("status", "Status", order?.status || "orcamento", statusOptions)}
+      ${selectField("status", "Status", order?.status === "concluido" ? "" : order?.status || "orcamento", statusOptions, { required: true, placeholder: order?.status === "concluido" ? "Escolha um status vigente" : "Selecione o status" })}
       <div class="field full"><label>Itens do pedido <span>o tempo de produção é copiado do catálogo no salvamento</span></label><div class="ops-items" id="orderItems">${items.map(orderItemRow).join("")}</div><div class="ops-inline-actions"><button class="btn" type="button" id="addOrderItem">Adicionar item</button></div></div>
       ${textareaField("observations", "Observações", order?.observations || "")}
     </div>`;
@@ -427,6 +467,86 @@
 
   function addOrderItemRow() {
     $("orderItems").insertAdjacentHTML("beforeend", orderItemRow());
+  }
+
+  function projectItemRow(order, selected = {}) {
+    const choices = (order?.items || []).map((item) =>
+      `<option value="${escapeHtml(item.id)}" ${selected.order_item_id === item.id ? "selected" : ""}>${escapeHtml(item.piece_code || item.piece_name || "Peça")} · ${Number(item.quantity)} solicitadas</option>`
+    ).join("");
+    return `<div class="ops-project-item-row">
+      <select class="select" data-project-item required><option value="">Selecione um item do pedido</option>${choices}</select>
+      <input class="input" data-project-quantity type="number" min="1" step="1" value="${escapeHtml(selected.quantity || 1)}" required aria-label="Quantidade desta seção" />
+      <button class="ops-item-remove" type="button" data-remove-project-item aria-label="Remover item da seção">×</button>
+    </div>`;
+  }
+
+  function projectSectionCard(order, section = {}, index = 0) {
+    const sectionName = section.section_name || section.sectionName || `Seção ${index + 1}`;
+    const items = section.items?.length ? section.items : [{}];
+    return `<section class="ops-project-section">
+      <div class="ops-project-section-head"><label>Nome da seção<input class="input" data-project-section-name maxlength="120" required value="${escapeHtml(sectionName)}" /></label><button class="icon-btn" type="button" data-remove-project-section>Remover seção</button></div>
+      <div class="ops-project-items">${items.map((item) => projectItemRow(order, item)).join("")}</div>
+      <button class="btn" type="button" data-add-project-item>Adicionar item à seção</button>
+    </section>`;
+  }
+
+  function readProjectSections() {
+    return [...document.querySelectorAll(".ops-project-section")].map((section) => ({
+      sectionName: section.querySelector("[data-project-section-name]").value.trim(),
+      items: [...section.querySelectorAll(".ops-project-item-row")].map((row) => ({
+        orderItemId: row.querySelector("[data-project-item]").value,
+        quantity: Number(row.querySelector("[data-project-quantity]").value),
+      })),
+    }));
+  }
+
+  function addProjectSection(section = null) {
+    const container = $("projectSections");
+    const order = state.data.orders.find((item) => item.id === $("projectOrderId")?.value);
+    const index = container.querySelectorAll(".ops-project-section").length;
+    container.insertAdjacentHTML("beforeend", projectSectionCard(order, section || {}, index));
+  }
+
+  function addProjectItem(section) {
+    if (!section) return;
+    const order = state.data.orders.find((item) => item.id === $("projectOrderId")?.value);
+    section.querySelector(".ops-project-items").insertAdjacentHTML("beforeend", projectItemRow(order));
+  }
+
+  function refreshProjectSectionsForOrder() {
+    const container = $("projectSections");
+    if (!container) return;
+    const previous = readProjectSections();
+    const order = state.data.orders.find((item) => item.id === $("projectOrderId")?.value);
+    container.innerHTML = previous.map((section, index) => projectSectionCard(order, {
+      section_name: section.sectionName,
+      items: section.items.map((item) => ({ ...item, order_item_id: "" })),
+    }, index)).join("");
+  }
+
+  function openProjectForm(project = null) {
+    if (!ensureFabio2()) return;
+    const existingProjects = new Set((state.data.engineeringProjects || []).map((item) => item.order_id));
+    const orders = state.data.orders.filter((order) =>
+      !["concluido", "entregue", "cancelado"].includes(order.status) && (project?.order_id === order.id || !existingProjects.has(order.id))
+    );
+    const orderOptions = orders.map((order) => [order.id, `${order.order_number || "Pedido sem número"} · ${order.client_name || "Cliente"}`]);
+    const projectSections = project?.sections?.length ? project.sections : [{ section_name: "Seção 1", items: [{}] }];
+    const body = `<div class="ops-form-grid">
+      ${selectField("projectOrderId", "Pedido", project?.order_id || "", orderOptions, { required: true, placeholder: "Selecione um pedido ativo" })}
+      <p class="ops-form-hint full">O projeto pertence a um pedido. Distribua os itens pelas seções; o banco impede que a quantidade total ultrapasse o pedido.</p>
+      <div class="ops-project-sections full" id="projectSections">${projectSections.map((section, index) => projectSectionCard(state.data.orders.find((order) => order.id === (project?.order_id || orderOptions[0]?.[0])), section, index)).join("")}</div>
+      <div class="ops-inline-actions full"><button class="btn" type="button" id="addProjectSection">Adicionar seção</button></div>
+    </div>`;
+    openModal(project ? "Editar projeto de engenharia" : "Novo projeto de engenharia", "Organize a fabricação do pedido em seções e quantidades.", body, "project", project);
+    if (project) {
+      $("projectOrderId").disabled = true;
+      const hiddenOrderId = document.createElement("input");
+      hiddenOrderId.type = "hidden";
+      hiddenOrderId.name = "projectOrderId";
+      hiddenOrderId.value = project.order_id;
+      $("operationsForm").append(hiddenOrderId);
+    }
   }
 
   function syncOrderClientHelp() {
@@ -453,18 +573,19 @@
 
   function openPieceForm(piece = null) {
     if (!ensureStage4()) return;
+    if (piece?.piece_kind === "placa" && !ensureFabio2()) return;
     const molds = piece?.mold_catalogs || {};
-    const typeOptions = [["braco", "Braço"], ["pilar", "Pilar"], ["viga", "Viga"]];
+    const typeOptions = [["braco", "Braço"], ["pilar", "Pilar"], ["viga", "Viga"], ...(state.supportsFabio2 ? [["placa", "Placa"]] : [])];
     const armOptions = catalogChoices("BRACO");
     const combinations = moldCombinationsFor(piece?.piece_kind || "pilar");
     const selectedPair = molds.leito && molds.lateral ? `${molds.leito}|${molds.lateral}` : "";
     const body = `<div class="ops-form-grid">
       ${inputField("code", "Código da peça", piece?.code || "", "text", { required: true })}
       ${inputField("name", "Nome da peça", piece?.name || "", "text", { required: true })}
-      ${selectField("pieceKind", "Tipo fixo", piece?.piece_kind || "", typeOptions, { required: true, placeholder: "Selecione Braço, Pilar ou Viga" })}
+      ${selectField("pieceKind", "Tipo de peça", piece?.piece_kind || "", typeOptions, { required: true, placeholder: "Selecione braço, pilar, viga ou placa" })}
       ${inputField("dimensionXcm", "Dimensão X (cm)", piece?.dimension_x_cm ?? "", "number", { min: 0.001, step: "0.001", required: true })}
       ${inputField("dimensionYcm", "Dimensão Y (cm)", piece?.dimension_y_cm ?? "", "number", { min: 0.001, step: "0.001", required: true })}
-      ${inputField("dimensionZcm", "Dimensão Z (cm)", piece?.dimension_z_cm ?? "", "number", { min: 0.001, step: "0.001", required: true })}
+      ${inputField("dimensionZcm", piece?.piece_kind === "placa" ? "Espessura Z (cm)" : "Dimensão Z (cm)", piece?.dimension_z_cm ?? "", "number", { min: 0.001, step: "0.001", required: true })}
       <div class="ops-computed-metrics full" aria-live="polite">
         <div><small>Volume</small><strong id="pieceVolumeCm3">—</strong><span>cm³</span></div>
         <div><small>Volume</small><strong id="pieceVolumeM3">—</strong><span>m³</span></div>
@@ -472,13 +593,13 @@
       </div>
       ${inputField("productionMinutesPerUnit", "Tempo de produção (min/un.)", piece?.production_minutes_per_unit ?? "", "number", { min: 1, step: 1, required: true })}
       <div class="ops-form-hint">O tempo fica registrado no cadastro e não limita a capacidade do planejamento.</div>
-      ${selectField("pieceMoldBraco", "Molde BRAÇO", molds.braco || "", armOptions, { required: true, placeholder: "Selecione uma medida" })}
-      ${selectField("pieceMoldPair", "Combinação de moldes LEITO × LATERAL", selectedPair, combinations, { required: true, placeholder: "Selecione uma combinação" })}
+      ${selectField("pieceMoldBraco", "Forma BRAÇO", molds.braco || "", armOptions, { required: true, placeholder: "Selecione uma medida" })}
+      ${selectField("pieceMoldPair", "Combinação de formas LEITO × LATERAL", selectedPair, combinations, { required: true, placeholder: "Selecione uma combinação" })}
       <input type="hidden" id="pieceMoldLeito" name="pieceMoldLeito" value="${escapeHtml(molds.leito || "")}" />
       <input type="hidden" id="pieceMoldLateral" name="pieceMoldLateral" value="${escapeHtml(molds.lateral || "")}" />
       ${textareaField("observations", "Observações", piece?.observations || "")}
     </div>`;
-    openModal(piece ? "Editar peça" : "Nova peça", "Dimensões em centímetros; volume e peso são calculados ao informar X, Y e Z.", body, "piece", piece);
+    openModal(piece ? "Editar peça" : "Nova peça", "Dimensões em centímetros; para placa, X × Y é área e Z é espessura.", body, "piece", piece);
     updatePieceMoldFields();
     updatePieceMetrics();
   }
@@ -487,18 +608,18 @@
     if (!ensureStage4()) return;
     const moldOptions = (state.data.moldCatalog || []).map((item) => [item.code, `${item.mold_type === "BRACO" ? "BRAÇO" : item.mold_type} ${item.measure_label} cm`]);
     const body = `<div class="ops-form-grid">
-      ${selectField("catalogCode", "Molde do catálogo fixo", mold?.catalog_code || "", moldOptions, { required: true, placeholder: "Selecione tipo e medida" })}
+      ${selectField("catalogCode", "Forma do catálogo fixo", mold?.catalog_code || "", moldOptions, { required: true, placeholder: "Selecione tipo e medida" })}
       ${inputField("cycleMinutesPerUnit", "Ciclo (min/un.)", mold?.cycle_minutes_per_unit ?? "", "number", { min: 1, step: 1, optional: true })}
       ${selectField("status", "Status", mold?.status || "ativo", [["ativo", "Ativo"], ["manutencao", "Manutenção"], ["bloqueado", "Bloqueado"], ["retirado", "Retirado"]])}
-      <div class="ops-form-hint">A preparação tem duração fixa de sete dias corridos e precisa ser aprovada antes da produção.</div>
+      <div class="ops-form-hint">A preparação dura ${state.supportsFabio2 ? "cinco dias úteis" : "sete dias corridos"} e precisa ser aprovada antes da produção.</div>
       ${textareaField("observations", "Observações", mold?.observations || "")}
     </div>`;
-    openModal(mold ? "Editar molde" : "Novo molde", "Tipo e medida vêm do catálogo fixo; o identificador é gerado pelo sistema.", body, "mold", mold);
+    openModal(mold ? "Editar forma" : "Nova forma", "Tipo e medida vêm do catálogo fixo; o identificador é gerado pelo sistema.", body, "mold", mold);
   }
 
   function openPositionForm(position) {
     if (!ensureStage4()) return;
-    const typeOptions = [["braco", "Braço"], ["pilar_viga", "Pilar / Viga"]];
+    const typeOptions = [["braco", "Braço"], ["pilar_viga", "Pilar / Viga"], ...(state.supportsFabio2 ? [["placa", "Placa · bancada plana"]] : [])];
     const armOptions = catalogChoices("BRACO");
     const bedOptions = catalogChoices("LEITO");
     const sideOptions = catalogChoices("LATERAL");
@@ -507,13 +628,13 @@
       <div class="field"><label>Posição física</label><input class="input" value="${escapeHtml(position.code)}" disabled /></div>
       ${selectField("status", "Status", position.status || "disponivel", [["disponivel", "Disponível"], ["em_preparacao", "Em preparação"], ["em_producao", "Em produção"], ["em_manutencao", "Em manutenção"]])}
       ${selectField("positionConfigurationKind", "Configuração da posição", position.configuration_kind || "", typeOptions, { required: true, placeholder: "Selecione a configuração" })}
-      ${selectField("positionMoldBraco", "Molde BRAÇO", position.braco_catalog_code || "", armOptions, { required: true, placeholder: "Selecione uma medida" })}
-      ${selectField("positionMoldLeito", "Molde LEITO", position.leito_catalog_code || "", bedOptions, { required: true, placeholder: "Selecione uma medida" })}
-      ${selectField("positionMoldLateral", "Molde LATERAL", position.lateral_catalog_code || "", sideOptions, { required: true, placeholder: "Selecione uma medida" })}
+      ${selectField("positionMoldBraco", "Forma BRAÇO", position.braco_catalog_code || "", armOptions, { required: true, placeholder: "Selecione uma medida" })}
+      ${selectField("positionMoldLeito", "Forma LEITO", position.leito_catalog_code || "", bedOptions, { required: true, placeholder: "Selecione uma medida" })}
+      ${selectField("positionMoldLateral", "Forma LATERAL", position.lateral_catalog_code || "", sideOptions, { required: true, placeholder: "Selecione uma medida" })}
       ${textareaField("positionNotes", "Observações", position.notes || "")}
-      <div class="ops-form-hint full">A configuração vale para os pedidos compatíveis e a fila de planejamento será recalculada ao salvar. Tempo de setup permanece sem valor informado.</div>
+      <div class="ops-form-hint full">Braço usa a forma BRAÇO; pilar e viga usam LEITO × LATERAL; placa usa uma bancada plana sem forma. A fila será recalculada ao salvar.</div>
     </div>`;
-    openModal(`Configurar posição ${position.code}`, "Defina o conjunto fixo de moldes instalado nesta posição.", body, "position", position);
+    openModal(`Configurar posição ${position.code}`, "Defina as formas instaladas ou selecione a bancada plana para placas.", body, "position", position);
     updatePositionConfigFields();
   }
 
@@ -539,6 +660,8 @@
 
   function updatePieceMoldFields() {
     const kind = $("pieceKind")?.value;
+    const dimensionZLabel = document.querySelector('label[for="dimensionZcm"]');
+    if (dimensionZLabel) dimensionZLabel.firstChild.textContent = kind === "placa" ? "Espessura Z (cm)" : "Dimensão Z (cm)";
     const arm = $("pieceMoldBraco");
     const pair = $("pieceMoldPair");
     if (!arm || !pair) return;
@@ -557,12 +680,13 @@
       `<option value="${escapeHtml(value)}">${escapeHtml(label)}</option>`).join("")}`;
     pair.value = options.some(([value]) => value === selectedOption) ? selectedOption : "";
     const isArm = kind === "braco";
-    armField.hidden = !isArm;
-    pairField.hidden = isArm;
+    const isPlate = kind === "placa";
+    armField.hidden = !isArm || isPlate;
+    pairField.hidden = isArm || isPlate;
     arm.required = isArm;
-    pair.required = !isArm;
-    if (isArm) pair.value = "";
-    else arm.value = "";
+    pair.required = !isArm && !isPlate;
+    if (isArm || isPlate) pair.value = "";
+    if (!isArm || isPlate) arm.value = "";
     syncPieceMoldPair();
   }
 
@@ -577,12 +701,13 @@
       return;
     }
     const isArm = kind === "braco";
-    arm.closest(".field").hidden = !isArm;
-    bed.closest(".field").hidden = isArm;
-    side.closest(".field").hidden = isArm;
+    const isPlate = kind === "placa";
+    arm.closest(".field").hidden = !isArm || isPlate;
+    bed.closest(".field").hidden = isArm || isPlate;
+    side.closest(".field").hidden = isArm || isPlate;
     arm.required = isArm;
-    bed.required = !isArm;
-    side.required = !isArm;
+    bed.required = !isArm && !isPlate;
+    side.required = !isArm && !isPlate;
   }
 
   function updatePieceMetrics() {
@@ -605,9 +730,10 @@
     const startDate = preparation?.start_date || today();
     const statuses = [["planejada", "Planejada"], ["em_andamento", "Em andamento"], ["aguardando_aprovacao", "Aguardando aprovação"], ["aprovada", "Aprovada"], ["reprovada", "Reprovada"], ["cancelada", "Cancelada"]];
     const body = `<div class="ops-form-grid">
-      ${selectField("preparationMoldId", "Molde", preparation?.mold_id || mold?.id || "", moldOptions, { required: true })}
+      ${selectField("preparationMoldId", "Forma", preparation?.mold_id || mold?.id || "", moldOptions, { required: true })}
       ${inputField("preparationStartDate", "Início da preparação", startDate, "date", { required: true })}
-      ${inputField("preparationEndDate", "Conclusão prevista", addDays(startDate, 6), "date", { disabled: true })}
+      ${inputField("preparationEndDate", "Conclusão prevista", "", "date", { disabled: true })}
+      <div class="ops-form-hint full" id="preparationEndHelp">A conclusão será calculada pelo calendário de dias úteis.</div>
       ${selectField("status", "Status", preparation?.status || "planejada", statuses)}
       <div class="field full"><label>Checklist obrigatório</label><div class="ops-checklist">
         <label><input type="checkbox" name="limpeza" ${checklist.limpeza ? "checked" : ""}> Limpeza</label>
@@ -617,14 +743,30 @@
       ${inputField("approvedBy", "Aprovado por", preparation?.approved_by || "", "text", { optional: true })}
       ${textareaField("observations", "Observações", preparation?.observations || "")}
     </div>`;
-    openModal(preparation ? "Editar preparação" : "Preparar molde", "A data final é calculada como o sétimo dia corrido, contando o primeiro dia.", body, "preparation", preparation);
+    openModal(preparation ? "Editar preparação" : "Preparar forma", "A duração configurada da forma determina o cálculo da conclusão.", body, "preparation", preparation);
     updatePreparationEnd();
   }
 
-  function updatePreparationEnd() {
+  async function updatePreparationEnd() {
     const start = $("preparationStartDate");
     const end = $("preparationEndDate");
-    if (start && end) end.value = addDays(start.value, 6);
+    const moldId = $("preparationMoldId")?.value;
+    const help = $("preparationEndHelp");
+    if (!start || !end) return;
+    end.value = "";
+    if (!start.value || !moldId) return;
+    const requestedStart = start.value;
+    if (help) help.textContent = "Calculando a data com o calendário da fábrica…";
+    try {
+      const result = await global.PRELUX_REPOSITORIES.operations.calculateMoldPreparationEnd({ moldId, startDate: requestedStart });
+      if (start.value !== requestedStart || $("preparationMoldId")?.value !== moldId) return;
+      end.value = result.endDate || "";
+      if (help) help.textContent = state.supportsFabio2
+        ? "A conclusão considera cinco dias úteis e as exceções do calendário."
+        : "A conclusão considera sete dias corridos no fluxo atual.";
+    } catch (error) {
+      if (help) help.textContent = error.message || "Não foi possível calcular a conclusão. Atualize o calendário e tente novamente.";
+    }
   }
 
   function openAllocationForm(mold = null, allocation = null) {
@@ -635,8 +777,8 @@
     }
     const resourceKind = allocation?.resource_kind || (mold ? "mold" : "mold");
     const body = `<div class="ops-form-grid">
-      ${selectField("allocationResourceKind", "Tipo de recurso", resourceKind, [["mold", "Molde"], ["other", "Outro recurso"]])}
-      ${selectField("allocationMoldId", "Molde", allocation?.mold_id || mold?.id || "", moldOptions, { required: true, placeholder: "Selecione" })}
+      ${selectField("allocationResourceKind", "Tipo de recurso", resourceKind, [["mold", "Forma"], ["other", "Outro recurso"]])}
+      ${selectField("allocationMoldId", "Forma", allocation?.mold_id || mold?.id || "", moldOptions, { required: true, placeholder: "Selecione" })}
       <div class="field full" id="allocationOtherResourceField" hidden><label for="allocationResourceName">Nome do recurso</label><input class="input" id="allocationResourceName" name="allocationResourceName" value="${escapeHtml(allocation?.resource_kind === "other" ? allocation.resource_name : "")}" placeholder="Ex.: equipamento, equipe, linha"></div>
       ${selectField("allocationOrderItemId", "Pedido / peça", allocation?.order_item_id || "", orderItemOptions, { required: true, placeholder: "Selecione o item que será produzido" })}
       ${inputField("startDate", "Início", allocation?.start_date || today(), "date", { required: true })}
@@ -648,7 +790,7 @@
       </div></div>
       ${textareaField("observations", "Observações", allocation?.observations || "")}
     </div>`;
-    openModal(allocation ? "Editar alocação" : "Alocar produção", "Associe um molde e um item do pedido às datas de produção.", body, "allocation", allocation);
+    openModal(allocation ? "Editar alocação" : "Alocar produção", "Associe uma forma e um item do pedido às datas de produção.", body, "allocation", allocation);
     updateAllocationFields();
   }
 
@@ -686,6 +828,10 @@
       if (state.tab === "positions") return openPositionForm(data.positions.find((item) => item.id === id));
       if (state.tab === "molds" && !ensureStage4()) return;
       return openMoldForm(data.molds.find((item) => item.id === id));
+    }
+    if (action === "edit-project") {
+      if (!ensureFabio2()) return;
+      return openProjectForm(data.engineeringProjects.find((item) => item.id === id));
     }
     if (action === "edit-position") return openPositionForm(data.positions.find((item) => item.id === id));
     if (action === "prepare") return openPreparationForm(data.molds.find((item) => item.id === id));
@@ -794,23 +940,45 @@
         } else if (response?.planning?.committed) {
           savedNotice = "Pedido salvo e incluído automaticamente no planejamento.";
         }
+      } else if (kind === "project") {
+        if (!ensureFabio2()) throw new Error("O projeto de engenharia aguarda a Etapa 5.");
+        const sections = readProjectSections().map((section, index) => ({
+          ...section,
+          sortOrder: index + 1,
+        }));
+        if (!sections.length || sections.some((section) => !section.sectionName || !section.items.length || section.items.some((item) => !item.orderItemId || !Number.isInteger(item.quantity) || item.quantity < 1))) {
+          throw new Error("Cada seção precisa de um nome e ao menos um item com quantidade válida.");
+        }
+        const normalizedNames = sections.map((section) => section.sectionName.toLocaleLowerCase());
+        if (new Set(normalizedNames).size !== normalizedNames.length) throw new Error("Use um nome diferente para cada seção.");
+        await global.PRELUX_REPOSITORIES.operations.saveEngineeringProject({
+          orderId: formValue(form, "projectOrderId"),
+          sections,
+        });
+        savedNotice = "Projeto e divisão dos itens salvos.";
       } else if (kind === "piece") {
-        const response = await global.PRELUX_REPOSITORIES.operations.savePieceType({
+        const pieceKind = formValue(form, "pieceKind");
+        const pieceRecord = {
           id,
           code: formValue(form, "code"),
           name: formValue(form, "name"),
-          pieceKind: formValue(form, "pieceKind"),
           dimensionXcm: formValue(form, "dimensionXcm"),
           dimensionYcm: formValue(form, "dimensionYcm"),
           dimensionZcm: formValue(form, "dimensionZcm"),
           productionMinutesPerUnit: Number(formValue(form, "productionMinutesPerUnit")),
           observations: formValue(form, "observations"),
+        };
+        const response = pieceKind === "placa"
+          ? await global.PRELUX_REPOSITORIES.operations.savePlateType(pieceRecord)
+          : await global.PRELUX_REPOSITORIES.operations.savePieceType({
+          ...pieceRecord,
+          pieceKind,
           moldCatalogs: formValue(form, "pieceKind") === "braco"
             ? { braco: formValue(form, "pieceMoldBraco") }
             : { leito: formValue(form, "pieceMoldLeito"), lateral: formValue(form, "pieceMoldLateral") },
         });
-        if (response?.planning?.warning) savedNotice = `Peça salva. ${response.planning.warning}`;
-        else if (response?.planning?.committed) savedNotice = "Peça salva e planejamento recalculado.";
+        if (response?.planning?.warning) savedNotice = `${pieceKind === "placa" ? "Placa" : "Peça"} salva. ${response.planning.warning}`;
+        else if (response?.planning?.committed) savedNotice = `${pieceKind === "placa" ? "Placa" : "Peça"} salva e planejamento recalculado.`;
       } else if (kind === "mold") {
         await global.PRELUX_REPOSITORIES.operations.saveMold({
           id,
@@ -863,7 +1031,7 @@
       }
       closeModal();
       toast(savedNotice);
-      if (kind === "work" || kind === "order" || kind === "position" || kind === "piece") {
+      if (["work", "order", "position", "piece", "project"].includes(kind)) {
         global.dispatchEvent(new CustomEvent("prelux:operations:changed", { detail: { kind, id } }));
       }
       await refreshData(true);
@@ -884,12 +1052,15 @@
       state.data = response;
       state.supportsStage4 = Number(response?.schemaVersion || 0) >= 4 &&
         Array.isArray(response?.moldCatalog) && Array.isArray(response?.positions);
+      state.supportsFabio2 = response?.fabio2Available === true && Number(response?.schemaVersion || 0) >= 5;
       renderMetrics();
       state.query = $("operationsSearch")?.value || state.query;
       renderTable(state.query);
       showStatus(state.supportsStage4
-        ? "Cadastros de obras, pedidos, peças, moldes e posições conectados ao banco PRELUX."
-        : "Obras e pedidos conectados. Os cadastros de peças, moldes e posições aguardam a migração 007 e a Edge Function da Etapa 4.");
+        ? state.supportsFabio2
+          ? "Cadastros e projetos de engenharia conectados ao banco PRELUX."
+          : "Cadastros da Etapa 4 conectados. Projetos e placas aguardam a migration 009."
+        : "Obras e pedidos conectados. Os cadastros de peças, formas e posições aguardam a migração 007 e a Edge Function da Etapa 4.");
     } catch (error) {
       const rawMessage = error.message || "Não foi possível carregar os cadastros.";
       const message = /posi[cç][aã]o|cat[aá]logo fixo|moldes das pe[cç]as/i.test(rawMessage)
