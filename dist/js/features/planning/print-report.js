@@ -176,14 +176,14 @@ function renderPeriod(entry) {
 export function renderPlanningPrintReport(report, { generatedAt = "" } = {}) {
   const meta = generatedAt ? `<small>Gerado em ${escapeHtml(generatedAt)}</small>` : "";
   const reportMonths = report?.months || [];
-  const months = reportMonths.map((month, index) => `<section class="planning-print-month${index === reportMonths.length - 1 ? " last-month" : ""}">`+
-    `<header class="planning-print-heading"><div><span>PRELUX</span><h2>Calendário de produção</h2></div><div><strong>${escapeHtml(month.label)}</strong>${meta}</div></header>`+
+  const months = reportMonths.map((month, index) => `<section class="planning-print-month${index === reportMonths.length - 1 ? " last-month" : ""}" style="--planning-week-count:${month.weeks.length}"><img class="planning-print-page-background" src="./assets/planning-pdf-background.png" alt="" aria-hidden="true" />`+
+    `<header class="planning-print-heading"><div><span>PLANEJAMENTO</span><h2>Calendário de produção</h2></div><div><strong>${escapeHtml(month.label)}</strong>${meta}</div></header>`+
     `<div class="planning-print-calendar"><div class="planning-print-weekdays">${weekdays.map((day) => `<span>${day}</span>`).join("")}</div>`+
     `${month.weeks.map((week) => `<div class="planning-print-week">${week.map(renderDay).join("")}</div>`).join("")}</div>`+
     `<div class="planning-print-periods">${month.entries.map(renderPeriod).join("")}</div>`+
     `</section>`).join("");
   const pending = report?.pending?.length
-    ? `<section class="planning-print-pending"><h3>Pedidos sem início previsto</h3>${report.pending.map(renderPeriod).join("")}</section>`
+    ? `<section class="planning-print-pending-page"><img class="planning-print-page-background" src="./assets/planning-pdf-background.png" alt="" aria-hidden="true" /><div class="planning-print-pending"><h3>Pedidos sem início previsto</h3>${report.pending.map(renderPeriod).join("")}</div></section>`
     : "";
   return `<div class="planning-print-report-inner">${months}${pending}</div>`;
 }

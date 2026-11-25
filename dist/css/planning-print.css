@@ -6,7 +6,7 @@
 @media print {
   @page {
     size: A4 landscape;
-    margin: 9mm;
+    margin: 0;
   }
 
   body.planning-report-print .sidebar,
@@ -24,14 +24,44 @@
     display: block !important;
   }
 
+  body.planning-report-print #planningView {
+    width: 297mm !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
   body.planning-report-print #planningPrintReport {
+    width: 297mm;
+    margin: 0;
     color: #14304a;
     font-family: Arial, Helvetica, sans-serif;
     font-size: 8pt;
     line-height: 1.25;
   }
 
+  .planning-print-report-inner {
+    position: relative;
+  }
+
+  .planning-print-page-background {
+    position: absolute;
+    z-index: 0;
+    top: 0;
+    left: 0;
+    width: 297mm;
+    height: 210mm;
+    object-fit: fill;
+    pointer-events: none;
+  }
+
   .planning-print-month {
+    position: relative;
+    z-index: 1;
+    box-sizing: border-box;
+    width: 297mm;
+    min-height: 210mm;
+    padding: 31mm 15mm 20mm;
     break-after: page;
     page-break-after: always;
   }
@@ -41,7 +71,20 @@
     page-break-after: auto;
   }
 
+  .planning-print-pending-page {
+    position: relative;
+    z-index: 1;
+    box-sizing: border-box;
+    width: 297mm;
+    min-height: 210mm;
+    padding: 31mm 15mm 20mm;
+    break-before: page;
+    page-break-before: always;
+  }
+
   .planning-print-heading {
+    position: relative;
+    z-index: 1;
     display: flex;
     align-items: end;
     justify-content: space-between;
@@ -85,6 +128,8 @@
 
   .planning-print-weekdays,
   .planning-print-week {
+    position: relative;
+    z-index: 1;
     display: grid;
     grid-template-columns: repeat(7, minmax(0, 1fr));
   }
@@ -110,7 +155,7 @@
 
   .planning-print-day {
     min-width: 0;
-    min-height: 21mm;
+    min-height: calc(84mm / var(--planning-week-count, 5));
     padding: 1.2mm;
     border-right: 1px solid #b9cbd9;
     border-bottom: 1px solid #b9cbd9;
@@ -177,6 +222,8 @@
   .planning-print-period.color-6 { --order-color: #986276; --order-tint: #f8eff3; }
 
   .planning-print-periods {
+    position: relative;
+    z-index: 1;
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 1.5mm 5mm;
@@ -210,6 +257,8 @@
   }
 
   .planning-print-pending {
+    position: relative;
+    z-index: 1;
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 1.5mm 5mm;
