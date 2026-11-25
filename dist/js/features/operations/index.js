@@ -288,7 +288,7 @@ export function initializeOperations({ operationsRepository, listPieceMoldOption
     }
     const volumeM3 = piece.volume_m3 == null ? volumeCm3 / 1_000_000 : Number(piece.volume_m3);
     const weightKg = piece.weight_kg == null ? volumeCm3 * 2.5 / 1000 : Number(piece.weight_kg);
-    return `<td>${formatNumber(volumeCm3, 3)} cm³<span class="muted">${formatNumber(volumeM3, 6)} m³ · ${formatNumber(weightKg, 3)} kg</span></td>`;
+    return `<td>${formatNumber(volumeM3, 6)} m³<span class="muted">${formatNumber(weightKg, 3)} kg</span></td>`;
   }
 
   function positionConfigLabel(position) {
@@ -585,7 +585,7 @@ export function initializeOperations({ operationsRepository, listPieceMoldOption
         ${inputField("registrationDimensionZ", "Dimensão Z (cm)", "", "number", { min: 0.001, step: "0.001", required: true })}
         <div class="ops-form-hint full" id="registrationPositionHint" aria-live="polite">Pilar e viga: X localiza o leito, Z a lateral e Y é o comprimento. Braço: X × Z localiza a forma fixa. Placa: X largura, Y altura, Z espessura; usa bancada plana.</div>
         <div class="ops-form-hint full">O prazo considera concretagem, cura e acabamento. Se a forma ainda não estiver pronta, inclui também a preparação antes da concretagem.</div>
-        <div class="ops-computed-metrics full" aria-live="polite"><div><small>Volume</small><strong id="registrationVolumeM3">—</strong><span>m³</span></div><div><small>Peso estimado</small><strong id="registrationWeightKg">—</strong><span>kg</span></div><div><small>Volume bruto X × Y × Z</small><strong id="registrationVolumeCm3">—</strong><span>cm³</span></div></div>
+        <div class="ops-computed-metrics full" aria-live="polite"><div><small>Volume</small><strong id="registrationVolumeM3">—</strong><span>m³</span></div><div><small>Peso estimado</small><strong id="registrationWeightKg">—</strong><span>kg</span></div></div>
         ${textareaField("registrationPieceObservations", "Observações da peça")}
         ${textareaField("registrationItemObservations", "Observações do item do pedido")}
         <div class="ops-form-actions full"><button class="btn primary" id="registrationSaveItem" type="button">Salvar item no pedido</button></div>
@@ -703,7 +703,6 @@ export function initializeOperations({ operationsRepository, listPieceMoldOption
     const z = Number($("registrationDimensionZ")?.value);
     const valid = [x, y, z].every((value) => Number.isFinite(value) && value > 0);
     const volumeCm3 = valid ? x * y * z : null;
-    $("registrationVolumeCm3").textContent = valid ? formatNumber(volumeCm3, 3) : "—";
     $("registrationVolumeM3").textContent = valid ? formatNumber(volumeCm3 / 1_000_000, 6) : "—";
     $("registrationWeightKg").textContent = valid ? formatNumber(volumeCm3 * 2.5 / 1000, 3) : "—";
   }
@@ -951,7 +950,6 @@ export function initializeOperations({ operationsRepository, listPieceMoldOption
       ${inputField("dimensionYcm", dimensionYLabel, piece?.dimension_y_cm ?? "", "number", { min: 0.001, step: "0.001", required: true })}
       ${inputField("dimensionZcm", dimensionZLabel, piece?.dimension_z_cm ?? "", "number", { min: 0.001, step: "0.001", required: true })}
       <div class="ops-computed-metrics full" aria-live="polite">
-        <div><small>Volume</small><strong id="pieceVolumeCm3">—</strong><span>cm³</span></div>
         <div><small>Volume</small><strong id="pieceVolumeM3">—</strong><span>m³</span></div>
         <div><small>Peso estimado</small><strong id="pieceWeightKg">—</strong><span>kg</span></div>
       </div>
@@ -1060,7 +1058,6 @@ export function initializeOperations({ operationsRepository, listPieceMoldOption
     const volumeCm3 = valid ? x * y * z : null;
     const volumeM3 = valid ? volumeCm3 / 1_000_000 : null;
     const weightKg = valid ? volumeCm3 * 2.5 / 1000 : null;
-    $("pieceVolumeCm3").textContent = valid ? formatNumber(volumeCm3, 3) : "—";
     $("pieceVolumeM3").textContent = valid ? formatNumber(volumeM3, 6) : "—";
     $("pieceWeightKg").textContent = valid ? formatNumber(weightKg, 3) : "—";
   }

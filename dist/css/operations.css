@@ -63,7 +63,7 @@
 .ops-form-grid .field.full{grid-column:1/-1}
 .ops-form-grid .field[hidden]{display:none!important}
 .ops-form-grid .field label{display:block}
-.ops-computed-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;padding:13px;border:1px solid #cfe5f5;border-radius:10px;background:#f4faff}
+.ops-computed-metrics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;padding:13px;border:1px solid #cfe5f5;border-radius:10px;background:#f4faff}
 .ops-computed-metrics div{min-width:0}
 .ops-computed-metrics small,.ops-computed-metrics span{display:block;color:var(--muted);font-size:10px}
 .ops-computed-metrics strong{display:block;margin:4px 0;color:#145f95;font-size:16px;overflow-wrap:anywhere}
