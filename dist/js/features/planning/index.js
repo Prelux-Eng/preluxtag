@@ -4,7 +4,19 @@
  * Acesso remoto passa pelo repositório; navegação, pelo módulo central.
  */
 import { calendarUnitsFromScenario, occupiedPositionCodes, positionConflictCount, visibleCalendarUnits } from "./scenario-calendar.js";
-import { buildPlanningPrintReport, renderPlanningPrintReport } from "./print-report.js";
+import { buildPlanningPrintReport, renderPlanningPrintReport } from "./print-report.js?v=2";
+
+async function waitForPrintImage(image) {
+  if (typeof image.decode === "function") {
+    await image.decode();
+  } else if (!image.complete) {
+    await new Promise((resolve, reject) => {
+      image.addEventListener("load", resolve, { once: true });
+      image.addEventListener("error", () => reject(new Error("Não foi possível carregar o papel timbrado do PDF.")), { once: true });
+    });
+  }
+  if (!image.naturalWidth) throw new Error("Não foi possível carregar o papel timbrado do PDF.");
+}
 
 export function initializePlanning({ planningRepository, operationsRepository, navigate }) {
   const $ = (id) => document.getElementById(id);
@@ -626,8 +638,10 @@ export function initializePlanning({ planningRepository, operationsRepository, n
       const response = await planningRepository.confirmProductionPlan([...state.selectedQuoteIds]);
       const result = response.result || {};
       state.selectedQuoteIds.clear();
-      showToast(`Fila confirmada: ${Number(result.scheduledUnitCount || 0)} unidade(s) reservada(s), ${Number(result.waitingUnitCount || 0)} aguardando posição.`);
       await refreshPlanning();
+      $('planningCalendarCard').scrollIntoView({ behavior: "smooth", block: "start" });
+      const calendarStatus = state.simulationError ? "Calendário aguardando atualização." : "Calendário atualizado automaticamente.";
+      showToast(`${calendarStatus} ${Number(result.scheduledUnitCount || 0)} unidade(s) reservada(s), ${Number(result.waitingUnitCount || 0)} aguardando posição.`);
     } catch (error) {
       state.simulationError = error.message || "Não foi possível confirmar a fila.";
       showToast(state.simulationError);
@@ -1238,6 +1252,7 @@ export function initializePlanning({ planningRepository, operationsRepository, n
         dateStyle: "short", timeStyle: "short",
       }).format(new Date());
       $('planningPrintReport').innerHTML = renderPlanningPrintReport(report, { generatedAt });
+      await Promise.all([...$('planningPrintReport').querySelectorAll(".planning-print-page-background")].map(waitForPrintImage));
       const previousTitle = document.title;
       const restorePrintView = () => {
         document.body.classList.remove("planning-report-print");
@@ -1260,7 +1275,6 @@ export function initializePlanning({ planningRepository, operationsRepository, n
       button.textContent = "Calendário em PDF";
     }
   });
-  $('planningRefreshBtn').addEventListener("click", refreshPlanning);
   $('planningAnchor').addEventListener("change", refreshPlanning);
   $('planningPrevious').addEventListener("click", () => changePeriod(-1));
   $('planningNextPeriod').addEventListener("click", () => changePeriod(1));
