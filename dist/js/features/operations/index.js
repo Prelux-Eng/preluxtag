@@ -157,6 +157,7 @@ export function initializeOperations({ operationsRepository, listPieceMoldOption
       if (event.target.id === "preparationStartDate" || event.target.id === "preparationMoldId") updatePreparationEnd();
       if (event.target.id === "orderWorkId") syncOrderClientHelp();
       if (event.target.id === "registrationWorkMode") updateRegistrationWorkMode();
+      if (event.target.id === "registrationExistingWorkId") syncRegistrationExistingWork();
       if (event.target.id === "registrationPieceKind") updateRegistrationMoldFields();
       if (event.target.matches("[data-item-piece]") && $("orderProjectSections")) refreshOrderProjectSections();
       if (event.target.id === "pieceKind") { updatePieceMoldFields(); updatePieceMetrics(); }
@@ -169,7 +170,6 @@ export function initializeOperations({ operationsRepository, listPieceMoldOption
         updateRegistrationMetrics();
         updateRegistrationPositionHint();
       }
-      if (event.target.id === "registrationWorkNumber") populateExistingWork();
       if (event.target.matches("[data-item-quantity]") && $("orderProjectSections")) refreshOrderProjectSections();
     });
     $("operationsModalBody").addEventListener("click", (event) => {
@@ -553,13 +553,16 @@ export function initializeOperations({ operationsRepository, listPieceMoldOption
     return `<section class="ops-registration-step" data-registration-step="1">
       <div class="ops-registration-progress"><strong>Etapa 1 · Dados recebidos</strong><span>Salve o pedido primeiro; os itens podem ser incluídos em seguida.</span></div>
       <div class="ops-form-grid">
-        ${selectField("registrationWorkMode", "Vínculo do pedido", "com_obra", [["com_obra", "Vincular a uma obra"], ["sem_obra", "Sem obra"]], { required: true })}
+        ${selectField("registrationWorkMode", "Vínculo do pedido", "nova_obra", [["nova_obra", "Nova obra"], ["obra_existente", "Obra já cadastrada"], ["sem_obra", "Sem obra"]], { required: true })}
         <div class="ops-form-grid full" id="registrationWorkFields">
-          ${inputField("registrationWorkNumber", "Número da obra", "", "text", { required: true })}
           ${inputField("registrationWorkName", "Nome da obra", "", "text", { required: true })}
           ${inputField("registrationResponsible", "Responsável", "", "text", { optional: true })}
           ${inputField("registrationAddress", "Endereço da obra", "", "text", { optional: true })}
           ${inputField("registrationClient", "Cliente", "", "text", { required: true })}
+          <div class="ops-form-hint full">O número da obra será gerado com 6 dígitos ao salvar.</div>
+        </div>
+        <div class="ops-form-grid full" id="registrationExistingWorkFields" hidden>
+          ${selectField("registrationExistingWorkId", "Obra cadastrada", "", (state.data?.works || []).filter((work) => work.is_active && work.start_date).map((work) => [work.id, `${work.work_number} · ${work.name}`]), { required: true, placeholder: "Selecione uma obra" })}
         </div>
         <div class="ops-form-grid full" id="registrationManualOrderFields" hidden>
           ${inputField("registrationManualClient", "Cliente", "", "text", { required: true })}
@@ -568,7 +571,7 @@ export function initializeOperations({ operationsRepository, listPieceMoldOption
         <div class="ops-form-hint full" id="registrationDeadlineIntro">O prazo será calculado automaticamente depois que as peças e quantidades forem informadas, considerando a capacidade, a concretagem, a cura, o acabamento e a preparação necessária das formas.</div>
         ${textareaField("registrationOrderObservations", "Observações do pedido")}
         <div class="field"><label>Número do pedido</label><input class="input" id="registrationOrderPreview" value="${escapeHtml(nextOrderPreview())}" readonly /><span class="form-help">O banco gera a sequência definitiva no salvamento.</span></div>
-        <div class="ops-form-hint full" id="registrationWorkMatch" aria-live="polite">Se o número da obra já existir, seus dados serão atualizados nesta gravação.</div>
+        <div class="ops-form-hint full" id="registrationWorkMatch" aria-live="polite">A nova obra recebe um número de 6 dígitos ao salvar.</div>
       </div>
     </section>
     <section class="ops-registration-step" data-registration-step="2" hidden>
@@ -576,8 +579,8 @@ export function initializeOperations({ operationsRepository, listPieceMoldOption
       <div class="ops-form-hint full" id="registrationDeadlineSummary" aria-live="polite">O prazo será calculado após salvar as peças e suas quantidades.</div>
       <div class="ops-registration-items" id="registrationSavedItemsList" aria-live="polite"><p>Nenhum item incluído ainda.</p></div>
       <div class="ops-form-grid">
-        ${inputField("registrationPieceCode", "Código da peça", "", "text", { required: true })}
         ${inputField("registrationPieceName", "Nome da peça", "", "text", { required: true })}
+        <div class="ops-form-hint full">O número da peça será gerado com 7 dígitos ao salvar o item.</div>
         ${selectField("registrationPieceKind", "Tipo de peça", "", [["braco", "Braço"], ["pilar", "Pilar"], ["viga", "Viga"], ...(state.supportsFabio2 ? [["placa", "Placa"]] : [])], { required: true, placeholder: "Selecione o tipo" })}
         ${inputField("registrationQuantity", "Quantidade do pedido", "1", "number", { min: 1, step: 1, required: true })}
         ${inputField("registrationDimensionX", "Dimensão X (cm)", "", "number", { min: 0.001, step: "0.001", required: true })}
@@ -606,24 +609,44 @@ export function initializeOperations({ operationsRepository, listPieceMoldOption
   }
 
   function updateRegistrationWorkMode() {
-    const linkedToWork = $("registrationWorkMode")?.value !== "sem_obra";
+    const mode = $("registrationWorkMode")?.value;
+    const newWork = mode === "nova_obra";
+    const existingWork = mode === "obra_existente";
     const workFields = $("registrationWorkFields");
+    const existingFields = $("registrationExistingWorkFields");
     const manualFields = $("registrationManualOrderFields");
-    if (!workFields || !manualFields) return;
-    workFields.hidden = !linkedToWork;
-    manualFields.hidden = linkedToWork;
-    for (const id of ["registrationWorkNumber", "registrationWorkName", "registrationClient"]) {
+    if (!workFields || !existingFields || !manualFields) return;
+    workFields.hidden = !newWork;
+    existingFields.hidden = !existingWork;
+    manualFields.hidden = mode !== "sem_obra";
+    for (const id of ["registrationWorkName", "registrationClient"]) {
       const field = $(id);
-      if (field) field.required = linkedToWork;
+      if (field) field.required = newWork;
     }
+    $("registrationExistingWorkId").required = existingWork;
     const manualClient = $("registrationManualClient");
-    if (manualClient) manualClient.required = !linkedToWork;
-    if (manualClient && linkedToWork) manualClient.value = "";
-    if (linkedToWork && $("registrationWorkNumber")?.value) populateExistingWork();
+    if (manualClient) manualClient.required = mode === "sem_obra";
+    if (manualClient && mode !== "sem_obra") manualClient.value = "";
+    $("registrationStartDate").readOnly = existingWork;
+    if (existingWork) syncRegistrationExistingWork();
+    else $("registrationStartDate").value = today();
     const help = $("registrationWorkMatch");
-    if (help) help.textContent = linkedToWork
-      ? "Uma obra com o mesmo número será atualizada; o cliente, o início e o prazo do pedido acompanharão a obra."
+    if (help && !existingWork) help.textContent = newWork
+      ? "A nova obra recebe um número de 6 dígitos; cliente e início serão vinculados ao pedido."
       : "Este pedido ficará sem obra; informe o cliente e a data de início manualmente.";
+  }
+
+  function selectedRegistrationWork() {
+    return (state.data?.works || []).find((work) => work.id === $("registrationExistingWorkId")?.value) || null;
+  }
+
+  function syncRegistrationExistingWork() {
+    const work = selectedRegistrationWork();
+    $("registrationStartDate").value = work?.start_date || "";
+    const help = $("registrationWorkMatch");
+    if (help) help.textContent = work
+      ? `Obra ${work.work_number} · ${work.name}. Cliente: ${work.client_name}. Início: ${dateBR(work.start_date)}.`
+      : "Selecione uma obra cadastrada para herdar cliente e início.";
   }
 
   function normalizeMeasure(value) {
@@ -706,23 +729,6 @@ export function initializeOperations({ operationsRepository, listPieceMoldOption
     $("registrationVolumeM3").textContent = valid ? formatNumber(volumeCm3 / 1_000_000, 6) : "—";
     $("registrationWeightKg").textContent = valid ? formatNumber(volumeCm3 * 2.5 / 1000, 3) : "—";
   }
-  function populateExistingWork() {
-    const number = $("registrationWorkNumber")?.value.trim().toLocaleUpperCase();
-    const work = (state.data?.works || []).find((item) => String(item.work_number || "").trim().toLocaleUpperCase() === number);
-    const message = $("registrationWorkMatch");
-    if (!message) return;
-    if (!work) {
-      message.textContent = "Se o número da obra já existir, seus dados serão atualizados nesta gravação.";
-      return;
-    }
-    $("registrationWorkName").value = work.name || "";
-    $("registrationResponsible").value = work.responsible_name || "";
-    $("registrationClient").value = work.client_name || "";
-    $("registrationAddress").value = work.address || "";
-    if (work.start_date) $("registrationStartDate").value = work.start_date;
-    message.textContent = `A obra ${work.work_number} já existe. Os dados informados serão atualizados e os pedidos ligados a ela herdarão cliente e início. O prazo será calculado após informar as peças e quantidades.`;
-  }
-
   function ensureStage4() {
     if (state.supportsStage4) return true;
     const message = "Os cadastros novos da Etapa 4 aguardam a migração 007 e a Edge Function operations-admin atualizada no Supabase.";
@@ -741,7 +747,7 @@ export function initializeOperations({ operationsRepository, listPieceMoldOption
 
   function openWorkForm(work = null) {
     const body = `<div class="ops-form-grid">
-      ${inputField("workNumber", "Número da obra", work?.work_number || "", "text", { optional: true })}
+      <div class="ops-form-hint full">${work ? `Obra ${escapeHtml(work.work_number)}.` : "O número da obra será gerado com 6 dígitos ao salvar."}</div>
       ${inputField("name", "Nome da obra", work?.name || "", "text", { required: true })}
       ${inputField("clientName", "Cliente", work?.client_name || "", "text", { required: true, placeholder: "Nome do cliente" })}
       ${inputField("responsibleName", "Responsável", work?.responsible_name || "", "text", { optional: true })}
@@ -943,7 +949,7 @@ export function initializeOperations({ operationsRepository, listPieceMoldOption
     const dimensionYLabel = isPlate ? "Altura (cm)" : "Comprimento Y (cm)";
     const dimensionZLabel = isPlate ? "Espessura (cm)" : "Dimensão Z (cm)";
     const body = `<div class="ops-form-grid">
-      ${inputField("code", "Código da peça", piece?.code || "", "text", { required: true })}
+      <div class="ops-form-hint full">${piece ? `Peça ${escapeHtml(piece.code)}.` : "O número da peça será gerado com 7 dígitos ao salvar."}</div>
       ${inputField("name", "Nome da peça", piece?.name || "", "text", { required: true })}
       ${selectField("pieceKind", "Tipo de peça", piece?.piece_kind || "", typeOptions, { required: true, placeholder: "Selecione braço, pilar, viga ou placa" })}
       ${inputField("dimensionXcm", dimensionXLabel, piece?.dimension_x_cm ?? "", "number", { min: 0.001, step: "0.001", required: true })}
@@ -1328,7 +1334,9 @@ export function initializeOperations({ operationsRepository, listPieceMoldOption
   }
 
   function registrationClientName(form) {
-    return formValue(form, formValue(form, "registrationWorkMode") === "sem_obra" ? "registrationManualClient" : "registrationClient");
+    const mode = formValue(form, "registrationWorkMode");
+    return mode === "obra_existente" ? selectedRegistrationWork()?.client_name || ""
+      : formValue(form, mode === "sem_obra" ? "registrationManualClient" : "registrationClient");
   }
 
   function renderRegistrationItems() {
@@ -1358,12 +1366,12 @@ export function initializeOperations({ operationsRepository, listPieceMoldOption
     const form = $("operationsForm");
     const button = $("registrationSaveItem");
     if (!form.dataset.orderId || !button || button.disabled) return;
-    const requiredValues = ["registrationPieceCode", "registrationPieceName", "registrationPieceKind"];
+    const requiredValues = ["registrationPieceName", "registrationPieceKind"];
     const missing = requiredValues.some((id) => !String($(id)?.value || "").trim());
     const requiredNumbers = ["registrationQuantity", "registrationDimensionX", "registrationDimensionY", "registrationDimensionZ"];
     const invalid = requiredNumbers.map((id) => $(id)).find((field) => !field?.checkValidity() || !Number.isFinite(Number(field.value)) || Number(field.value) <= 0);
     if (missing) {
-      showModalError("Preencha o código, o nome e o tipo da peça.");
+      showModalError("Preencha o nome e o tipo da peça.");
       return;
     }
     if (invalid) { invalid.reportValidity(); return; }
@@ -1388,7 +1396,6 @@ export function initializeOperations({ operationsRepository, listPieceMoldOption
     try {
       const response = await operationsRepository.addOrderPieceItem({
         orderId: form.dataset.orderId,
-        pieceCode: formValue(form, "registrationPieceCode"),
         pieceName: formValue(form, "registrationPieceName"),
         pieceKind: kind,
         quantity: Number(formValue(form, "registrationQuantity")),
@@ -1402,9 +1409,10 @@ export function initializeOperations({ operationsRepository, listPieceMoldOption
       });
       renderRegistrationDeadline(response?.planning || {});
       const positions = response?.planning?.positionCodes || response?.registration?.positionCodes || [];
+      const pieceCode = /^\d{7}$/.test(String(response?.pieceCode || "")) ? response.pieceCode : "Número em atualização";
       const typeLabels = { braco: "Braço", pilar: "Pilar", viga: "Viga", placa: "Placa" };
       savedItems.push({
-        code: formValue(form, "registrationPieceCode").toLocaleUpperCase(),
+        code: pieceCode,
         name: formValue(form, "registrationPieceName"),
         kindLabel: typeLabels[kind],
         quantity: Number(formValue(form, "registrationQuantity")),
@@ -1417,15 +1425,15 @@ export function initializeOperations({ operationsRepository, listPieceMoldOption
       });
       form.dataset.registrationSavedItems = JSON.stringify(savedItems);
       renderRegistrationItems();
-      showModalSuccess(`Item ${formValue(form, "registrationPieceCode").toLocaleUpperCase()} salvo no pedido.`);
-      for (const id of ["registrationPieceCode", "registrationPieceName", "registrationDimensionX", "registrationDimensionY", "registrationDimensionZ", "registrationPieceObservations", "registrationItemObservations"]) {
+      showModalSuccess(`Peça ${pieceCode} salva no pedido.`);
+      for (const id of ["registrationPieceName", "registrationDimensionX", "registrationDimensionY", "registrationDimensionZ", "registrationPieceObservations", "registrationItemObservations"]) {
         const field = $(id);
         if (field) field.value = "";
       }
       $("registrationQuantity").value = "1";
       updateRegistrationMetrics();
       updateRegistrationPositionHint();
-      $("registrationPieceCode").focus();
+      $("registrationPieceName").focus();
       await refreshData(true);
     } catch (error) {
       showModalError(error.message || "Não foi possível salvar o item.");
@@ -1461,14 +1469,16 @@ export function initializeOperations({ operationsRepository, listPieceMoldOption
           }
           const workMode = formValue(form, "registrationWorkMode");
           const startDate = formValue(form, "registrationStartDate");
-          const linkedToWork = workMode !== "sem_obra";
+          const linkedToWork = workMode === "nova_obra";
+          const existingWork = workMode === "obra_existente" ? selectedRegistrationWork() : null;
+          if (workMode === "obra_existente" && !existingWork) throw new Error("Selecione uma obra cadastrada.");
           const response = await operationsRepository.createOrderHeader({
             clientName: registrationClientName(form),
             startDate,
             requestedDueDate: null,
             orderObservations: formValue(form, "registrationOrderObservations"),
+            workId: existingWork?.id || null,
             work: linkedToWork ? {
-              workNumber: formValue(form, "registrationWorkNumber"),
               name: formValue(form, "registrationWorkName"),
               responsibleName: formValue(form, "registrationResponsible"),
               address: formValue(form, "registrationAddress"),
@@ -1481,7 +1491,7 @@ export function initializeOperations({ operationsRepository, listPieceMoldOption
           form.dataset.orderId = String(header?.orderId || header?.id || "");
           form.dataset.orderNumber = String(header?.orderNumber || header?.order_number || "");
           if (!form.dataset.orderId) throw new Error("O pedido foi recebido, mas o banco não retornou o identificador para incluir itens.");
-          $("registrationSavedOrderLabel").textContent = `Pedido ${form.dataset.orderNumber} salvo`;
+          $("registrationSavedOrderLabel").textContent = `Pedido ${form.dataset.orderNumber} salvo${header?.workNumber ? ` · Obra ${header.workNumber}` : ""}`;
           form.dataset.registrationStep = "2";
           $("operationsModalBody").querySelector('[data-registration-step="1"]').hidden = true;
           $("operationsModalBody").querySelector('[data-registration-step="2"]').hidden = false;
@@ -1491,7 +1501,7 @@ export function initializeOperations({ operationsRepository, listPieceMoldOption
           save.textContent = "Concluir por agora";
           updateRegistrationMoldFields();
           updateRegistrationMetrics();
-          $("registrationPieceCode").focus();
+          $("registrationPieceName").focus();
           return;
         }
         const count = JSON.parse(form.dataset.registrationSavedItems || "[]").length;
@@ -1501,7 +1511,6 @@ export function initializeOperations({ operationsRepository, listPieceMoldOption
       } else if (kind === "work") {
         const response = await operationsRepository.saveWork({
           id,
-          workNumber: formValue(form, "workNumber"),
           name: formValue(form, "name"),
           clientName: formValue(form, "clientName"),
           address: formValue(form, "address"),
@@ -1511,8 +1520,9 @@ export function initializeOperations({ operationsRepository, listPieceMoldOption
           status: formValue(form, "status"),
           observations: formValue(form, "observations"),
         });
-        if (response?.planning?.warning) savedNotice = `Obra salva. ${response.planning.warning}`;
+        if (response?.planning?.warning) savedNotice = `Obra ${response?.work?.work_number || ""} salva. ${response.planning.warning}`;
         else if (response?.planning?.committed) savedNotice = "Obra salva e pedidos vinculados replanejados.";
+        else savedNotice = `Obra ${response?.work?.work_number || ""} salva.`;
       } else if (kind === "order") {
         const workId = formValue(form, "orderWorkId");
         const clientName = formValue(form, "clientName");
@@ -1623,7 +1633,6 @@ export function initializeOperations({ operationsRepository, listPieceMoldOption
         const pieceKind = formValue(form, "pieceKind");
         const pieceRecord = {
           id,
-          code: formValue(form, "code"),
           name: formValue(form, "name"),
           dimensionXcm: formValue(form, "dimensionXcm"),
           dimensionYcm: formValue(form, "dimensionYcm"),
@@ -1639,8 +1648,9 @@ export function initializeOperations({ operationsRepository, listPieceMoldOption
             ? { braco: formValue(form, "pieceMoldBraco") }
             : { leito: formValue(form, "pieceMoldLeito"), lateral: formValue(form, "pieceMoldLateral") },
         });
-        if (response?.planning?.warning) savedNotice = `${pieceKind === "placa" ? "Placa" : "Peça"} salva. ${response.planning.warning}`;
-        else if (response?.planning?.committed) savedNotice = `${pieceKind === "placa" ? "Placa" : "Peça"} salva e planejamento recalculado.`;
+        if (response?.planning?.warning) savedNotice = `Peça ${response?.pieceType?.code || ""} salva. ${response.planning.warning}`;
+        else if (response?.planning?.committed) savedNotice = `Peça ${response?.pieceType?.code || ""} salva e planejamento recalculado.`;
+        else savedNotice = `Peça ${response?.pieceType?.code || ""} salva.`;
       } else if (kind === "mold") {
         await operationsRepository.saveMold({
           id,

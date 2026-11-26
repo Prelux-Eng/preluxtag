@@ -1,5 +1,5 @@
 // Versão do shell do app; avance sempre que mudar HTML, CSS ou JavaScript.
-const CACHE_NAME = "prelux-emissor-etiquetas-v42";
+const CACHE_NAME = "prelux-emissor-etiquetas-v43";
 const APP_SHELL = [
   "./",
   "./index.html",
@@ -7,7 +7,7 @@ const APP_SHELL = [
   "./css/operations.css?v=10",
   "./css/prelux-refresh.css?v=7",
   "./css/planning-print.css?v=2",
-  "./js/main.js?v=11",
+  "./js/main.js?v=12",
   "./js/core/api.js",
   "./js/core/navigation.js",
   "./js/domain/mold-compatibility.js",

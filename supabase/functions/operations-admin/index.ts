@@ -11,6 +11,7 @@ import { calculatePieceMetrics } from "../_shared/piece-metrics.js";
 import { calculatePlateMetrics } from "../_shared/plate-metrics.js";
 import { getCurrentEngineeringParameters } from "../_shared/engineering-service.js";
 import { addOrderPieceItem, createOrderHeader, createOrderPieceRegistration } from "../_shared/registration-service.js";
+import { nextRegistrationCode } from "../_shared/registration-codes.js";
 import { createAdminClient } from "../_shared/supabaseClient.js";
 
 const WORK_STATUSES = new Set(["planejamento", "ativa", "concluida", "cancelada"]);
@@ -20,6 +21,17 @@ const POSITION_STATUSES = new Set(["disponivel", "em_preparacao", "em_producao",
 const PREPARATION_STATUSES = new Set(["planejada", "em_andamento", "aguardando_aprovacao", "aprovada", "reprovada", "cancelada"]);
 const ALLOCATION_STATUSES = new Set(["planned", "in_progress", "done", "cancelled"]);
 const DELETE_KINDS = new Set(["order", "piece_type", "mold"]);
+
+// Edições conservam o número original; somente cadastros novos consomem sequência.
+async function stableRegistrationCode(db: any, organizationId: string, table: "works" | "piece_types", id: string | null) {
+  if (!id) return nextRegistrationCode(db, table === "works" ? "work" : "piece");
+  const column = table === "works" ? "work_number" : "code";
+  const { data, error } = await db.from(table).select(column)
+    .eq("organization_id", organizationId).eq("id", id).maybeSingle();
+  if (error) throwDbError(error, "Não foi possível consultar o número atual do cadastro.");
+  if (!data?.[column]) throw badRequest("Cadastro não encontrado ou sem número.", 404);
+  return data[column] as string;
+}
 
 function badRequest(message: string, status = 400) {
   return Object.assign(new Error(message), { status });
@@ -445,9 +457,10 @@ async function handler(request: Request) {
 
     if (action === "save_work") {
       const clientId = await resolveClientId(db, organizationId, input);
+      const workId = textValue(input.id, "o identificador", 80) || null;
       const record = {
-        id: textValue(input.id, "o identificador", 80) || null,
-        workNumber: textValue(input.workNumber, "o número da obra", 80),
+        id: workId,
+        workNumber: await stableRegistrationCode(db, organizationId, "works", workId),
         name: textValue(input.name, "o nome da obra", 180, true),
         clientId,
         address: textValue(input.address, "o endereço", 300),
@@ -710,9 +723,10 @@ async function handler(request: Request) {
         concreteDensityKgM3: parameters.concreteDensityKgM3,
       });
       const castingMinutes = await castingMinutesForLegacyFields(db, organizationId);
+      const pieceId = textValue(input.id, "o identificador", 80) || null;
       const record = {
-        id: textValue(input.id, "o identificador", 80) || null,
-        code: textValue(input.code, "o código da peça", 60, true),
+        id: pieceId,
+        code: await stableRegistrationCode(db, organizationId, "piece_types", pieceId),
         name: textValue(input.name, "o nome da peça", 180, true),
         pieceKind,
         dimensionXcm,
@@ -758,9 +772,10 @@ async function handler(request: Request) {
         concreteDensityKgM3: parameters.concreteDensityKgM3,
       });
       const castingMinutes = await castingMinutesForLegacyFields(db, organizationId);
+      const pieceId = textValue(input.id, "o identificador", 80) || null;
       const record = {
-        id: textValue(input.id, "o identificador", 80) || null,
-        code: textValue(input.code, "o código da placa", 60, true),
+        id: pieceId,
+        code: await stableRegistrationCode(db, organizationId, "piece_types", pieceId),
         name: textValue(input.name, "o nome da placa", 180, true),
         dimensionXcm,
         dimensionYcm,

@@ -36,8 +36,10 @@ Em uma instalação nova, aplique os arquivos em ordem:
 27. `supabase/migrations/20261117144307_engineering_parameter_versions.sql`
 28. `supabase/migrations/20261117144318_idempotent_plan_confirmation.sql`
 29. `supabase/migrations/20261117144324_label_versions_and_print_audit.sql`
+30. `supabase/migrations/20261118112946_use_casting_minutes_capacity.sql`
+31. `supabase/migrations/20261126122132_auto_work_piece_numbers.sql`
 
-O Supabase ativo contém a estrutura descrita até a migration 029. A 012 atualiza a regra de
+O Supabase ativo contém a estrutura descrita até a migration 031. A 012 atualiza a regra de
 alocação das posições; a 013 ajusta a carga legada de concretagem. A 014
 registra a ordem de aprovação para a simulação. Os arquivos ficam em `database/` e não são executados
 automaticamente pelo `supabase db push`.
@@ -48,6 +50,11 @@ pedido aprovado à versão usada. A 028 grava recibos idempotentes somente nas
 confirmações explícitas do Planejamento; simulações continuam sem escrita.
 Os scripts `database/015` e `database/016` são cópias de leitura dessas
 migrations, cuja fonte aplicável fica em `supabase/migrations/`.
+
+A migration 031 cria duas sequências PostgreSQL para novos cadastros: obra com
+6 dígitos (`000001`) e peça com 7 dígitos (`0000001`). Os identificadores
+antigos permanecem intactos. A função de cadastro reserva o próximo número
+antes de gravar; uma tentativa que falhe pode deixar um intervalo na sequência.
 
 A 022 introduz a exclusão de cadastros sem dependências históricas. A 026
 permite apagar pedidos em qualquer etapa: itens, produção, etiquetas e demais

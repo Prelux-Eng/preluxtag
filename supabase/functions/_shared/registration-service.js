@@ -7,6 +7,7 @@ import { simulateAndPersistFactoryDeadlines } from "./factory-plan-service.js";
 import { calculatePieceMetrics } from "./piece-metrics.js";
 import { getCurrentEngineeringParameters } from "./engineering-service.js";
 import { registrationRepository } from "./registration-repository.js";
+import { nextRegistrationCode } from "./registration-codes.js";
 
 function invalid(message, status = 422) {
   throw Object.assign(new Error(message), { status });
@@ -106,13 +107,33 @@ export async function createOrderPieceRegistration(db, organizationId, input) {
 /** Salva primeiro o cabeçalho do pedido; a obra é opcional e pode ser criada ou atualizada. */
 export async function createOrderHeader(db, organizationId, input) {
   const orderId = crypto.randomUUID();
-  const linkedWork = input.work && typeof input.work === "object" ? input.work : null;
+  let linkedWork = input.work && typeof input.work === "object" ? input.work : null;
+  if (input.workId) {
+    const { data: existingWork, error: workError } = await db.from("works")
+      .select("id, work_number, name, client_id, address, responsible_name, start_date")
+      .eq("organization_id", organizationId).eq("id", input.workId).eq("is_active", true).maybeSingle();
+    if (workError) throwDatabaseError(workError, "Não foi possível consultar a obra selecionada.");
+    if (!existingWork?.work_number || !existingWork.start_date) invalid("A obra selecionada precisa ter número e data de início.", 422);
+    const { data: existingClient, error: clientError } = await db.from("clients")
+      .select("name").eq("organization_id", organizationId).eq("id", existingWork.client_id).maybeSingle();
+    if (clientError) throwDatabaseError(clientError, "Não foi possível consultar o cliente da obra.");
+    if (!existingClient?.name) invalid("A obra selecionada não tem cliente válido.", 422);
+    linkedWork = {
+      workNumber: existingWork.work_number,
+      name: existingWork.name,
+      responsibleName: existingWork.responsible_name,
+      address: existingWork.address,
+      clientName: existingClient.name,
+      startDate: existingWork.start_date,
+    };
+  }
   const startDate = isoDate(linkedWork?.startDate || input.startDate);
   // A data só pode ser calculada depois que as quantidades entrarem no pedido.
   const requestedDueDate = null;
   const clientName = requiredText(linkedWork?.clientName || input.clientName, "o cliente", 180);
   const work = linkedWork ? {
-    workNumber: requiredText(linkedWork.workNumber, "o número da obra", 80).toLocaleUpperCase(),
+    // A seleção existente usa seu número estável; uma obra nova recebe o próximo no banco.
+    workNumber: input.workId ? linkedWork.workNumber : await nextRegistrationCode(db, "work"),
     name: requiredText(linkedWork.name, "o nome da obra", 180),
     responsibleName: String(linkedWork.responsibleName || "").trim(),
     address: String(linkedWork.address || "").trim(),
@@ -163,7 +184,7 @@ export async function createOrderHeader(db, organizationId, input) {
     }
     throwDatabaseError(error, "Não foi possível salvar o pedido inicial.");
   }
-  return { order: data };
+  return { order: { ...data, workNumber: work?.workNumber || null } };
 }
 
 function catalogMeasure(value) {
@@ -214,7 +235,7 @@ export async function addOrderPieceItem(db, organizationId, input) {
   const piece = {
     id: pieceId,
     organization_id: organizationId,
-    code: requiredText(input.pieceCode, "o código da peça", 60).toLocaleUpperCase(),
+    code: "", // Recebe o sequencial depois da validação das medidas e formas.
     name: requiredText(input.pieceName, "o nome da peça", 180),
     piece_kind: pieceKind,
     production_minutes_per_unit: 0,
@@ -248,6 +269,8 @@ export async function addOrderPieceItem(db, organizationId, input) {
       ? "Não existe forma fixa de braço com as medidas X × Z informadas no catálogo."
       : "Não existe a combinação cadastrada de LEITO X e LATERAL Z para essas medidas.", 422);
   }
+
+  piece.code = await nextRegistrationCode(db, "piece");
 
   // Orçamentos podem ser simulados no Planejamento, mas não gravam alocações.
   // Somente pedidos aprovados entram na fila que confirma posições.
@@ -309,6 +332,7 @@ export async function addOrderPieceItem(db, organizationId, input) {
 
   return {
     registration: data,
+    pieceCode: piece.code,
     planning: {
       committed: !isBudget && !planningError,
       simulatedOnly: isBudget,
