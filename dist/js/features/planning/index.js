@@ -20,6 +20,16 @@ async function waitForPrintImage(image) {
 
 export function initializePlanning({ planningRepository, operationsRepository, navigate }) {
   const $ = (id) => document.getElementById(id);
+  // Mensagens breves da aba usam o toast compartilhado no layout principal.
+  function showToast(message) {
+    const element = $("toast");
+    if (!element) return;
+    element.textContent = String(message ?? "");
+    element.classList.add("show");
+    clearTimeout(showToast.timer);
+    showToast.timer = window.setTimeout(() => element.classList.remove("show"), 3000);
+  }
+
   // Estado da área: dados carregados, visão selecionada e modais atualmente abertos.
   const state = {
     mode: "month",
