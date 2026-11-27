@@ -816,9 +816,9 @@ export function initializeOperations({ operationsRepository, listPieceMoldOption
     const projectSections = engineeringProject?.sections || [];
     const projectEditor = engineeringProject ? `<div class="field full"><label>Distribuição por seções <span>salva junto com o pedido</span></label><p class="ops-form-hint">Ajuste as seções nesta mesma gravação sempre que alterar tipos ou quantidades dos itens.</p><div class="ops-project-sections" id="orderProjectSections">${projectSections.map((section, index) => projectSectionCard(order, section, index)).join("")}</div><div class="ops-inline-actions"><button class="btn" type="button" id="addOrderProjectSection">Adicionar seção</button></div></div>` : "";
     const body = `<div class="ops-form-grid">
-      ${inputField("orderNumber", "Número do pedido", order?.order_number || "", "text", { optional: true })}
+      ${inputField("orderNumber", "Número do pedido", order?.order_number || "", "text", { optional: true, readonly: Boolean(order) })}
       ${selectField("orderWorkId", "Obra", order?.work_id || "", workOptions, { optional: true, placeholder: "Pedido sem obra vinculada" })}
-      ${inputField("clientName", "Cliente (quando não houver obra)", order?.client_name || "", "text", { placeholder: "Cliente do pedido" })}
+      ${inputField("clientName", order?.work_id ? "Cliente da obra" : order ? "Cliente (pedido sem obra)" : "Cliente (quando não houver obra)", order?.client_name || "", "text", { required: true, placeholder: "Nome do cliente" })}
       <div class="ops-form-hint full" id="orderClientHelp">Ao escolher uma obra, o pedido usa automaticamente o cliente cadastrado nela.</div>
       ${inputField("startDate", "Data de início", order?.start_date || today(), "date", { required: true, readonly: Boolean(order?.work_id) })}
       ${inputField("requestedDueDate", "Prazo estimado pelo sistema", order?.requested_due_date || "", "date", { optional: true, readonly: true })}
@@ -934,18 +934,23 @@ export function initializeOperations({ operationsRepository, listPieceMoldOption
     const help = $("orderClientHelp");
     if (!workSelect || !clientInput || !startDateInput || !help) return;
     const work = state.data.works.find((item) => item.id === workSelect.value);
-    clientInput.disabled = Boolean(work);
-    clientInput.required = !work;
+    const clientLabel = document.querySelector('label[for="clientName"]');
+    clientInput.disabled = false;
+    clientInput.required = true;
     startDateInput.readOnly = Boolean(work);
     startDateInput.required = true;
     if (work) {
-      clientInput.value = work.client_name || "";
+      if (clientLabel) clientLabel.firstChild.textContent = "Cliente da obra";
+      if (clientInput.dataset.workId !== work.id) clientInput.value = work.client_name || "";
+      clientInput.dataset.workId = work.id;
       startDateInput.value = work.start_date || "";
       help.textContent = work.start_date
-        ? `Cliente e data de início herdados da obra (${dateBR(work.start_date)}).`
+        ? `Editar este nome altera o cliente da obra e sincroniza os pedidos vinculados. Início herdado da obra (${dateBR(work.start_date)}).`
         : "Cadastre a data de início da obra antes de vincular este pedido.";
     } else {
-      help.textContent = "Sem obra vinculada, informe o cliente e a data de início do pedido.";
+      if (clientLabel) clientLabel.firstChild.textContent = $("operationsForm")?.dataset.recordId ? "Cliente (pedido sem obra)" : "Cliente (quando não houver obra)";
+      clientInput.dataset.workId = "";
+      help.textContent = "Sem obra vinculada, o cliente e a data de início podem ser informados ou alterados neste pedido.";
     }
   }
 
@@ -1543,6 +1548,7 @@ export function initializeOperations({ operationsRepository, listPieceMoldOption
         if (!workId && !clientName) throw new Error("Informe o cliente ou vincule o pedido a uma obra.");
         const work = workId ? state.data.works.find((item) => item.id === workId) : null;
         if (workId && !work?.start_date) throw new Error("Cadastre a data de início da obra antes de vincular este pedido.");
+        let updatedWorkClient = false;
         const startDate = work?.start_date || formValue(form, "startDate");
         const items = [...form.querySelectorAll(".ops-item-row")].map((row) => ({
           itemKey: row.querySelector("[data-item-key]").value,
@@ -1582,6 +1588,20 @@ export function initializeOperations({ operationsRepository, listPieceMoldOption
             throw new Error(`A distribuição das seções precisa fechar exatamente a quantidade do pedido. Confira: ${names}.`);
           }
         }
+        if (work && clientName !== String(work.client_name || "").trim()) {
+          await operationsRepository.saveWork({
+            id: work.id,
+            name: work.name,
+            clientName,
+            address: work.address,
+            responsibleName: work.responsible_name,
+            startDate: work.start_date,
+            requestedDueDate: work.requested_due_date,
+            status: work.status,
+            observations: work.observations,
+          });
+          updatedWorkClient = true;
+        }
         const response = await operationsRepository.saveOrder({
           id,
           orderNumber: formValue(form, "orderNumber"),
@@ -1595,14 +1615,15 @@ export function initializeOperations({ operationsRepository, listPieceMoldOption
           projectSections,
         });
         const savedOrderLabel = engineeringProject ? "Pedido e projeto" : "Pedido";
+        if (updatedWorkClient) savedNotice = "Cliente da obra atualizado; os pedidos vinculados foram sincronizados.";
         if (response?.planning?.simulatedOnly) {
-          savedNotice = `${savedOrderLabel} salvo. Orçamento simulado, sem reserva de posição.`;
+          savedNotice = `${updatedWorkClient ? `${savedNotice} ` : ""}${savedOrderLabel} salvo. Orçamento simulado, sem reserva de posição.`;
         } else if (response?.planning?.warning) {
-          savedNotice = `${savedOrderLabel} ${engineeringProject ? "salvos" : "salvo"}. ${response.planning.warning}`;
+          savedNotice = `${updatedWorkClient ? `${savedNotice} ` : ""}${savedOrderLabel} ${engineeringProject ? "salvos" : "salvo"}. ${response.planning.warning}`;
         } else if (response?.planning?.removedFromPlan) {
-          savedNotice = `${savedOrderLabel} ${engineeringProject ? "atualizados" : "atualizado"} e fila de produção recalculada.`;
+          savedNotice = `${updatedWorkClient ? `${savedNotice} ` : ""}${savedOrderLabel} ${engineeringProject ? "atualizados" : "atualizado"} e fila de produção recalculada.`;
         } else if (response?.planning?.committed) {
-          savedNotice = `${savedOrderLabel} ${engineeringProject ? "salvos" : "salvo"} e ${engineeringProject ? "incluídos" : "incluído"} automaticamente no planejamento.`;
+          savedNotice = `${updatedWorkClient ? `${savedNotice} ` : ""}${savedOrderLabel} ${engineeringProject ? "salvos" : "salvo"} e ${engineeringProject ? "incluídos" : "incluído"} automaticamente no planejamento.`;
         }
         if (response?.planning?.estimatedDueDate) {
           savedNotice += ` Prazo estimado pelo sistema: ${dateBR(response.planning.estimatedDueDate)}.`;

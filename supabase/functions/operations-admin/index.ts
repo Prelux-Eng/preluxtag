@@ -560,10 +560,15 @@ async function handler(request: Request) {
         throw badRequest("O prazo do pedido não pode ser anterior ao início.");
       }
       const previousOrderResult = order.id
-        ? await db.from("orders").select("status")
+        ? await db.from("orders").select("status, order_number")
           .eq("organization_id", organizationId).eq("id", order.id).maybeSingle()
         : { data: null, error: null };
       if (previousOrderResult.error) throwDbError(previousOrderResult.error, "Não foi possível conferir o status atual do pedido.");
+      // O número identifica o pedido. A edição preserva o valor persistido,
+      // mesmo que um cliente modificado tente enviar outro pelo formulário.
+      if (order.id && previousOrderResult.data) {
+        order.orderNumber = previousOrderResult.data.order_number || order.orderNumber;
+      }
       if ((!previousOrderResult.data || previousOrderResult.data.status === "orcamento")
         && ["aprovado", "em_producao", "concluido", "atrasado", "entregue"].includes(order.status)) {
         throw badRequest("A aprovação deve ser feita na área Planejamento, junto com a confirmação da reserva de posições.", 409);
