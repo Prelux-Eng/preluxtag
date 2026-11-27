@@ -6,7 +6,7 @@
 export function initializeOperations({ operationsRepository, listPieceMoldOptions, navigate }) {
   const $ = (id) => document.getElementById(id);
   // Estado temporário da tela; os registros definitivos permanecem no Supabase.
-  const state = { data: null, tab: "orders", cadastroOpen: false, loading: false, query: "", supportsStage4: false, supportsFabio2: false };
+  const state = { data: null, tab: "orders", cadastroOpen: false, loading: false, refreshPromise: null, refreshPending: false, lastResumeRefreshAt: 0, query: "", supportsStage4: false, supportsFabio2: false };
   const cadastroTabs = [
     ["works", "Obras"],
     ["pieces", "Peças"],
@@ -101,7 +101,7 @@ export function initializeOperations({ operationsRepository, listPieceMoldOption
       </section>
       <div class="toolbar operations-toolbar" id="operationsMetricsToolbar">
         <h2 id="operationsSectionHeading">Indicadores</h2>
-        <div class="actions"><button class="btn primary" id="operationsNew" type="button">Novo pedido</button><button class="btn" id="operationsRefresh" type="button">Atualizar</button></div>
+        <div class="actions"><button class="btn primary" id="operationsNew" type="button">Novo pedido</button></div>
       </div>
       <div class="metric-grid" id="operationsMetrics">
         <div class="card metric-card"><small>Obras ativas</small><strong id="operationsWorksMetric">—</strong></div>
@@ -123,7 +123,6 @@ export function initializeOperations({ operationsRepository, listPieceMoldOption
         </div>
       </div>`;
     renderTabs();
-    $("operationsRefresh").addEventListener("click", () => refreshData());
     $("operationsNew").addEventListener("click", () => openNew());
     $("operationsOpenCadastro").addEventListener("click", () => {
       state.tab = "works";
@@ -304,6 +303,16 @@ export function initializeOperations({ operationsRepository, listPieceMoldOption
   function renderTable(query = state.query) {
     state.query = query;
     if (!state.data) return;
+    const searchWasActive = document.activeElement?.id === "operationsSearch";
+    const selectionStart = searchWasActive ? $("operationsSearch").selectionStart : null;
+    const selectionEnd = searchWasActive ? $("operationsSearch").selectionEnd : null;
+    const restoreSearchFocus = () => {
+      if (!searchWasActive) return;
+      const search = $("operationsSearch");
+      if (!search) return;
+      search.focus({ preventScroll: true });
+      if (selectionStart != null && selectionEnd != null) search.setSelectionRange(selectionStart, selectionEnd);
+    };
     const filter = query.toLocaleLowerCase().trim();
     const data = state.data;
     if (state.tab === "works") {
@@ -351,6 +360,7 @@ export function initializeOperations({ operationsRepository, listPieceMoldOption
     } else if (state.tab === "projects") {
       if (!state.supportsFabio2) {
         $("operationsTable").innerHTML = `<div class="calendar-placeholder"><div><strong>Projetos de engenharia aguardam a Etapa 5</strong><p>A migração 009 habilita a divisão dos itens de cada pedido em seções do projeto.</p></div></div>`;
+        restoreSearchFocus();
         return;
       }
       $("operationsTable").innerHTML = tableHeader("Projetos por pedido", "Organize os itens de um pedido em seções e controle a quantidade distribuída.", "Pesquisar projeto, pedido ou cliente", ["Pedido", "Cliente", "Seções", "Itens distribuídos", "Ações"]);
@@ -372,6 +382,7 @@ export function initializeOperations({ operationsRepository, listPieceMoldOption
       }).join("") : `<tr><td colspan="5" class="empty">Ainda não há projetos de engenharia. Crie um projeto a partir de um pedido ativo.</td></tr>`;
     } else if (state.tab === "produzir") {
       renderProduction(filter);
+      restoreSearchFocus();
       return;
     } else if (state.tab === "pieces") {
       $("operationsTable").innerHTML = tableHeader("Catálogo de peças", "Tipos fixos, dimensões em centímetros e métricas calculadas automaticamente.", "Pesquisar código ou peça", ["Código / peça", "Tipo", "Medidas (cm)", "Volume / peso", "Etapas", "Formas", "Ações"]);
@@ -388,12 +399,15 @@ export function initializeOperations({ operationsRepository, listPieceMoldOption
     } else {
       if (state.tab === "positions") {
         renderPositions(filter);
+        restoreSearchFocus();
         return;
       }
       renderMolds(filter);
+      restoreSearchFocus();
       return;
     }
     $("operationsSearch").addEventListener("input", (event) => { state.query = event.target.value; renderTable(state.query); });
+    restoreSearchFocus();
   }
 
   function renderProduction(filter) {
@@ -1715,7 +1729,20 @@ export function initializeOperations({ operationsRepository, listPieceMoldOption
   // Atualiza o estado local da aba a partir do backend, sem alterar o banco
   // durante a inicialização do módulo.
   async function refreshData(silent = false) {
-    if (state.loading) return;
+    if (state.refreshPromise) {
+      state.refreshPending = true;
+      return state.refreshPromise;
+    }
+    state.refreshPromise = (async () => {
+      do {
+        state.refreshPending = false;
+        await refreshDataNow(silent);
+      } while (state.refreshPending);
+    })().finally(() => { state.refreshPromise = null; });
+    return state.refreshPromise;
+  }
+
+  async function refreshDataNow(silent = false) {
     state.loading = true;
     if (!silent) showStatus("Atualizando cadastros…");
     try {
@@ -1726,7 +1753,8 @@ export function initializeOperations({ operationsRepository, listPieceMoldOption
       state.supportsFabio2 = response?.fabio2Available === true && Number(response?.schemaVersion || 0) >= 5;
       renderMetrics();
       state.query = $("operationsSearch")?.value || state.query;
-      renderTable(state.query);
+      // Não substituir o formulário aberto nem interromper a digitação durante a sincronização.
+      if ($("operationsModal").hidden) renderTable(state.query);
       showStatus(state.supportsStage4
         ? state.supportsFabio2
           ? "Pedidos, cadastro e projetos de engenharia conectados ao banco PRELUX."
@@ -1756,5 +1784,20 @@ export function initializeOperations({ operationsRepository, listPieceMoldOption
     }
     refreshData();
   });
+  const isOperationsViewActive = () =>
+    !$("operationsView").hidden && document.visibilityState === "visible";
+  const canAutoRefreshOperations = () =>
+    isOperationsViewActive() && $("operationsModal").hidden && document.activeElement?.id !== "operationsSearch";
+  const refreshOperationsOnResume = () => {
+    if (!canAutoRefreshOperations() || Date.now() - state.lastResumeRefreshAt < 5_000) return;
+    state.lastResumeRefreshAt = Date.now();
+    refreshData(true);
+  };
+  window.setInterval(() => {
+    if (!canAutoRefreshOperations()) return;
+    refreshData(true);
+  }, 30_000);
+  window.addEventListener("focus", refreshOperationsOnResume);
+  document.addEventListener("visibilitychange", refreshOperationsOnResume);
   window.addEventListener("prelux:labels:select", () => navigate("etiquetas"));
 }

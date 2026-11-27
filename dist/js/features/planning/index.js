@@ -48,6 +48,11 @@ export function initializePlanning({ planningRepository, operationsRepository, n
     dragContext: null,
     refreshPromise: null,
     refreshPending: false,
+    refreshRebuildCalendar: false,
+    refreshQuiet: true,
+    simulationTimer: null,
+    deferredRefresh: null,
+    lastResumeRefreshAt: 0,
   };
   const activeStatuses = new Set(["orcamento", "aprovado", "em_producao", "atrasado"]);
   const terminalStatuses = new Set(["concluido", "entregue", "cancelado"]);
@@ -538,7 +543,7 @@ export function initializePlanning({ planningRepository, operationsRepository, n
     renderPlanningBacklog();
     if (!state.days.length) {
       $('planningCalendarState').className = "calendar-placeholder";
-      $('planningCalendarState').innerHTML = '<div><strong>Calendário sem dados para este período</strong><p>Atualize o calendário para gerar os dias e habilitar os ajustes e a programação.</p></div>';
+      $('planningCalendarState').innerHTML = '<div><strong>Calendário sem dados para este período</strong><p>Os dados serão atualizados automaticamente ao abrir Planejamento ou após mudanças nos pedidos.</p></div>';
       return;
     }
     if (state.mode === "week") renderWeek();
@@ -551,10 +556,15 @@ export function initializePlanning({ planningRepository, operationsRepository, n
   // entram automaticamente na fila calculada pelo servidor.
   function renderScenario() {
     const selector = $('planningScenarioQuotes');
+    const focusedQuoteId = selector.contains(document.activeElement) ? document.activeElement.value : null;
     const quotes = state.orders.filter((order) => order.status === "orcamento" && !state.startedOrderIds.includes(order.id));
     selector.innerHTML = quotes.length ? quotes.map((order) =>
       `<label class="scenario-quote"><input type="checkbox" value="${escapeHtml(order.id)}" ${state.selectedQuoteIds.has(order.id) ? "checked" : ""} />${escapeHtml(formatOrder(order))}</label>`
     ).join("") : '<span class="scenario-empty">Nenhum orçamento disponível para simular.</span>';
+    if (focusedQuoteId) {
+      const replacement = [...selector.querySelectorAll('input[type="checkbox"]')].find((input) => input.value === focusedQuoteId);
+      replacement?.focus({ preventScroll: true });
+    }
     const result = $('planningScenarioResult');
     const confirmButton = $('planningConfirmBtn');
     confirmButton.disabled = state.confirmingScenario || state.scenarioDirty || Boolean(state.simulationError) || !state.scenario?.orderCount;
@@ -566,7 +576,7 @@ export function initializePlanning({ planningRepository, operationsRepository, n
       return;
     }
     if (state.scenarioDirty) {
-      result.innerHTML = '<p class="scenario-empty">A seleção mudou. Clique em <strong>Atualizar simulação</strong> para recalcular o calendário.</p>';
+      result.innerHTML = '<p class="scenario-empty">Calculando a previsão com a seleção atual…</p>';
       return;
     }
     const scenario = state.scenario;
@@ -612,20 +622,40 @@ export function initializePlanning({ planningRepository, operationsRepository, n
     const version = ++state.simulationVersion;
     const selectedIds = [...state.selectedQuoteIds];
     const approved = state.orders.some((order) => ["aprovado", "em_producao", "atrasado"].includes(order.status) && !state.startedOrderIds.includes(order.id));
-    state.scenario = null;
-    state.scenarioUnits = null;
     state.simulationError = "";
-    state.scenarioDirty = false;
-    if (!approved && !selectedIds.length) return;
+    state.scenarioDirty = true;
+    if (!approved && !selectedIds.length) {
+      state.scenario = null;
+      state.scenarioUnits = null;
+      state.scenarioDirty = false;
+      return;
+    }
+    renderScenario();
     try {
       const response = await planningRepository.simulateProduction(selectedIds);
       if (version !== state.simulationVersion) return;
       state.scenario = response.scenario;
       state.scenarioUnits = calendarUnitsFromScenario(response.scenario, state.orders);
+      state.scenarioDirty = false;
     } catch (error) {
       if (version !== state.simulationVersion) return;
       state.simulationError = error.message || "Não foi possível calcular a simulação.";
+      state.scenarioDirty = false;
     }
+  }
+
+  function scheduleScenarioSimulation() {
+    clearTimeout(state.simulationTimer);
+    state.simulationVersion += 1;
+    state.scenario = null;
+    state.scenarioUnits = null;
+    state.simulationError = "";
+    state.scenarioDirty = true;
+    renderCalendar();
+    state.simulationTimer = window.setTimeout(async () => {
+      await simulateSelectedOrders();
+      renderCalendar();
+    }, 180);
   }
 
   async function confirmProductionScenario() {
@@ -991,21 +1021,35 @@ export function initializePlanning({ planningRepository, operationsRepository, n
   }
 
   // Carregamento: evita chamadas duplicadas quando a tela atualiza em sequência.
-  function refreshPlanning() {
+  function refreshPlanning(options = {}) {
+    if (options instanceof Event) options = {};
+    const nextOptions = {
+      rebuildCalendar: options.rebuildCalendar !== false,
+      quiet: options.quiet === true,
+    };
     if (state.refreshPromise) {
       state.refreshPending = true;
+      state.refreshRebuildCalendar ||= nextOptions.rebuildCalendar;
+      state.refreshQuiet &&= nextOptions.quiet;
       return state.refreshPromise;
     }
     state.refreshPromise = (async () => {
+      let currentOptions = nextOptions;
       do {
         state.refreshPending = false;
-        await refreshPlanningNow();
+        await refreshPlanningNow(currentOptions);
+        currentOptions = {
+          rebuildCalendar: state.refreshRebuildCalendar,
+          quiet: state.refreshQuiet,
+        };
+        state.refreshRebuildCalendar = false;
+        state.refreshQuiet = true;
       } while (state.refreshPending);
     })().finally(() => { state.refreshPromise = null; });
     return state.refreshPromise;
   }
 
-  async function refreshPlanningNow() {
+  async function refreshPlanningNow({ rebuildCalendar = true, quiet = false } = {}) {
     const stateContainer = $('planningCalendarState');
     const config = window.PRELUX_CONFIG || {};
     if (!config.supabaseUrl || !config.supabaseAnonKey) {
@@ -1014,10 +1058,12 @@ export function initializePlanning({ planningRepository, operationsRepository, n
       return;
     }
     const range = visibleBounds();
-    stateContainer.className = "calendar-placeholder";
-    stateContainer.innerHTML = '<div><strong>Carregando calendário…</strong><p>Buscando capacidade, exceções e programações.</p></div>';
+    if (!quiet || !state.days.length) {
+      stateContainer.className = "calendar-placeholder";
+      stateContainer.innerHTML = '<div><strong>Carregando calendário…</strong><p>Buscando capacidade, exceções e programações.</p></div>';
+    }
     try {
-      await planningRepository.rebuildCalendar(range.start, range.end);
+      if (rebuildCalendar) await planningRepository.rebuildCalendar(range.start, range.end);
       const [calendar, planning, settings, operations] = await Promise.all([
         planningRepository.getCalendar(range.start, range.end),
         planningRepository.getPlanningData(range.start, range.end),
@@ -1051,6 +1097,7 @@ export function initializePlanning({ planningRepository, operationsRepository, n
       await simulateSelectedOrders();
       renderCalendar();
     } catch (error) {
+      if (quiet && state.days.length) return;
       state.scenario = null;
       state.scenarioUnits = null;
       state.simulationError = error.message || "Não foi possível carregar o planejamento.";
@@ -1059,7 +1106,7 @@ export function initializePlanning({ planningRepository, operationsRepository, n
       stateContainer.className = "calendar-placeholder";
       stateContainer.innerHTML = `<div><strong>Não foi possível carregar o calendário</strong><p>${escapeHtml(error.message || "Verifique a configuração da API.")}</p></div>`;
       $('planningBacklogCount').textContent = "—";
-      $('planningBacklogList').innerHTML = `<p class="planning-backlog-empty">Não foi possível carregar os pedidos do cadastro: ${escapeHtml(error.message || "verifique a conexão e tente atualizar")}</p>`;
+      $('planningBacklogList').innerHTML = `<p class="planning-backlog-empty">Não foi possível carregar os pedidos do cadastro: ${escapeHtml(error.message || "a próxima tentativa será automática")}</p>`;
       $('planningBacklogWorks').hidden = true;
       showToast("Falha ao atualizar o calendário.");
     }
@@ -1285,32 +1332,18 @@ export function initializePlanning({ planningRepository, operationsRepository, n
   $('planningActivityBtn').addEventListener("click", () => openCalendarActivity());
   $('planningSettingsBtn').addEventListener("click", openCalendarSettings);
   $('planningOrderBtn').addEventListener("click", () => $('planningScenario').scrollIntoView({ behavior: "smooth", block: "start" }));
-  $('planningSimulateBtn').addEventListener("click", async () => {
-    const button = $('planningSimulateBtn');
-    button.disabled = true;
-    button.textContent = "Simulando…";
-    await simulateSelectedOrders();
-    renderCalendar();
-    button.disabled = false;
-    button.textContent = "Atualizar simulação";
-  });
   $('planningConfirmBtn').addEventListener("click", confirmProductionScenario);
   $('planningScenarioQuotes').addEventListener("change", (event) => {
     if (!event.target.matches('input[type="checkbox"]')) return;
     if (event.target.checked) state.selectedQuoteIds.add(event.target.value);
     else state.selectedQuoteIds.delete(event.target.value);
-    state.simulationVersion += 1;
-    state.scenario = null;
-    state.scenarioUnits = null;
-    state.scenarioDirty = true;
-    renderCalendar();
+    scheduleScenarioSimulation();
   });
-  $('planningBacklogList').addEventListener("click", async (event) => {
+  $('planningBacklogList').addEventListener("click", (event) => {
     const button = event.target.closest("[data-simulate-order-id]");
     if (!button) return;
     state.selectedQuoteIds.add(button.dataset.simulateOrderId);
-    await simulateSelectedOrders();
-    renderCalendar();
+    scheduleScenarioSimulation();
     $('planningScenario').scrollIntoView({ behavior: "smooth", block: "start" });
   });
   $('planningCalendarState').addEventListener("click", handleCalendarClick);
@@ -1330,11 +1363,53 @@ export function initializePlanning({ planningRepository, operationsRepository, n
       $('planningOrderDue').value = order.requested_due_date || "";
     }
   });
+  function planningViewIsActive() {
+    return !$('planningView').hidden && document.visibilityState === "visible";
+  }
+
+  function planningInteractionIsActive() {
+    const active = document.activeElement;
+    const editingField = active && $('planningView').contains(active) && active.matches("input, select, textarea");
+    const openDialog = ["calendarDayModal", "calendarActivityModal", "calendarSettingsModal", "orderPlanModal"]
+      .some((id) => !$(id).hidden);
+    return Boolean(editingField || openDialog);
+  }
+
+  function requestPlanningRefresh(options = {}) {
+    if (!planningViewIsActive()) return;
+    if (planningInteractionIsActive()) {
+      state.deferredRefresh = options;
+      return;
+    }
+    refreshPlanning(options);
+  }
+
+  function refreshPlanningOnResume() {
+    if (!planningViewIsActive() || planningInteractionIsActive()) return;
+    if (Date.now() - state.lastResumeRefreshAt < 5_000) return;
+    state.lastResumeRefreshAt = Date.now();
+    refreshPlanning({ rebuildCalendar: false, quiet: true });
+  }
+
+  $('planningView').addEventListener("focusout", () => {
+    window.setTimeout(() => {
+      if (!state.deferredRefresh || planningInteractionIsActive()) return;
+      const options = state.deferredRefresh;
+      state.deferredRefresh = null;
+      requestPlanningRefresh(options);
+    }, 0);
+  });
   window.addEventListener("prelux:operations:changed", () => {
-    if (!$('planningView').hidden) refreshPlanning();
+    requestPlanningRefresh({ rebuildCalendar: false, quiet: true });
   });
   // A navegação sinaliza a abertura da aba; atualizamos o calendário nesse momento.
-  window.addEventListener("prelux:planning:open", refreshPlanning);
+  window.addEventListener("prelux:planning:open", () => refreshPlanning());
+  window.setInterval(() => {
+    if (!planningViewIsActive() || planningInteractionIsActive()) return;
+    refreshPlanning({ rebuildCalendar: false, quiet: true });
+  }, 30_000);
+  window.addEventListener("focus", refreshPlanningOnResume);
+  document.addEventListener("visibilitychange", refreshPlanningOnResume);
   $('closeCalendarDay').addEventListener("click", closeCalendarDay);
   $('cancelCalendarDay').addEventListener("click", closeCalendarDay);
   $('calendarDayModal').addEventListener("click", (event) => { if (event.target.id === "calendarDayModal") closeCalendarDay(); });
