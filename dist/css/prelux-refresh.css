@@ -844,3 +844,203 @@ textarea:focus-visible {
     text-align: left;
   }
 }
+
+/* Ajustes de leitura, espaço e adaptação entre telas. */
+body {
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.nav button {
+  font-size: 12px;
+}
+
+.btn {
+  min-height: 38px;
+  font-size: 13px;
+}
+
+.operations-hero p {
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.operations-view .metric-grid {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 190px), 1fr));
+  gap: 10px;
+}
+
+.operations-view .metric-card small,
+.planning-view .metric-card small {
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.operations-status,
+.operations-list-head p,
+.operations-section-heading p,
+.planning-backlog-head p,
+.scenario-caption,
+.scenario-empty {
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.operations-table th,
+.operations-table td {
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.operations-table th {
+  font-size: 11px;
+}
+
+.operations-table .muted {
+  font-size: 11px;
+}
+
+.field > label,
+.day-form .field > label,
+.activity-form-grid .field > label {
+  font-size: 13px;
+}
+
+.calendar-weekday {
+  color: #617587;
+  font-size: 11px;
+}
+
+.calendar-day-status,
+.calendar-day-note,
+.calendar-day-minutes,
+.calendar-event,
+.calendar-window-event {
+  font-size: 10px;
+}
+
+.calendar-day-status {
+  letter-spacing: 0;
+}
+
+.calendar-day-capacity {
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.planning-backlog-item-main strong,
+.scenario-order strong {
+  font-size: 13px;
+}
+
+.planning-backlog-item-main span,
+.scenario-order span,
+.scenario-order small {
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+@media (max-width: 1100px) {
+  .nav {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .nav-divider {
+    display: none;
+  }
+
+  .nav button {
+    min-height: 44px;
+    font-size: 11px;
+  }
+}
+
+@media (max-width: 900px) {
+  .planning-view .metric-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .planning-scenario .planning-backlog-head {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .planning-scenario-actions {
+    width: 100%;
+  }
+
+  .calendar-controls {
+    justify-items: stretch;
+  }
+
+  .calendar-controls > .actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 760px) {
+  /* Mantém as sete colunas e os espaços iniciais para preservar o calendário. */
+  .calendar-month-view {
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+  }
+
+  .calendar-month-view .calendar-grid {
+    width: 760px;
+    min-width: 760px;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+  }
+
+  .calendar-month-view .calendar-weekday,
+  .calendar-month-view .calendar-empty {
+    display: block;
+  }
+
+  .calendar-month-view .calendar-empty {
+    min-height: 104px;
+  }
+
+  .calendar-day {
+    min-height: 126px;
+  }
+}
+
+@media (max-width: 520px) {
+  .nav-divider {
+    display: none;
+  }
+
+  .nav button {
+    min-height: 48px;
+    font-size: 10px;
+  }
+
+  .operations-view .metric-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .planning-view .metric-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .planning-backlog-item {
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+  }
+
+  .planning-backlog-item-main {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .planning-backlog-item .btn {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    white-space: normal;
+  }
+}

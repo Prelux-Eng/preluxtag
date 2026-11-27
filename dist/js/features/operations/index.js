@@ -90,7 +90,7 @@ export function initializeOperations({ operationsRepository, listPieceMoldOption
   function shell() {
     $("operationsView").innerHTML = `
       <section class="operations-hero" id="operationsHero">
-        <img class="operations-hero-art" src="assets/prelux-fabrica.png" alt="" aria-hidden="true" />
+        <img class="operations-hero-art" src="assets/prelux-fabrica.png" alt="" aria-hidden="true" decoding="async" fetchpriority="low" />
         <div class="operations-hero-copy">
           <h2>Do pedido à produção</h2>
           <p>Registre obra e peças; acompanhe engenharia, projeto e fabricação.</p>
