@@ -817,7 +817,8 @@ export function initializeOperations({ operationsRepository, listPieceMoldOption
     const projectSections = engineeringProject?.sections || [];
     const projectEditor = engineeringProject ? `<div class="field full"><label>Distribuição por seções <span>salva junto com o pedido</span></label><p class="ops-form-hint">Ajuste as seções nesta mesma gravação sempre que alterar tipos ou quantidades dos itens.</p><div class="ops-project-sections" id="orderProjectSections">${projectSections.map((section, index) => projectSectionCard(order, section, index)).join("")}</div><div class="ops-inline-actions"><button class="btn" type="button" id="addOrderProjectSection">Adicionar seção</button></div></div>` : "";
     const body = `<div class="ops-form-grid">
-      ${inputField("orderNumber", "Número do pedido", order?.order_number || "", "text", { optional: true, readonly: Boolean(order) })}
+      ${inputField("orderNumber", "Número do pedido", order?.order_number || "", "text", { optional: true, readonly: true, placeholder: order?.order_number ? "" : "Gerado automaticamente ao salvar" })}
+      <div class="ops-form-hint full">O número é criado automaticamente pelo sistema e não pode ser alterado.</div>
       ${selectField("orderWorkId", "Obra", order?.work_id || "", workOptions, { optional: true, placeholder: "Pedido sem obra vinculada" })}
       ${inputField("clientName", order?.work_id ? "Cliente da obra" : order ? "Cliente (pedido sem obra)" : "Cliente (quando não houver obra)", order?.client_name || "", "text", { required: true, placeholder: "Nome do cliente" })}
       <div class="ops-form-hint full" id="orderClientHelp">Ao escolher uma obra, o pedido usa automaticamente o cliente cadastrado nela.</div>

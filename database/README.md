@@ -39,8 +39,9 @@ Em uma instalação nova, aplique os arquivos em ordem:
 30. `supabase/migrations/20261118112946_use_casting_minutes_capacity.sql`
 31. `supabase/migrations/20261126122132_auto_work_piece_numbers.sql`
 32. `supabase/migrations/20261127171528_allow_work_client_update.sql`
+33. `supabase/migrations/20261127173940_random_order_numbers.sql`
 
-O Supabase ativo contém a estrutura descrita até a migration 032. A 012 atualiza a regra de
+O Supabase ativo contém a estrutura descrita até a migration 033. A 012 atualiza a regra de
 alocação das posições; a 013 ajusta a carga legada de concretagem. A 014
 registra a ordem de aprovação para a simulação. Os arquivos ficam em `database/` e não são executados
 automaticamente pelo `supabase db push`.
@@ -56,6 +57,11 @@ A migration 031 cria duas sequências PostgreSQL para novos cadastros: obra com
 6 dígitos (`000001`) e peça com 7 dígitos (`0000001`). Os identificadores
 antigos permanecem intactos. A função de cadastro reserva o próximo número
 antes de gravar; uma tentativa que falhe pode deixar um intervalo na sequência.
+
+A migration 033 passa a criar automaticamente números aleatórios no formato
+`PED-XXXX-XXXX` para pedidos novos. Os códigos usam caracteres sem ambiguidade,
+são únicos por unidade e permanecem imutáveis depois da criação. Os pedidos já
+cadastrados mantêm seus números antigos.
 
 A 022 introduz a exclusão de cadastros sem dependências históricas. A 026
 permite apagar pedidos em qualquer etapa: itens, produção, etiquetas e demais
