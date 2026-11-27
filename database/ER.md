@@ -87,6 +87,7 @@ O cadastro de placa usa a nova RPC `save_plate_type(p_org_id, p_record)` com `co
 ## Exclusões, status e cálculos
 
 - As relações pertencentes ao pedido/projeto usam cascata para que itens dependentes não sobrevivam ao pedido; vínculo de cliente em obra/pedido continua protegido por `RESTRICT`; `orders.work_id` continua `SET NULL`.
+- Ao alterar o cliente da obra, `sync_work_fields_to_orders()` atualiza os pedidos vinculados, inclusive os que já iniciaram produção. A data de início mantém sua regra própria e continua protegida após o início da produção.
 - O pedido recebe `concluido` automaticamente quando todas as quantidades dos itens estão cobertas por unidades `production_orders` com status `pronta`. Cada unidade fica pronta depois da conclusão de suas etapas de preparação (quando necessária), concretagem, cura e acabamento. Pedidos concluídos permanecem encerrados para replanejamento e alterações de catálogo.
 - `production_labels` guarda exatamente uma etiqueta por `production_orders.id` quando o pedido é concluído. O ID, o cliente e o texto impresso são um retrato do pedido no momento da conclusão; RLS impede acesso direto pelo navegador.
 - A preparação de forma é calculada com cinco datas úteis inclusivas a partir de `calendar_days`. É necessário gerar o calendário antes de programar a preparação.

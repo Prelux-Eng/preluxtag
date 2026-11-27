@@ -38,8 +38,9 @@ Em uma instalação nova, aplique os arquivos em ordem:
 29. `supabase/migrations/20261117144324_label_versions_and_print_audit.sql`
 30. `supabase/migrations/20261118112946_use_casting_minutes_capacity.sql`
 31. `supabase/migrations/20261126122132_auto_work_piece_numbers.sql`
+32. `supabase/migrations/20261127171528_allow_work_client_update.sql`
 
-O Supabase ativo contém a estrutura descrita até a migration 031. A 012 atualiza a regra de
+O Supabase ativo contém a estrutura descrita até a migration 032. A 012 atualiza a regra de
 alocação das posições; a 013 ajusta a carga legada de concretagem. A 014
 registra a ordem de aprovação para a simulação. Os arquivos ficam em `database/` e não são executados
 automaticamente pelo `supabase db push`.
@@ -176,8 +177,10 @@ Pedidos em orçamento são entradas da simulação sem gravação de reserva. Na
 confirmação, os orçamentos selecionados são aprovados junto com a fila recalculada.
 Uma quantidade sem vaga pode continuar aguardando posição.
 
-`orders.work_id` é opcional. Quando há obra, triggers existentes sincronizam o
-cliente e a data de início; sem obra, esses dados são informados no pedido.
+`orders.work_id` é opcional. Quando há obra, os pedidos herdam o cliente e a
+data de início. Alterar o cliente da obra sincroniza os pedidos vinculados,
+mesmo que já estejam em produção; alterar a data de início continua bloqueado
+depois que a produção começa. Sem obra, cliente e início são informados no pedido.
 O fluxo sem login continua usando Edge Functions públicas com `service_role`
 somente no servidor; RLS não concede escrita direta ao navegador.
 

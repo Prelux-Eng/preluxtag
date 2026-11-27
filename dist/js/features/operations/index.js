@@ -764,6 +764,7 @@ export function initializeOperations({ operationsRepository, listPieceMoldOption
       <div class="ops-form-hint full">${work ? `Obra ${escapeHtml(work.work_number)}.` : "O número da obra será gerado com 6 dígitos ao salvar."}</div>
       ${inputField("name", "Nome da obra", work?.name || "", "text", { required: true })}
       ${inputField("clientName", "Cliente", work?.client_name || "", "text", { required: true, placeholder: "Nome do cliente" })}
+      ${work ? '<div class="ops-form-hint full">Ao alterar o cliente da obra, o novo cliente será aplicado aos pedidos vinculados.</div>' : ""}
       ${inputField("responsibleName", "Responsável", work?.responsible_name || "", "text", { optional: true })}
       ${inputField("address", "Endereço da obra", work?.address || "", "text", { full: true, optional: true })}
       ${inputField("startDate", "Data de início", work?.start_date || "", "date", { optional: true })}
